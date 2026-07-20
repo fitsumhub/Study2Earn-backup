@@ -39,20 +39,20 @@ Study2Earn is a full-stack React application built with **TanStack Start** (SSR-
 
 ### Core value proposition
 
-| Pillar | Description |
-|--------|-------------|
-| **Study** | Official MoE PDF library with 14 books across 5 academic tracks |
-| **Practice** | Timed chapter mock exams (MCQ) for 16 freshman courses |
-| **Compete** | National leaderboard ranked by verified reading time and XP |
-| **Earn** | XP wallet, referral bonuses, redemption catalog, and ETB bank withdrawals |
+| Pillar       | Description                                                               |
+| ------------ | ------------------------------------------------------------------------- |
+| **Study**    | Official MoE PDF library with 14 books across 5 academic tracks           |
+| **Practice** | Timed chapter mock exams (MCQ) for 16 freshman courses                    |
+| **Compete**  | National leaderboard ranked by verified reading time and XP               |
+| **Earn**     | XP wallet, referral bonuses, redemption catalog, and ETB bank withdrawals |
 
 ### User roles
 
-| Role | Access |
-|------|--------|
-| **Guest** | Home, Dashboard, Library, Mock Exams, Profile, Admin (demo) |
-| **Signed-in student** | All guest pages + **Rewards** + **Leaderboard** |
-| **Admin** | `/admin` console — students, content, exams, rewards, withdrawals, moderation |
+| Role                  | Access                                                                        |
+| --------------------- | ----------------------------------------------------------------------------- |
+| **Guest**             | Home, Dashboard, Library, Mock Exams, Profile, Admin (demo)                   |
+| **Signed-in student** | All guest pages + **Rewards** + **Leaderboard**                               |
+| **Admin**             | `/admin` console — students, content, exams, rewards, withdrawals, moderation |
 
 > **Note:** This prototype uses **client-side localStorage** for auth, exam progress, referrals, and withdrawals. There is no real backend API yet.
 
@@ -60,21 +60,21 @@ Study2Earn is a full-stack React application built with **TanStack Start** (SSR-
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | React 19 + TanStack Start 1.x |
-| Routing | TanStack Router (file-based, auto-generated `routeTree.gen.ts`) |
-| Data fetching | TanStack React Query 5 |
-| Build | Vite 7 |
-| SSR / Deploy | Nitro (via `@lovable.dev/vite-tanstack-config`) |
-| Language | TypeScript 5.8 (strict) |
-| Styling | Tailwind CSS 4 + `tw-animate-css` |
-| UI primitives | Radix UI + shadcn/ui pattern (`src/components/ui/`) |
-| Icons | Lucide React |
-| Charts | Recharts |
-| Toasts | Sonner |
-| Forms | React Hook Form + Zod (available; auth uses native forms) |
-| Fonts | Fraunces (serif headings) + Inter (body) via Google Fonts |
+| Layer         | Technology                                                      |
+| ------------- | --------------------------------------------------------------- |
+| Framework     | React 19 + TanStack Start 1.x                                   |
+| Routing       | TanStack Router (file-based, auto-generated `routeTree.gen.ts`) |
+| Data fetching | TanStack React Query 5                                          |
+| Build         | Vite 7                                                          |
+| SSR / Deploy  | Nitro (via `@lovable.dev/vite-tanstack-config`)                 |
+| Language      | TypeScript 5.8 (strict)                                         |
+| Styling       | Tailwind CSS 4 + `tw-animate-css`                               |
+| UI primitives | Radix UI + shadcn/ui pattern (`src/components/ui/`)             |
+| Icons         | Lucide React                                                    |
+| Charts        | Recharts                                                        |
+| Toasts        | Sonner                                                          |
+| Forms         | React Hook Form + Zod (available; auth uses native forms)       |
+| Fonts         | Fraunces (serif headings) + Inter (body) via Google Fonts       |
 
 ---
 
@@ -177,21 +177,21 @@ TanStack Start uses **file-based routing**. Every `src/routes/*.tsx` file maps t
 
 ### Route map
 
-| URL | File | Auth | Description |
-|-----|------|------|-------------|
-| `/` | `index.tsx` | Public | Landing page, hero, featured books, top scholars |
-| `/login` | `login.tsx` | Public | Sign in; supports `?redirect=` and `?ref=` |
-| `/register` | `register.tsx` | Public | Sign up; supports `?ref=` referral code |
-| `/dashboard` | `dashboard.tsx` | Public | Student overview, stats, recent activity |
-| `/library` | `library.tsx` | Public | 14 MoE books, search, filters, PDF viewer sheet |
-| `/exams` | `exams.index.tsx` | Public | 16 mock exam courses |
-| `/exams/:courseId` | `exams.$courseId.index.tsx` | Public | Chapter list with detail sheet |
-| `/exams/:courseId/:chapterId` | `exams.$courseId.$chapterId.tsx` | Public | Timed MCQ mock exam |
-| `/leaderboard` | `leaderboard.tsx` | **Login required** | Weekly national rankings |
-| `/rewards` | `rewards.tsx` | **Login required** | XP wallet, referrals, withdrawals, badges |
-| `/profile` | `profile.tsx` | Public | Account settings (demo data) |
-| `/admin` | `admin.tsx` | Public (demo) | Full admin console |
-| `/sitemap.xml` | `sitemap[.]xml.ts` | Public | XML sitemap |
+| URL                           | File                             | Auth               | Description                                      |
+| ----------------------------- | -------------------------------- | ------------------ | ------------------------------------------------ |
+| `/`                           | `index.tsx`                      | Public             | Landing page, hero, featured books, top scholars |
+| `/login`                      | `login.tsx`                      | Public             | Sign in; supports `?redirect=` and `?ref=`       |
+| `/register`                   | `register.tsx`                   | Public             | Sign up; supports `?ref=` referral code          |
+| `/dashboard`                  | `dashboard.tsx`                  | Public             | Student overview, stats, recent activity         |
+| `/library`                    | `library.tsx`                    | Public             | 14 MoE books, search, filters, PDF viewer sheet  |
+| `/exams`                      | `exams.index.tsx`                | Public             | 16 mock exam courses                             |
+| `/exams/:courseId`            | `exams.$courseId.index.tsx`      | Public             | Chapter list with detail sheet                   |
+| `/exams/:courseId/:chapterId` | `exams.$courseId.$chapterId.tsx` | Public             | Timed MCQ mock exam                              |
+| `/leaderboard`                | `leaderboard.tsx`                | **Login required** | Weekly national rankings                         |
+| `/rewards`                    | `rewards.tsx`                    | **Login required** | XP wallet, referrals, withdrawals, badges        |
+| `/profile`                    | `profile.tsx`                    | Public             | Account settings (demo data)                     |
+| `/admin`                      | `admin.tsx`                      | Public (demo)      | Full admin console                               |
+| `/sitemap.xml`                | `sitemap[.]xml.ts`               | Public             | XML sitemap                                      |
 
 ### Nested exams routing pattern
 
@@ -205,9 +205,9 @@ exams.$courseId.$chapterId.tsx → /exams/:courseId/:chapterId (exam)
 
 ### Search params
 
-| Route | Params | Purpose |
-|-------|--------|---------|
-| `/login` | `redirect`, `ref` | Post-login redirect; referral code passthrough |
+| Route       | Params            | Purpose                                             |
+| ----------- | ----------------- | --------------------------------------------------- |
+| `/login`    | `redirect`, `ref` | Post-login redirect; referral code passthrough      |
 | `/register` | `ref`, `redirect` | Referral code from share link; post-signup redirect |
 
 Example: `/login?redirect=%2Fleaderboard` shows enhanced leaderboard login context.
@@ -220,13 +220,13 @@ Example: `/login?redirect=%2Fleaderboard` shows enhanced leaderboard login conte
 
 Auth is **client-side only**, persisted in `localStorage` under key `study2earn-auth`.
 
-| File | Role |
-|------|------|
-| `src/lib/auth-data.ts` | Types, demo user, protected route list |
-| `src/lib/auth-store.ts` | `readAuth`, `signIn`, `signOut`, `isAuthenticated` |
-| `src/lib/require-auth.ts` | Route guard — redirects to `/login?redirect=...` |
-| `src/lib/auth-redirect.ts` | Contextual login messaging per protected page |
-| `src/hooks/use-auth.ts` | React hook wrapping the store |
+| File                       | Role                                               |
+| -------------------------- | -------------------------------------------------- |
+| `src/lib/auth-data.ts`     | Types, demo user, protected route list             |
+| `src/lib/auth-store.ts`    | `readAuth`, `signIn`, `signOut`, `isAuthenticated` |
+| `src/lib/require-auth.ts`  | Route guard — redirects to `/login?redirect=...`   |
+| `src/lib/auth-redirect.ts` | Contextual login messaging per protected page      |
+| `src/hooks/use-auth.ts`    | React hook wrapping the store                      |
 
 ### Protected routes
 
@@ -287,24 +287,24 @@ Creates a new user with 50 starting XP and signs in immediately. Referral code `
 
 **16 courses** in `src/lib/exam-data.ts`:
 
-| Course ID | Name |
-|-----------|------|
-| `emerging-tech` | Introduction to Emerging Technologies |
-| `general-physics` | General Physics |
-| `inclusiveness` | Inclusiveness |
-| `general-biology` | General Biology |
-| `math-natural` | Mathematics (Natural Science) |
-| `math-social` | Mathematics (Social Science) |
-| `english-i` | English Skills I |
-| `english-ii` | English Skills II |
-| `physical-fitness` | Physical Fitness |
-| `moral-citizenship` | Moral & Citizenship Education |
-| `economics` | Economics |
-| `global-affairs` | Global Affairs |
-| `geography-ethiopia` | Geography of Ethiopia |
-| `general-psychology` | General Psychology |
-| `entrepreneurship` | Entrepreneurship |
-| `anthropology` | Anthropology |
+| Course ID            | Name                                  |
+| -------------------- | ------------------------------------- |
+| `emerging-tech`      | Introduction to Emerging Technologies |
+| `general-physics`    | General Physics                       |
+| `inclusiveness`      | Inclusiveness                         |
+| `general-biology`    | General Biology                       |
+| `math-natural`       | Mathematics (Natural Science)         |
+| `math-social`        | Mathematics (Social Science)          |
+| `english-i`          | English Skills I                      |
+| `english-ii`         | English Skills II                     |
+| `physical-fitness`   | Physical Fitness                      |
+| `moral-citizenship`  | Moral & Citizenship Education         |
+| `economics`          | Economics                             |
+| `global-affairs`     | Global Affairs                        |
+| `geography-ethiopia` | Geography of Ethiopia                 |
+| `general-psychology` | General Psychology                    |
+| `entrepreneurship`   | Entrepreneurship                      |
+| `anthropology`       | Anthropology                          |
 
 **Exam flow:**
 
@@ -336,24 +336,24 @@ Progress stored in `localStorage` key `study2earn-exam-progress`.
 
 #### Referral program (`ReferralPanel`)
 
-| Event | XP |
-|-------|-----|
+| Event                          | XP                                       |
+| ------------------------------ | ---------------------------------------- |
 | Friend signs up with your code | Friend gets **50 XP**; you get **50 XP** |
-| Friend completes first chapter | You get **+100 XP** |
-| Milestone: 3 referrals | **+150 XP** bonus |
-| Milestone: 5 referrals | **+300 XP** bonus |
-| Milestone: 10 referrals | **+750 XP** bonus |
+| Friend completes first chapter | You get **+100 XP**                      |
+| Milestone: 3 referrals         | **+150 XP** bonus                        |
+| Milestone: 5 referrals         | **+300 XP** bonus                        |
+| Milestone: 10 referrals        | **+750 XP** bonus                        |
 
 - Share link: `/register?ref=YOUR-CODE`
 - Persisted in `localStorage` key `study2earn-referrals`
 
 #### Bank withdrawal (`WithdrawalPanel`)
 
-| Rule | Value |
-|------|-------|
-| Conversion rate | **8 XP = 1 ETB** |
-| Minimum | **50 ETB** (400 XP) |
-| Maximum | **5,000 ETB** |
+| Rule            | Value                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Conversion rate | **8 XP = 1 ETB**                                                                                                          |
+| Minimum         | **50 ETB** (400 XP)                                                                                                       |
+| Maximum         | **5,000 ETB**                                                                                                             |
 | Banks supported | **15 Ethiopian banks** (CBE, Awash, Dashen, BoA, United, Nib, CBO, OIB, Lion, Wegagen, Zemen, Bunna, Berhan, Abay, Addis) |
 
 - Student selects bank (branded `BankLogo`), enters account details, submits request
@@ -362,14 +362,14 @@ Progress stored in `localStorage` key `study2earn-exam-progress`.
 
 #### Redemption catalog
 
-| Reward | XP Cost |
-|--------|---------|
-| 100 ETB Airtime Credit | 800 |
-| 1-month Ad-Free Experience | 400 |
-| University Bookstore Voucher | 2,000 |
-| Featured Leaderboard Spot | 1,500 |
-| Custom Profile Theme | 300 |
-| Exclusive Study Group Access | 600 |
+| Reward                       | XP Cost |
+| ---------------------------- | ------- |
+| 100 ETB Airtime Credit       | 800     |
+| 1-month Ad-Free Experience   | 400     |
+| University Bookstore Voucher | 2,000   |
+| Featured Leaderboard Spot    | 1,500   |
+| Custom Profile Theme         | 300     |
+| Exclusive Study Group Access | 600     |
 
 #### Badges
 
@@ -401,16 +401,16 @@ Progress stored in `localStorage` key `study2earn-exam-progress`.
 
 ### Sections
 
-| Section | Features |
-|---------|----------|
-| **Overview** | KPI cards, pending action alerts, top performers, platform health, engagement by track, recent students, activity feed |
-| **Students** | Search, status filters (All/Active/Pending/Suspended), approve/suspend/message |
-| **Content** | 14 library books with thumbnails, MoE sync status, sync action |
-| **Exams** | Publish/unpublish exams, draft count badge |
-| **Rewards** | Reward catalog CRUD, **bank withdrawal approval table** with bank logos, approve/reject/mark paid |
-| **Analytics** | Reading hours chart, XP economy chart |
-| **Moderation** | Flag queue, resolve reports |
-| **Settings** | Email alerts, auto-approve, daily exam limit, default XP |
+| Section        | Features                                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Overview**   | KPI cards, pending action alerts, top performers, platform health, engagement by track, recent students, activity feed |
+| **Students**   | Search, status filters (All/Active/Pending/Suspended), approve/suspend/message                                         |
+| **Content**    | 14 library books with thumbnails, MoE sync status, sync action                                                         |
+| **Exams**      | Publish/unpublish exams, draft count badge                                                                             |
+| **Rewards**    | Reward catalog CRUD, **bank withdrawal approval table** with bank logos, approve/reject/mark paid                      |
+| **Analytics**  | Reading hours chart, XP economy chart                                                                                  |
+| **Moderation** | Flag queue, resolve reports                                                                                            |
+| **Settings**   | Email alerts, auto-approve, daily exam limit, default XP                                                               |
 
 ### Sidebar badges
 
@@ -440,12 +440,12 @@ Withdrawal state is shared with the student app via `withdrawal-store.ts` (same 
 
 ### localStorage keys
 
-| Key | Module | Data |
-|-----|--------|------|
-| `study2earn-auth` | `auth-store.ts` | Login session |
-| `study2earn-exam-progress` | `use-exam-progress.ts` | Chapter scores, XP, attempts |
-| `study2earn-referrals` | `use-referral.ts` | Referral code, history, tier bonuses |
-| `study2earn-withdrawals` | `withdrawal-store.ts` | All withdrawal requests (shared user ↔ admin) |
+| Key                        | Module                 | Data                                          |
+| -------------------------- | ---------------------- | --------------------------------------------- |
+| `study2earn-auth`          | `auth-store.ts`        | Login session                                 |
+| `study2earn-exam-progress` | `use-exam-progress.ts` | Chapter scores, XP, attempts                  |
+| `study2earn-referrals`     | `use-referral.ts`      | Referral code, history, tier bonuses          |
+| `study2earn-withdrawals`   | `withdrawal-store.ts`  | All withdrawal requests (shared user ↔ admin) |
 
 ### Sync pattern
 
@@ -460,29 +460,29 @@ window.dispatchEvent(new Event("withdrawal-change"));
 
 ### Static mock data
 
-| File | Contents |
-|------|----------|
-| `mock-data.ts` | Subjects, library books, leaderboard, rewards, badges, exam history |
-| `exam-data.ts` | 16 courses, chapters, MCQ question banks |
-| `admin-data.ts` | Admin stats, trends, top performers, recent users, activity |
-| `book-thumbnails.ts` | Per-book cover styles and icons |
-| `chapter-meta.ts` | Generated chapter objectives/topics |
-| `ethiopian-banks.ts` | 15 banks with brand colors |
-| `referral-data.ts` | Tiers, XP rates, default referrals |
-| `withdrawal-data.ts` | Conversion rates, seed requests, demo user |
+| File                 | Contents                                                            |
+| -------------------- | ------------------------------------------------------------------- |
+| `mock-data.ts`       | Subjects, library books, leaderboard, rewards, badges, exam history |
+| `exam-data.ts`       | 16 courses, chapters, MCQ question banks                            |
+| `admin-data.ts`      | Admin stats, trends, top performers, recent users, activity         |
+| `book-thumbnails.ts` | Per-book cover styles and icons                                     |
+| `chapter-meta.ts`    | Generated chapter objectives/topics                                 |
+| `ethiopian-banks.ts` | 15 banks with brand colors                                          |
+| `referral-data.ts`   | Tiers, XP rates, default referrals                                  |
+| `withdrawal-data.ts` | Conversion rates, seed requests, demo user                          |
 
 ---
 
 ## Hooks Reference
 
-| Hook | File | Purpose |
-|------|------|---------|
-| `useAuth` | `use-auth.ts` | Login state, signIn, signUp, signOut |
-| `useExamProgress` | `use-exam-progress.ts` | Chapter/course/overall stats, record attempt, XP calc |
-| `useReferral` | `use-referral.ts` | Referral code, history, tier progress, total XP |
-| `useWithdrawals` | `use-withdrawals.ts` | Submit/list withdrawals; admin approve/reject/paid |
-| `useAdminDashboard` | `use-admin-dashboard.ts` | Full admin console state and actions |
-| `useMobile` | `use-mobile.tsx` | Responsive breakpoint helper |
+| Hook                | File                     | Purpose                                               |
+| ------------------- | ------------------------ | ----------------------------------------------------- |
+| `useAuth`           | `use-auth.ts`            | Login state, signIn, signUp, signOut                  |
+| `useExamProgress`   | `use-exam-progress.ts`   | Chapter/course/overall stats, record attempt, XP calc |
+| `useReferral`       | `use-referral.ts`        | Referral code, history, tier progress, total XP       |
+| `useWithdrawals`    | `use-withdrawals.ts`     | Submit/list withdrawals; admin approve/reject/paid    |
+| `useAdminDashboard` | `use-admin-dashboard.ts` | Full admin console state and actions                  |
+| `useMobile`         | `use-mobile.tsx`         | Responsive breakpoint helper                          |
 
 ---
 
@@ -490,30 +490,30 @@ window.dispatchEvent(new Event("withdrawal-change"));
 
 ### Layout & chrome
 
-| Component | File | Description |
-|-----------|------|-------------|
-| `SiteHeader` | `site-chrome.tsx` | Nav bar, auth-aware user menu |
-| `SiteFooter` | `site-chrome.tsx` | Footer links |
-| `BookCover` | `book-cover.tsx` | Professional book thumbnail with spine effect |
+| Component    | File              | Description                                   |
+| ------------ | ----------------- | --------------------------------------------- |
+| `SiteHeader` | `site-chrome.tsx` | Nav bar, auth-aware user menu                 |
+| `SiteFooter` | `site-chrome.tsx` | Footer links                                  |
+| `BookCover`  | `book-cover.tsx`  | Professional book thumbnail with spine effect |
 
 ### Student features
 
-| Component | File | Description |
-|-----------|------|-------------|
-| `MockExamTaker` | `mock-exam-taker.tsx` | Timed MCQ exam UI with review |
-| `ChapterDetailSheet` | `chapter-detail-sheet.tsx` | Side panel for chapter info |
-| `ReferralPanel` | `referral-panel.tsx` | Refer-and-earn UI on rewards page |
-| `WithdrawalPanel` | `withdrawal-panel.tsx` | Bank picker + withdrawal form + history |
-| `BankLogo` | `bank-logo.tsx` | Styled bank badge from brand colors |
+| Component            | File                       | Description                             |
+| -------------------- | -------------------------- | --------------------------------------- |
+| `MockExamTaker`      | `mock-exam-taker.tsx`      | Timed MCQ exam UI with review           |
+| `ChapterDetailSheet` | `chapter-detail-sheet.tsx` | Side panel for chapter info             |
+| `ReferralPanel`      | `referral-panel.tsx`       | Refer-and-earn UI on rewards page       |
+| `WithdrawalPanel`    | `withdrawal-panel.tsx`     | Bank picker + withdrawal form + history |
+| `BankLogo`           | `bank-logo.tsx`            | Styled bank badge from brand colors     |
 
 ### Admin
 
-| Component | File | Description |
-|-----------|------|-------------|
-| `AdminShell` | `admin-shell.tsx` | Sidebar layout, notifications, export |
-| `AdminPanel` | `admin-panel.tsx` | All admin section content |
-| `AdminDialogs` | `admin-dialogs.tsx` | Add student, publish exam, upload content, create reward |
-| `AdminStatCard` | `admin-shell.tsx` | Reusable KPI card |
+| Component       | File                | Description                                              |
+| --------------- | ------------------- | -------------------------------------------------------- |
+| `AdminShell`    | `admin-shell.tsx`   | Sidebar layout, notifications, export                    |
+| `AdminPanel`    | `admin-panel.tsx`   | All admin section content                                |
+| `AdminDialogs`  | `admin-dialogs.tsx` | Add student, publish exam, upload content, create reward |
+| `AdminStatCard` | `admin-shell.tsx`   | Reusable KPI card                                        |
 
 ### UI primitives
 
@@ -523,27 +523,27 @@ window.dispatchEvent(new Event("withdrawal-change"));
 
 ## Library Modules
 
-| Module | Purpose |
-|--------|---------|
-| `auth-data.ts` | Auth types, demo user, protected routes |
-| `auth-store.ts` | Auth localStorage read/write |
-| `auth-redirect.ts` | Login page context per redirect target |
-| `require-auth.ts` | TanStack Router `beforeLoad` guard |
-| `withdrawal-data.ts` | Withdrawal types, rates, seed data |
-| `withdrawal-store.ts` | Shared withdrawal localStorage |
-| `ethiopian-banks.ts` | 15 banks + `getBankById()` |
-| `referral-data.ts` | Referral tiers and XP constants |
-| `admin-types.ts` | Admin section types and metadata |
-| `admin-data.ts` | Platform metrics and seed data |
-| `exam-data.ts` | Courses, chapters, MCQ banks |
-| `mock-data.ts` | General app mock data |
-| `book-thumbnails.ts` | Book cover visual config |
-| `chapter-meta.ts` | Chapter detail generator |
-| `utils.ts` | `cn()` — clsx + tailwind-merge |
-| `error-capture.ts` | SSR error capture helper |
-| `error-page.ts` | HTML error page renderer |
-| `lovable-error-reporting.ts` | Error reporting integration |
-| `config.server.ts` | Server-side config |
+| Module                       | Purpose                                 |
+| ---------------------------- | --------------------------------------- |
+| `auth-data.ts`               | Auth types, demo user, protected routes |
+| `auth-store.ts`              | Auth localStorage read/write            |
+| `auth-redirect.ts`           | Login page context per redirect target  |
+| `require-auth.ts`            | TanStack Router `beforeLoad` guard      |
+| `withdrawal-data.ts`         | Withdrawal types, rates, seed data      |
+| `withdrawal-store.ts`        | Shared withdrawal localStorage          |
+| `ethiopian-banks.ts`         | 15 banks + `getBankById()`              |
+| `referral-data.ts`           | Referral tiers and XP constants         |
+| `admin-types.ts`             | Admin section types and metadata        |
+| `admin-data.ts`              | Platform metrics and seed data          |
+| `exam-data.ts`               | Courses, chapters, MCQ banks            |
+| `mock-data.ts`               | General app mock data                   |
+| `book-thumbnails.ts`         | Book cover visual config                |
+| `chapter-meta.ts`            | Chapter detail generator                |
+| `utils.ts`                   | `cn()` — clsx + tailwind-merge          |
+| `error-capture.ts`           | SSR error capture helper                |
+| `error-page.ts`              | HTML error page renderer                |
+| `lovable-error-reporting.ts` | Error reporting integration             |
+| `config.server.ts`           | Server-side config                      |
 
 ---
 
@@ -551,11 +551,11 @@ window.dispatchEvent(new Event("withdrawal-change"));
 
 ### Brand colors (CSS variables in `styles.css`)
 
-| Token | Usage |
-|-------|-------|
+| Token        | Usage                            |
+| ------------ | -------------------------------- |
 | `brand-navy` | Primary brand, buttons, headings |
-| `brand-gold` | Accent, XP highlights, badges |
-| `brand-sage` | Tags, success accents |
+| `brand-gold` | Accent, XP highlights, badges    |
+| `brand-sage` | Tags, success accents            |
 
 ### Typography
 
@@ -572,14 +572,14 @@ window.dispatchEvent(new Event("withdrawal-change"));
 
 ## Scripts & Tooling
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| Dev server | `npm run dev` | Vite dev on port 3000 |
-| Build | `npm run build` | Client + SSR production build |
-| Dev build | `npm run build:dev` | Development mode build |
-| Preview | `npm run preview` | Serve production build locally |
-| Lint | `npm run lint` | ESLint (includes Prettier rules) |
-| Format | `npm run format` | Prettier write all files |
+| Script     | Command             | Description                      |
+| ---------- | ------------------- | -------------------------------- |
+| Dev server | `npm run dev`       | Vite dev on port 3000            |
+| Build      | `npm run build`     | Client + SSR production build    |
+| Dev build  | `npm run build:dev` | Development mode build           |
+| Preview    | `npm run preview`   | Serve production build locally   |
+| Lint       | `npm run lint`      | ESLint (includes Prettier rules) |
+| Format     | `npm run format`    | Prettier write all files         |
 
 ### Path alias
 
@@ -610,13 +610,13 @@ exams.index.tsx    → actual /exams content
 
 ## Environment & Configuration
 
-| File | Purpose |
-|------|---------|
-| `vite.config.ts` | Port 3000, TanStack Start server entry, dev middleware |
-| `tsconfig.json` | Strict TS, `@/*` path alias |
-| `components.json` | shadcn/ui config |
-| `.prettierrc` | Code formatting rules |
-| `eslint.config.js` | Lint rules |
+| File               | Purpose                                                |
+| ------------------ | ------------------------------------------------------ |
+| `vite.config.ts`   | Port 3000, TanStack Start server entry, dev middleware |
+| `tsconfig.json`    | Strict TS, `@/*` path alias                            |
+| `components.json`  | shadcn/ui config                                       |
+| `.prettierrc`      | Code formatting rules                                  |
+| `eslint.config.js` | Lint rules                                             |
 
 No `.env` file is required for local development. The app runs entirely on mock data.
 
@@ -680,15 +680,15 @@ export const Route = createFileRoute("/my-protected-page")({
 
 When connecting to a real API, replace these areas first:
 
-| Area | Current | Target |
-|------|---------|--------|
-| Auth | `localStorage` demo session | JWT / session cookies + `/api/auth` |
-| Exam progress | `localStorage` | `POST /api/progress` per attempt |
-| Referrals | `localStorage` | Server-validated referral codes |
-| Withdrawals | Shared `localStorage` | Admin API with real bank transfer workflow |
-| Leaderboard | Static `mock-data.ts` | Live rankings from reading-time service |
-| Library PDFs | Mock chapter metadata | MoE CDN / signed PDF URLs |
-| Admin dashboard | In-memory React state | REST or GraphQL admin API |
+| Area            | Current                     | Target                                     |
+| --------------- | --------------------------- | ------------------------------------------ |
+| Auth            | `localStorage` demo session | JWT / session cookies + `/api/auth`        |
+| Exam progress   | `localStorage`              | `POST /api/progress` per attempt           |
+| Referrals       | `localStorage`              | Server-validated referral codes            |
+| Withdrawals     | Shared `localStorage`       | Admin API with real bank transfer workflow |
+| Leaderboard     | Static `mock-data.ts`       | Live rankings from reading-time service    |
+| Library PDFs    | Mock chapter metadata       | MoE CDN / signed PDF URLs                  |
+| Admin dashboard | In-memory React state       | REST or GraphQL admin API                  |
 
 Recommended stack alignment: **Supabase** (auth + Postgres + RLS) or custom Node API with the existing TanStack Start server functions pattern in `src/lib/api/`.
 
@@ -696,16 +696,16 @@ Recommended stack alignment: **Supabase** (auth + Postgres + RLS) or custom Node
 
 ## Quick Test Checklist
 
-| Action | Expected result |
-|--------|-----------------|
-| Visit `/library` logged out | Page loads; header shows Sign in |
+| Action                          | Expected result                             |
+| ------------------------------- | ------------------------------------------- |
+| Visit `/library` logged out     | Page loads; header shows Sign in            |
 | Visit `/leaderboard` logged out | Redirects to `/login?redirect=/leaderboard` |
-| Sign in with any credentials | Header shows Abebe Balcha + XP |
-| Visit `/rewards` after login | Wallet, referrals, withdrawal panel visible |
-| Submit withdrawal request | Appears in `/admin` → Rewards → Pending |
-| Admin approves withdrawal | Student history shows Approved |
-| Take a mock exam | XP updates on dashboard and rewards |
-| Share referral link `?ref=CODE` | Register page shows referral banner |
+| Sign in with any credentials    | Header shows Abebe Balcha + XP              |
+| Visit `/rewards` after login    | Wallet, referrals, withdrawal panel visible |
+| Submit withdrawal request       | Appears in `/admin` → Rewards → Pending     |
+| Admin approves withdrawal       | Student history shows Approved              |
+| Take a mock exam                | XP updates on dashboard and rewards         |
+| Share referral link `?ref=CODE` | Register page shows referral banner         |
 
 ---
 
@@ -715,4 +715,4 @@ Recommended stack alignment: **Supabase** (auth + Postgres + RLS) or custom Node
 
 ---
 
-*Generated from the Study2Earn source codebase. For route conventions, see also `src/routes/README.md`.*
+_Generated from the Study2Earn source codebase. For route conventions, see also `src/routes/README.md`._

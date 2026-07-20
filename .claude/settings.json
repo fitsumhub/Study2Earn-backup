@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -oE \"export \\\\{[^}]*\\\\}|Dialog[A-Za-z]+,\" src/components/ui/dialog.tsx)",
+      "Bash(\"/c/Program Files/Google/Chrome/Application/chrome.exe\" --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=1400,1600 --remote-debugging-port=9222 --user-data-dir=\"./cdp-profile\" about:blank)",
+      "Bash(echo \"chrome pid: $!\")",
+      "Bash(curl -s http://localhost:9222/json/version)",
+      "Bash(echo \"---exit $?\")",
+      "Bash(\"/c/Program Files/Google/Chrome/Application/chrome.exe\" --headless=new --disable-gpu --no-sandbox --hide-scrollbars --window-size=1400,1700 --remote-debugging-port=9222 --user-data-dir=\"C:/Users/APLUS/AppData/Local/Temp/claude/c--Users-APLUS-Downloads-study2earn-source/c8c45bbc-b0bd-4da7-b1ae-664bc34f2995/scratchpad/cdp-profile\" about:blank)",
+      "Bash(node drive.mjs categories.png \"Categories\")",
+      "Bash(curl -s -o /dev/null -w \"root HTTP %{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(curl -s -o /dev/null -w \"library HTTP %{http_code}\\\\n\" http://localhost:3001/library)",
+      "Bash(node drive-admin.mjs sponsors)",
+      "Bash(node drive-adtypes.mjs)",
+      "Bash(curl -s -o /dev/null -w \"admin HTTP %{http_code}\\\\n\" http://localhost:3001/admin)"
+    ]
+  }
+}

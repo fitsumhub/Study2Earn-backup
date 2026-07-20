@@ -31,6 +31,13 @@ export function signOut() {
   writeAuth(defaultSession);
 }
 
+/** Merges a partial patch into the signed-in user's profile. No-op if signed out. */
+export function updateUser(patch: Partial<AuthUser>) {
+  const session = readAuth();
+  if (!session.loggedIn || !session.user) return;
+  writeAuth({ loggedIn: true, user: { ...session.user, ...patch } });
+}
+
 export function subscribeAuth(cb: () => void) {
   window.addEventListener("auth-change", cb);
   return () => window.removeEventListener("auth-change", cb);

@@ -4,29 +4,75 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { NotificationWatcher } from "../components/notification-watcher";
+import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      {/* Minimal inline header */}
+      <div className="border-b border-slate-200 bg-white/90 px-6 py-4">
+        <Link to="/" className="flex w-fit items-center gap-2">
+          <div className="grid size-8 place-items-center rounded bg-brand-navy font-serif text-xl font-bold text-white">
+            S
+          </div>
+          <span className="font-serif text-xl font-bold tracking-tight text-brand-navy">
+            Study2Earn
+          </span>
+        </Link>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center px-6 py-20">
+        <div className="w-full max-w-lg text-center">
+          {/* Large decorative number */}
+          <div className="relative mb-8 select-none">
+            <span className="font-serif text-[9rem] font-bold leading-none text-slate-100">
+              404
+            </span>
+            <span className="absolute inset-0 flex items-center justify-center font-serif text-5xl font-bold text-brand-navy">
+              Oops!
+            </span>
+          </div>
+
+          <h1 className="font-serif text-2xl font-bold text-brand-navy">Page not found</h1>
+          <p className="mt-3 text-slate-500">
+            That page doesn't exist or has been moved. Here are some places to go instead:
+          </p>
+
+          {/* Quick nav tiles */}
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {[
+              { to: "/", label: "Home", desc: "Back to start" },
+              { to: "/library", label: "Library", desc: "Browse books" },
+              { to: "/exams", label: "Mock Exams", desc: "Practice now" },
+              { to: "/dashboard", label: "Dashboard", desc: "Your progress" },
+              { to: "/rewards", label: "Rewards", desc: "Redeem XP" },
+              { to: "/help", label: "Help", desc: "Get support" },
+            ].map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-brand-gold/40 hover:shadow-md"
+              >
+                <p className="text-sm font-bold text-brand-navy">{l.label}</p>
+                <p className="text-xs text-slate-500">{l.desc}</p>
+              </Link>
+            ))}
+          </div>
+
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-navy px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-brand-navy/90"
           >
-            Go home
+            ← Go to homepage
           </Link>
         </div>
       </div>
@@ -108,8 +154,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2cec9155-b2c2-413a-9534-19517698e1ff/id-preview-422a8329--50eb3f11-5dd2-4e27-b357-f5b5bf5e021f.lovable.app-1781435818299.png",
       },
+      { name: "theme-color", content: "#1e3a8a" },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -125,10 +173,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+const THEME_SCRIPT = `try{if(localStorage.getItem('study2earn-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
@@ -139,13 +190,24 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ScrollToTop() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ScrollToTop />
+      <NotificationWatcher />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
 }

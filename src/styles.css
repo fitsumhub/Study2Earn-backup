@@ -98,22 +98,26 @@
 }
 
 .dark {
-  --background: oklch(0.18 0.04 260);
-  --foreground: oklch(0.98 0.005 250);
-  --card: oklch(0.22 0.05 260);
-  --card-foreground: oklch(0.98 0.005 250);
-  --popover: oklch(0.22 0.05 260);
-  --popover-foreground: oklch(0.98 0.005 250);
-  --primary: oklch(0.98 0.005 250);
+  --background: oklch(0.15 0.04 260);
+  --foreground: oklch(0.97 0.005 250);
+  --card: oklch(0.2 0.05 260);
+  --card-foreground: oklch(0.97 0.005 250);
+  --popover: oklch(0.2 0.05 260);
+  --popover-foreground: oklch(0.97 0.005 250);
+  --primary: oklch(0.97 0.005 250);
   --primary-foreground: var(--brand-navy);
-  --secondary: oklch(0.28 0.04 260);
-  --secondary-foreground: oklch(0.98 0.005 250);
-  --muted: oklch(0.28 0.04 260);
-  --muted-foreground: oklch(0.72 0.03 256);
+  --secondary: oklch(0.26 0.04 260);
+  --secondary-foreground: oklch(0.97 0.005 250);
+  --muted: oklch(0.26 0.04 260);
+  --muted-foreground: oklch(0.7 0.03 256);
   --accent: var(--brand-gold);
-  --accent-foreground: oklch(0.18 0.04 260);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --accent-foreground: oklch(0.15 0.04 260);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --sidebar: oklch(0.2 0.05 260);
+  --sidebar-foreground: oklch(0.97 0.005 250);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  color-scheme: dark;
 }
 
 @layer base {
@@ -122,6 +126,7 @@
   }
   html {
     font-family: var(--font-sans);
+    scroll-behavior: smooth;
   }
   body {
     background-color: var(--color-background);
@@ -133,4 +138,228 @@
     font-family: var(--font-serif);
     font-optical-sizing: auto;
   }
+}
+
+@layer utilities {
+  /* Consistent card hover lift */
+  .card-lift {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  /* Section entrance animation */
+  .section-enter {
+    @apply animate-in fade-in-0 slide-in-from-bottom-4 duration-500;
+  }
+
+  /* Shimmer animation for progress bars */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-gold) 0%,
+      oklch(0.85 0.16 70) 40%,
+      var(--color-brand-gold) 80%
+    );
+    background-size: 200% auto;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Score ring SVG helper */
+  .score-ring-track {
+    fill: none;
+    stroke: oklch(0.92 0.01 250);
+    stroke-width: 8;
+  }
+  .score-ring-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+  }
+
+  /* Global focus-visible ring — keyboard navigation only */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth page-level fade-in */
+  @keyframes pageFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  main {
+    animation: pageFadeIn 0.25s ease both;
+  }
+
+  /* Indeterminate progress sweep for the branded page loader */
+  @keyframes loaderSweep {
+    0% {
+      transform: translateX(-110%);
+    }
+    60% {
+      transform: translateX(220%);
+    }
+    100% {
+      transform: translateX(220%);
+    }
+  }
+  .loader-sweep {
+    animation: loaderSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* Slow ambient rotation for the loader's outer ring */
+  @keyframes loaderOrbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .loader-orbit {
+    animation: loaderOrbit 3.2s linear infinite;
+  }
+
+  /* Gentle breathing scale for the loader mark */
+  @keyframes loaderPulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.06);
+    }
+  }
+  .loader-pulse {
+    animation: loaderPulse 2.2s ease-in-out infinite;
+  }
+}
+
+/*
+ * Dark-mode compatibility layer — outside @layer so it beats all Tailwind
+ * layer utilities via CSS cascade. Uses hex/rgba to maximise browser support.
+ */
+html.dark .bg-white {
+  background-color: #1e2240;
+}
+html.dark .bg-slate-50 {
+  background-color: #14162a;
+}
+html.dark .bg-slate-100 {
+  background-color: #22263e;
+}
+html.dark .bg-slate-200 {
+  background-color: #282d48;
+}
+html.dark .bg-slate-300 {
+  background-color: #2e345a;
+}
+html.dark .bg-slate-900 {
+  background-color: #0c0e20;
+}
+
+html.dark .text-slate-900 {
+  color: #f0f2f8;
+}
+html.dark .text-slate-800 {
+  color: #dde0ec;
+}
+html.dark .text-slate-700 {
+  color: #c5cad8;
+}
+html.dark .text-slate-600 {
+  color: #a9b0c4;
+}
+html.dark .text-slate-500 {
+  color: #8a93aa;
+}
+html.dark .text-slate-400 {
+  color: #7880a0;
+}
+
+html.dark .border-slate-100 {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+html.dark .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.11);
+}
+html.dark .border-slate-300 {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+html.dark .divide-slate-50 > * + * {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+html.dark .divide-slate-100 > * + * {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+html.dark .divide-y > * + * {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+html.dark .hover\:bg-slate-50:hover {
+  background-color: #22263e;
+}
+html.dark .hover\:bg-slate-100:hover {
+  background-color: #262b44;
+}
+
+html.dark .shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+html.dark .shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+}
+html.dark .shadow-lg {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+html.dark .shadow-xl {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+}
+html.dark .shadow-2xl {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* Nav sticky header — semi-transparent glass */
+html.dark .bg-white\/90 {
+  background-color: rgba(16, 19, 42, 0.95);
+}
+html.dark .bg-white\/95 {
+  background-color: rgba(16, 19, 42, 0.97);
+}
+
+/* Route page backgrounds */
+html.dark .min-h-screen.bg-slate-50 {
+  background-color: #111326;
+}
+html.dark .flex.min-h-screen.bg-slate-50 {
+  background-color: #111326;
+}
+
+/* Input / textarea / select */
+html.dark input:not([type="range"]),
+html.dark textarea,
+html.dark select {
+  background-color: #1c2040;
+  color: #f5f5f8;
+  border-color: rgba(255, 255, 255, 0.13);
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6e7890;
 }

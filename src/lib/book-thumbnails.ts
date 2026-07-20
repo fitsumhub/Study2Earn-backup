@@ -2,16 +2,19 @@ import type { LucideIcon } from "lucide-react";
 import {
   Atom,
   BookOpen,
+  BookText,
   Brain,
   Building2,
   Calculator,
   Dna,
+  Feather,
   Globe2,
   HeartPulse,
   Landmark,
   Lightbulb,
   Map,
   Scale,
+  ScrollText,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -108,6 +111,44 @@ const byShort: Record<string, BookThumbnailStyle> = {
     iconColor: "text-red-200",
     label: "Medicine",
   },
+  // Ethiopian fiction
+  Fikir: {
+    gradient: "from-[#064e3b] via-[#059669] to-[#065f46]",
+    icon: BookText,
+    iconColor: "text-emerald-200",
+    label: "Fiction",
+  },
+  Oromay: {
+    gradient: "from-[#134e4a] via-[#0d9488] to-[#115e59]",
+    icon: BookText,
+    iconColor: "text-teal-200",
+    label: "Fiction",
+  },
+  "13th Sun": {
+    gradient: "from-[#365314] via-[#4d7c0f] to-[#3f6212]",
+    icon: BookText,
+    iconColor: "text-lime-200",
+    label: "Fiction",
+  },
+  Tobbiya: {
+    gradient: "from-[#14532d] via-[#16a34a] to-[#166534]",
+    icon: BookOpen,
+    iconColor: "text-green-200",
+    label: "Fiction",
+  },
+  // Ethiopian poetry
+  Esat: {
+    gradient: "from-[#831843] via-[#db2777] to-[#9d174d]",
+    icon: Feather,
+    iconColor: "text-pink-200",
+    label: "Poetry",
+  },
+  Songs: {
+    gradient: "from-[#701a75] via-[#c026d3] to-[#86198f]",
+    icon: ScrollText,
+    iconColor: "text-fuchsia-200",
+    label: "Poetry",
+  },
 };
 
 const byId: Record<string, BookThumbnailStyle> = {
@@ -125,6 +166,12 @@ const byId: Record<string, BookThumbnailStyle> = {
   "bk-entrep": byShort["Entrep."],
   "bk-structural": byShort["Struct."],
   "bk-anatomy": byShort.Anatomy,
+  "bk-fikir": byShort.Fikir,
+  "bk-oromay": byShort.Oromay,
+  "bk-thirteenth-sun": byShort["13th Sun"],
+  "bk-tobbiya": byShort.Tobbiya,
+  "bk-esat-abeba": byShort.Esat,
+  "bk-songs-trees": byShort.Songs,
 };
 
 export function getBookThumbnail(short: string, id?: string): BookThumbnailStyle {

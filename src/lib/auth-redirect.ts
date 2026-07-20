@@ -20,8 +20,8 @@ export function getRedirectContext(path?: string): RedirectContext | null {
       cta: "Sign in to view Leaderboard",
       perks: [
         "Live national rankings updated every 5 minutes",
-        "Compare XP with students at your university",
-        "Track weekly movement and study streaks",
+        "Compare XP with readers across Ethiopia",
+        "Track weekly movement and reading streaks",
       ],
     };
   }

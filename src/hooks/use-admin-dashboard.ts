@@ -1,27 +1,97 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import type { ContentFormData } from "@/components/admin/forms/content-form";
+import { formToContent } from "@/components/admin/forms/content-form";
+import type { ExamFormData } from "@/components/admin/forms/exam-form";
+import { formToExam } from "@/components/admin/forms/exam-form";
+import type { RewardFormData } from "@/components/admin/forms/reward-form";
+import { formToReward } from "@/components/admin/forms/reward-form";
+import type { StudentFormData } from "@/components/admin/forms/student-form";
+import { formToStudent } from "@/components/admin/forms/student-form";
 import { useWithdrawals } from "@/hooks/use-withdrawals";
-import { adminActivity as initialActivity, recentUsers as initialUsers } from "@/lib/admin-data";
+import { buildDefaultAdminData, readAdminData, writeAdminData } from "@/lib/admin-store";
+import { readLibraryBooks, writeLibraryBooks } from "@/lib/library-store";
+import { deleteLocalFile, isLocalFileUrl } from "@/lib/media-store";
+import type { LibraryBook } from "@/lib/mock-data";
 import type {
   AdminActivity,
   AdminContent,
   AdminExam,
   AdminNotification,
+  AdminReferral,
   AdminReward,
   AdminSection,
+  AdminSettings,
   AdminUser,
+  EditEntity,
   ModerationFlag,
   QuickAction,
 } from "@/lib/admin-types";
-import { exams as mockExams, rewards as mockRewards, subjects } from "@/lib/mock-data";
 
 function nextId(prefix: string, items: { id: string }[]) {
   const nums = items
-    .map((i) => parseInt(i.id.replace(/\D/g, ""), 10))
+    .map((i) => parseInt(String(i?.id ?? "").replace(/\D/g, ""), 10))
     .filter((n) => !Number.isNaN(n));
   const next = (nums.length ? Math.max(...nums) : 8800) + 1;
   return `${prefix}-${next}`;
+}
+
+/**
+ * Mirror an admin content item into the student library store so uploads,
+ * edits, covers, and publish toggles show up for students immediately.
+ * Student-owned fields (progress, XP, chapter completion) are preserved.
+ */
+function syncContentToLibrary(item: AdminContent) {
+  const books = readLibraryBooks();
+  const idx = books.findIndex((b) => b.id === item.id);
+  const shared = {
+    name: item.name,
+    short: item.short,
+    chapters: item.chapters,
+    students: item.students,
+    category: item.category,
+    description: item.description,
+    pages: item.pages,
+    pdfUrl: item.pdfUrl,
+    coverUrl: item.coverUrl,
+    published: item.published,
+  };
+  if (idx >= 0) {
+    const prev = books[idx];
+    const chapterList =
+      prev.chapterList.length === item.chapters
+        ? prev.chapterList
+        : Array.from({ length: item.chapters }, (_, i) => ({
+            title: prev.chapterList[i]?.title ?? `Chapter ${i + 1}`,
+            pages: prev.chapterList[i]?.pages ?? Math.max(1, Math.ceil(item.pages / item.chapters)),
+            done: prev.chapterList[i]?.done ?? false,
+          }));
+    books[idx] = { ...prev, ...shared, chapterList };
+  } else {
+    const book: LibraryBook = {
+      id: item.id,
+      ...shared,
+      tint: "from-slate-100 to-slate-50",
+      progress: 0,
+      xpEarned: 0,
+      rating: 4.5,
+      chapterList: Array.from({ length: item.chapters }, (_, i) => ({
+        title: `Chapter ${i + 1}`,
+        pages: Math.max(1, Math.ceil(item.pages / item.chapters)),
+        done: false,
+      })),
+    };
+    books.unshift(book);
+  }
+  writeLibraryBooks(books);
+}
+
+function removeContentFromLibrary(item: AdminContent) {
+  writeLibraryBooks(readLibraryBooks().filter((b) => b.id !== item.id));
+  // Clean up any browser-stored uploads the book owned.
+  if (isLocalFileUrl(item.pdfUrl)) deleteLocalFile(item.pdfUrl);
+  if (isLocalFileUrl(item.coverUrl)) deleteLocalFile(item.coverUrl);
 }
 
 function downloadFile(filename: string, content: string, mime: string) {
@@ -34,6 +104,30 @@ function downloadFile(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
+const defaultNotifications: AdminNotification[] = [
+  {
+    id: "n1",
+    title: "Pending approval",
+    body: "Hanna Demissie is awaiting account verification",
+    read: false,
+    section: "students",
+  },
+  {
+    id: "n2",
+    title: "Withdrawal requests",
+    body: "2 pending bank withdrawal requests awaiting approval",
+    read: false,
+    section: "withdrawals",
+  },
+  {
+    id: "n3",
+    title: "Moderation flag",
+    body: "Duplicate account report for STU-7712",
+    read: false,
+    section: "moderation",
+  },
+];
+
 export function useAdminDashboard() {
   const {
     all: withdrawals,
@@ -43,67 +137,50 @@ export function useAdminDashboard() {
     markPaid,
   } = useWithdrawals();
 
+  // Lazy: building defaults constructs every course question bank — far too
+  // heavy to re-run on every render (it used to run per search keystroke).
+  const [defaults] = useState(buildDefaultAdminData);
+
   const [section, setSection] = useState<AdminSection>("overview");
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<AdminUser[]>(initialUsers);
-  const [activity, setActivity] = useState<AdminActivity[]>(
-    initialActivity.map((a, i) => ({ ...a, id: `act-${i}` })),
-  );
-  const [notifications, setNotifications] = useState<AdminNotification[]>([
-    {
-      id: "n1",
-      title: "Pending approval",
-      body: "Hanna Demissie is awaiting account verification",
-      read: false,
-      section: "students",
-    },
-    {
-      id: "n2",
-      title: "Withdrawal requests",
-      body: "2 pending bank withdrawal requests awaiting approval",
-      read: false,
-      section: "rewards",
-    },
-    {
-      id: "n3",
-      title: "Moderation flag",
-      body: "Duplicate account report for STU-7712",
-      read: false,
-      section: "moderation",
-    },
-  ]);
-  const [exams, setExams] = useState<AdminExam[]>(
-    mockExams.map((e, i) => ({ ...e, id: `EX-${1000 + i}`, published: i < 4 })),
-  );
-  const [rewards, setRewards] = useState<AdminReward[]>(
-    mockRewards.map((r, i) => ({ ...r, id: `RW-${100 + i}`, active: true })),
-  );
-  const [content, setContent] = useState<AdminContent[]>(
-    subjects.map((s, i) => ({
-      id: `BK-${i}`,
-      name: s.name,
-      chapters: s.chapters,
-      students: s.students,
-      synced: i % 3 !== 0,
-    })),
-  );
-  const [flags, setFlags] = useState<ModerationFlag[]>([
-    { id: "FL-101", report: "Duplicate account", user: "STU-7712", status: "open" },
-    { id: "FL-102", report: "Inappropriate username", user: "STU-6621", status: "open" },
-    { id: "FL-103", report: "Exam answer leak", user: "STU-5590", status: "resolved" },
-  ]);
-  const [settings, setSettings] = useState({
-    emailAlerts: true,
-    autoApprove: false,
-    maxDailyExams: "5",
-    defaultXpReward: "100",
-  });
+  const [users, setUsers] = useState<AdminUser[]>(defaults.users);
+  const [activity, setActivity] = useState<AdminActivity[]>(defaults.activity);
+  const [notifications, setNotifications] = useState<AdminNotification[]>(defaultNotifications);
+  const [exams, setExams] = useState<AdminExam[]>(defaults.exams);
+  const [rewards, setRewards] = useState<AdminReward[]>(defaults.rewards);
+  const [referrals, setReferrals] = useState<AdminReferral[]>(defaults.referrals);
+  const [content, setContent] = useState<AdminContent[]>(defaults.content);
+  const [flags, setFlags] = useState<ModerationFlag[]>(defaults.flags);
+  const [settings, setSettings] = useState<AdminSettings>(defaults.settings);
+  const [storeReady, setStoreReady] = useState(false);
 
   const [activeDialog, setActiveDialog] = useState<QuickAction | null>(null);
+  const [editEntity, setEditEntity] = useState<EditEntity | null>(null);
   const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
   const [messageUser, setMessageUser] = useState<AdminUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<AdminUser | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [examManagerMode, setExamManagerMode] = useState<"create" | "edit" | null>(null);
+  const [managingExam, setManagingExam] = useState<AdminExam | null>(null);
+  const [examManagerPreset, setExamManagerPreset] = useState<Partial<ExamFormData> | null>(null);
+
+  useEffect(() => {
+    const stored = readAdminData();
+    setUsers(stored.users);
+    setActivity(stored.activity);
+    setExams(stored.exams);
+    setRewards(stored.rewards);
+    setReferrals(stored.referrals);
+    setContent(stored.content);
+    setFlags(stored.flags);
+    setSettings(stored.settings);
+    setStoreReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!storeReady) return;
+    writeAdminData({ users, exams, rewards, referrals, content, flags, settings, activity });
+  }, [storeReady, users, exams, rewards, referrals, content, flags, settings, activity]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -114,6 +191,10 @@ export function useAdminDashboard() {
   const openFlags = useMemo(() => flags.filter((f) => f.status === "open").length, [flags]);
   const unsyncedContent = useMemo(() => content.filter((c) => !c.synced).length, [content]);
   const draftExams = useMemo(() => exams.filter((e) => !e.published).length, [exams]);
+  const pendingReferrals = useMemo(
+    () => referrals.filter((r) => r.status === "pending" || r.status === "signed_up").length,
+    [referrals],
+  );
 
   const navBadges = useMemo(
     () => ({
@@ -121,9 +202,11 @@ export function useAdminDashboard() {
       moderation: openFlags,
       content: unsyncedContent,
       exams: draftExams,
-      rewards: pendingWithdrawals,
+      rewards: 0,
+      withdrawals: pendingWithdrawals,
+      referrals: pendingReferrals,
     }),
-    [pendingStudents, openFlags, unsyncedContent, draftExams, pendingWithdrawals],
+    [pendingStudents, openFlags, unsyncedContent, draftExams, pendingWithdrawals, pendingReferrals],
   );
 
   const pushActivity = useCallback((entry: Omit<AdminActivity, "id">) => {
@@ -206,9 +289,104 @@ export function useAdminDashboard() {
     return content.filter((c) => c.name.toLowerCase().includes(q));
   }, [content, searchQuery]);
 
+  const getReferralXp = useCallback(
+    (kind: "signup" | "complete") => {
+      const raw = kind === "signup" ? settings.referralSignupXp : settings.referralCompleteXp;
+      const parsed = parseInt(raw, 10);
+      return Number.isNaN(parsed) ? (kind === "signup" ? 50 : 100) : parsed;
+    },
+    [settings.referralSignupXp, settings.referralCompleteXp],
+  );
+
+  const markReferralSignedUp = useCallback(
+    (id: string) => {
+      const xp = getReferralXp("signup");
+      const target = referrals.find((r) => r.id === id && r.status === "pending");
+      if (!target) return;
+      setReferrals((prev) =>
+        prev.map((r) =>
+          r.id === id && r.status === "pending"
+            ? { ...r, status: "signed_up" as const, xpAwarded: xp }
+            : r,
+        ),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Referral signup confirmed",
+        detail: `${target.referredName} via ${target.referrerName}`,
+        type: "referral",
+      });
+      toast.success(`Signup confirmed for ${target.referredName}`, {
+        description: `${xp} XP queued for ${target.referrerName}`,
+      });
+    },
+    [referrals, getReferralXp, pushActivity],
+  );
+
+  const approveReferral = useCallback(
+    (id: string) => {
+      const xp = getReferralXp("complete");
+      const target = referrals.find((r) => r.id === id && r.status !== "completed");
+      if (!target) return;
+      setReferrals((prev) =>
+        prev.map((r) =>
+          r.id === id && r.status !== "completed"
+            ? { ...r, status: "completed" as const, xpAwarded: xp }
+            : r,
+        ),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Referral bonus approved",
+        detail: `${target.referrerName} — ${xp} XP for ${target.referredName}`,
+        type: "referral",
+      });
+      toast.success(`Referral approved for ${target.referrerName}`, {
+        description: `${xp} XP awarded`,
+      });
+    },
+    [referrals, getReferralXp, pushActivity],
+  );
+
+  const rejectReferral = useCallback(
+    (id: string) => {
+      const ref = referrals.find((r) => r.id === id);
+      if (!ref) return;
+      setReferrals((prev) => prev.filter((r) => r.id !== id));
+      pushActivity({
+        time: "Just now",
+        action: "Referral rejected",
+        detail: `${ref.referredName} — ${ref.referrerName}`,
+        type: "referral",
+      });
+      toast.success("Referral removed");
+    },
+    [referrals, pushActivity],
+  );
+
+  const deleteReferral = useCallback(
+    (id: string) => {
+      const ref = referrals.find((r) => r.id === id);
+      if (!ref) return;
+      setReferrals((prev) => prev.filter((r) => r.id !== id));
+      pushActivity({
+        time: "Just now",
+        action: "Referral record deleted",
+        detail: `${ref.referredName}`,
+        type: "referral",
+      });
+      toast.success("Referral record deleted");
+    },
+    [referrals, pushActivity],
+  );
+
   const goToSection = useCallback((next: AdminSection) => {
     setSection(next);
     setSearchQuery("");
+  }, []);
+
+  const openEdit = useCallback((entity: EditEntity) => {
+    setEditEntity(entity);
   }, []);
 
   const markAllNotificationsRead = useCallback(() => {
@@ -228,14 +406,50 @@ export function useAdminDashboard() {
   );
 
   const exportReport = useCallback(
-    (format: "csv" | "summary") => {
+    (format: "csv" | "summary" | "withdrawals") => {
+      // Quote every field so commas in names/universities can't break columns
+      const csvRow = (fields: (string | number)[]) =>
+        fields.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(",");
+
       if (format === "csv") {
-        const header = "ID,Name,University,Program,Status,Joined,XP\n";
-        const rows = users
-          .map((u) => [u.id, u.name, u.university, u.program, u.status, u.joined, u.xp].join(","))
-          .join("\n");
-        downloadFile("study2earn-students.csv", header + rows, "text/csv");
+        const header = csvRow(["ID", "Name", "University", "Program", "Status", "Joined", "XP"]);
+        const rows = users.map((u) =>
+          csvRow([u.id, u.name, u.university, u.program, u.status, u.joined, u.xp]),
+        );
+        downloadFile("study2earn-students.csv", [header, ...rows].join("\n"), "text/csv");
         toast.success("Student report exported as CSV");
+      } else if (format === "withdrawals") {
+        const header = csvRow([
+          "ID",
+          "Student",
+          "University",
+          "Method",
+          "Destination",
+          "Account / UID",
+          "Amount ETB",
+          "XP deducted",
+          "Status",
+          "Requested",
+          "Processed",
+        ]);
+        const rows = withdrawals.map((w) => {
+          const isUsdt = w.method === "usdt";
+          return csvRow([
+            w.id,
+            w.userName,
+            w.university,
+            isUsdt ? "USDT (Binance)" : "Bank transfer",
+            isUsdt ? "Binance" : (w.bankName ?? ""),
+            isUsdt ? (w.binanceUid ?? "") : (w.accountNumber ?? ""),
+            w.amountEtb,
+            w.xpDeducted,
+            w.status,
+            w.requestedAt,
+            w.processedAt ?? "",
+          ]);
+        });
+        downloadFile("study2earn-withdrawals.csv", [header, ...rows].join("\n"), "text/csv");
+        toast.success("Withdrawal report exported as CSV");
       } else {
         const summary = [
           "Study2Earn Platform Report",
@@ -254,27 +468,28 @@ export function useAdminDashboard() {
       pushActivity({
         time: "Just now",
         action: "Report exported",
-        detail: format === "csv" ? "Student CSV download" : "Platform summary download",
+        detail:
+          format === "csv"
+            ? "Student CSV download"
+            : format === "withdrawals"
+              ? "Withdrawal CSV download"
+              : "Platform summary download",
         type: "content",
       });
     },
-    [users, exams, rewards, pushActivity],
+    [users, exams, rewards, withdrawals, pushActivity],
   );
 
   const addStudent = useCallback(
-    (data: { name: string; university: string; program: string }) => {
+    (data: StudentFormData) => {
       const user: AdminUser = {
+        ...formToStudent(data),
         id: nextId("STU", users),
-        name: data.name,
-        university: data.university,
-        program: data.program,
-        status: "pending",
         joined: new Date().toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         }),
-        xp: 0,
       };
       setUsers((prev) => [user, ...prev]);
       setActiveDialog(null);
@@ -289,16 +504,45 @@ export function useAdminDashboard() {
     [users, pushActivity],
   );
 
+  const updateStudent = useCallback(
+    (id: string, data: StudentFormData) => {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, ...formToStudent(data, id), joined: u.joined } : u)),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Student updated",
+        detail: `${data.name} (${id})`,
+        type: "user",
+      });
+      toast.success(`${data.name} updated`);
+    },
+    [pushActivity],
+  );
+
+  const deleteStudent = useCallback(
+    (id: string) => {
+      const user = users.find((u) => u.id === id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      if (user) {
+        pushActivity({
+          time: "Just now",
+          action: "Student removed",
+          detail: `${user.name} (${id})`,
+          type: "user",
+        });
+        toast.success(`${user.name} removed`);
+      }
+    },
+    [users, pushActivity],
+  );
+
   const publishExam = useCallback(
-    (data: { title: string; subject: string; questions: number; duration: number }) => {
+    (data: ExamFormData) => {
       const exam: AdminExam = {
+        ...(formToExam(data) as AdminExam),
         id: nextId("EX", exams),
-        title: data.title,
-        subject: data.subject,
-        difficulty: "Intermediate",
-        duration: data.duration,
-        questions: data.questions,
-        published: true,
+        attempts: 0,
       };
       setExams((prev) => [exam, ...prev]);
       setActiveDialog(null);
@@ -313,16 +557,148 @@ export function useAdminDashboard() {
     [exams, pushActivity],
   );
 
-  const uploadContent = useCallback(
-    (data: { name: string; chapters: number }) => {
-      const item: AdminContent = {
-        id: nextId("BK", content),
-        name: data.name,
-        chapters: data.chapters,
-        students: "0",
-        synced: false,
+  const openExamManager = useCallback((exam?: AdminExam, preset?: Partial<ExamFormData>) => {
+    if (exam) {
+      setManagingExam(exam);
+      setExamManagerMode("edit");
+      setExamManagerPreset(null);
+    } else {
+      setManagingExam(null);
+      setExamManagerMode("create");
+      setExamManagerPreset(preset ?? null);
+    }
+    setActiveDialog(null);
+  }, []);
+
+  const closeExamManager = useCallback(() => {
+    setExamManagerMode(null);
+    setManagingExam(null);
+    setExamManagerPreset(null);
+  }, []);
+
+  const saveExamManager = useCallback(
+    (data: ExamFormData) => {
+      if (examManagerMode === "create") {
+        const exam: AdminExam = {
+          ...(formToExam(data) as AdminExam),
+          id: nextId("EX", exams),
+          attempts: 0,
+        };
+        setExams((prev) => [exam, ...prev]);
+        pushActivity({
+          time: "Just now",
+          action: "Exam created",
+          detail: `${data.title} — ${data.questionBank.length} questions in bank`,
+          type: "exam",
+        });
+        toast.success(`"${data.title}" created`);
+      } else if (managingExam) {
+        setExams((prev) =>
+          prev.map((e) =>
+            e.id === managingExam.id
+              ? ({
+                  ...e,
+                  ...formToExam(data, e.id),
+                  attempts: e.attempts,
+                } as AdminExam)
+              : e,
+          ),
+        );
+        pushActivity({
+          time: "Just now",
+          action: "Exam updated",
+          detail: `${data.title} (${managingExam.id})`,
+          type: "exam",
+        });
+        toast.success(`"${data.title}" saved`);
+      }
+      closeExamManager();
+    },
+    [examManagerMode, managingExam, exams, pushActivity, closeExamManager],
+  );
+
+  const duplicateExam = useCallback(
+    (id: string) => {
+      const exam = exams.find((e) => e.id === id);
+      if (!exam) return;
+      const copy: AdminExam = {
+        ...exam,
+        id: nextId("EX", exams),
+        title: `${exam.title} (copy)`,
+        published: false,
+        attempts: 0,
+        questionBank: exam.questionBank.map((q) => ({
+          ...q,
+          id: `${q.id}-dup-${Date.now()}`,
+        })),
       };
+      setExams((prev) => [copy, ...prev]);
+      toast.success("Exam duplicated as draft");
+    },
+    [exams],
+  );
+
+  const publishCourseExams = useCallback(
+    (courseId: string) => {
+      const count = exams.filter((e) => e.courseId === courseId && !e.published).length;
+      if (count === 0) return;
+      setExams((prev) =>
+        prev.map((e) => (e.courseId === courseId && !e.published ? { ...e, published: true } : e)),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Bulk publish",
+        detail: `${count} exams in ${courseId}`,
+        type: "exam",
+      });
+      toast.success(`Published ${count} exam${count !== 1 ? "s" : ""}`);
+    },
+    [exams, pushActivity],
+  );
+
+  const updateExam = useCallback(
+    (id: string, data: ExamFormData) => {
+      setExams((prev) =>
+        prev.map((e) =>
+          e.id === id ? ({ ...e, ...formToExam(data, id), attempts: e.attempts } as AdminExam) : e,
+        ),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Exam updated",
+        detail: `${data.title} (${id})`,
+        type: "exam",
+      });
+      toast.success(`"${data.title}" updated`);
+    },
+    [pushActivity],
+  );
+
+  const deleteExam = useCallback(
+    (id: string) => {
+      const exam = exams.find((e) => e.id === id);
+      setExams((prev) => prev.filter((e) => e.id !== id));
+      if (exam) {
+        pushActivity({
+          time: "Just now",
+          action: "Exam removed",
+          detail: `${exam.title} (${id})`,
+          type: "exam",
+        });
+        toast.success(`"${exam.title}" removed`);
+      }
+    },
+    [exams, pushActivity],
+  );
+
+  const uploadContent = useCallback(
+    (data: ContentFormData) => {
+      const item: AdminContent = {
+        ...formToContent(data),
+        id: nextId("BK", content),
+      } as AdminContent;
       setContent((prev) => [item, ...prev]);
+      syncContentToLibrary(item);
       setActiveDialog(null);
       pushActivity({
         time: "Just now",
@@ -335,15 +711,47 @@ export function useAdminDashboard() {
     [content, pushActivity],
   );
 
+  const updateContent = useCallback(
+    (id: string, data: ContentFormData) => {
+      setContent((prev) =>
+        prev.map((c) => (c.id === id ? ({ ...c, ...formToContent(data, id) } as AdminContent) : c)),
+      );
+      syncContentToLibrary({ ...formToContent(data, id), id } as AdminContent);
+      pushActivity({
+        time: "Just now",
+        action: "Content updated",
+        detail: `${data.name} (${id})`,
+        type: "content",
+      });
+      toast.success(`"${data.name}" updated`);
+    },
+    [pushActivity],
+  );
+
+  const deleteContent = useCallback(
+    (id: string) => {
+      const item = content.find((c) => c.id === id);
+      setContent((prev) => prev.filter((c) => c.id !== id));
+      if (item) removeContentFromLibrary(item);
+      if (item) {
+        pushActivity({
+          time: "Just now",
+          action: "Content removed",
+          detail: `${item.name} (${id})`,
+          type: "content",
+        });
+        toast.success(`"${item.name}" removed`);
+      }
+    },
+    [content, pushActivity],
+  );
+
   const createReward = useCallback(
-    (data: { title: string; xp: number; tag: string }) => {
+    (data: RewardFormData) => {
       const reward: AdminReward = {
+        ...formToReward(data),
         id: nextId("RW", rewards),
-        title: data.title,
-        xp: data.xp,
-        tag: data.tag,
-        active: true,
-      };
+      } as AdminReward;
       setRewards((prev) => [reward, ...prev]);
       setActiveDialog(null);
       pushActivity({
@@ -353,6 +761,39 @@ export function useAdminDashboard() {
         type: "reward",
       });
       toast.success(`Reward "${data.title}" created`);
+    },
+    [rewards, pushActivity],
+  );
+
+  const updateReward = useCallback(
+    (id: string, data: RewardFormData) => {
+      setRewards((prev) =>
+        prev.map((r) => (r.id === id ? ({ ...r, ...formToReward(data, id) } as AdminReward) : r)),
+      );
+      pushActivity({
+        time: "Just now",
+        action: "Reward updated",
+        detail: `${data.title} (${id})`,
+        type: "reward",
+      });
+      toast.success(`"${data.title}" updated`);
+    },
+    [pushActivity],
+  );
+
+  const deleteReward = useCallback(
+    (id: string) => {
+      const reward = rewards.find((r) => r.id === id);
+      setRewards((prev) => prev.filter((r) => r.id !== id));
+      if (reward) {
+        pushActivity({
+          time: "Just now",
+          action: "Reward removed",
+          detail: `${reward.title} (${id})`,
+          type: "reward",
+        });
+        toast.success(`"${reward.title}" removed`);
+      }
     },
     [rewards, pushActivity],
   );
@@ -391,64 +832,58 @@ export function useAdminDashboard() {
     [users, pushActivity],
   );
 
-  const toggleExamPublished = useCallback((examId: string) => {
-    setExams((prev) =>
-      prev.map((e) => {
-        if (e.id !== examId) return e;
-        const published = !e.published;
-        toast.success(published ? `"${e.title}" published` : `"${e.title}" unpublished`);
-        return { ...e, published };
-      }),
-    );
-  }, []);
+  const toggleExamPublished = useCallback(
+    (examId: string) => {
+      const exam = exams.find((e) => e.id === examId);
+      if (!exam) return;
+      const published = !exam.published;
+      setExams((prev) => prev.map((e) => (e.id === examId ? { ...e, published } : e)));
+      toast.success(published ? `"${exam.title}" published` : `"${exam.title}" unpublished`);
+    },
+    [exams],
+  );
 
-  const toggleRewardActive = useCallback((rewardId: string) => {
-    setRewards((prev) =>
-      prev.map((r) => {
-        if (r.id !== rewardId) return r;
-        const active = !r.active;
-        toast.success(active ? `"${r.title}" activated` : `"${r.title}" deactivated`);
-        return { ...r, active };
-      }),
-    );
-  }, []);
+  const toggleRewardActive = useCallback(
+    (rewardId: string) => {
+      const reward = rewards.find((r) => r.id === rewardId);
+      if (!reward) return;
+      const active = !reward.active;
+      setRewards((prev) => prev.map((r) => (r.id === rewardId ? { ...r, active } : r)));
+      toast.success(active ? `"${reward.title}" activated` : `"${reward.title}" deactivated`);
+    },
+    [rewards],
+  );
 
   const syncContent = useCallback(
     (contentId: string) => {
-      setContent((prev) =>
-        prev.map((c) => {
-          if (c.id !== contentId) return c;
-          pushActivity({
-            time: "Just now",
-            action: "Content synced",
-            detail: `${c.name} — MoE curriculum`,
-            type: "content",
-          });
-          toast.success(`"${c.name}" synced with MoE curriculum`);
-          return { ...c, synced: true };
-        }),
-      );
+      const item = content.find((c) => c.id === contentId);
+      if (!item || item.synced) return;
+      setContent((prev) => prev.map((c) => (c.id === contentId ? { ...c, synced: true } : c)));
+      pushActivity({
+        time: "Just now",
+        action: "Content synced",
+        detail: `${item.name} — MoE curriculum`,
+        type: "content",
+      });
+      toast.success(`"${item.name}" synced with MoE curriculum`);
     },
-    [pushActivity],
+    [content, pushActivity],
   );
 
   const resolveFlag = useCallback(
     (flagId: string) => {
-      setFlags((prev) =>
-        prev.map((f) => {
-          if (f.id !== flagId) return f;
-          pushActivity({
-            time: "Just now",
-            action: "Flag resolved",
-            detail: `${f.report} — ${f.user}`,
-            type: "moderation",
-          });
-          toast.success(`Flag ${flagId} resolved`);
-          return { ...f, status: "resolved" };
-        }),
-      );
+      const flag = flags.find((f) => f.id === flagId);
+      if (!flag || flag.status === "resolved") return;
+      setFlags((prev) => prev.map((f) => (f.id === flagId ? { ...f, status: "resolved" } : f)));
+      pushActivity({
+        time: "Just now",
+        action: "Flag resolved",
+        detail: `${flag.report} — ${flag.user}`,
+        type: "moderation",
+      });
+      toast.success(`Flag ${flagId} resolved`);
     },
-    [pushActivity],
+    [flags, pushActivity],
   );
 
   const saveSettings = useCallback(() => {
@@ -463,13 +898,17 @@ export function useAdminDashboard() {
 
   const openQuickAction = useCallback(
     (action: QuickAction) => {
+      if (action === "publishExam") {
+        goToSection("exams");
+        openExamManager();
+        return;
+      }
       setActiveDialog(action);
       if (action === "addStudent") goToSection("students");
-      if (action === "publishExam") goToSection("exams");
       if (action === "uploadContent") goToSection("content");
       if (action === "createReward") goToSection("rewards");
     },
-    [goToSection],
+    [goToSection, openExamManager],
   );
 
   return {
@@ -486,6 +925,7 @@ export function useAdminDashboard() {
     openFlags,
     unsyncedContent,
     draftExams,
+    pendingReferrals,
     navBadges,
     withdrawals,
     pendingWithdrawals,
@@ -496,12 +936,16 @@ export function useAdminDashboard() {
     setNotificationsOpen,
     exams: filteredExams,
     rewards,
+    referrals,
     content: filteredContent,
     flags,
     settings,
     setSettings,
     activeDialog,
     setActiveDialog,
+    editEntity,
+    setEditEntity,
+    openEdit,
     profileUser,
     setProfileUser,
     messageUser,
@@ -512,9 +956,17 @@ export function useAdminDashboard() {
     openNotification,
     exportReport,
     addStudent,
+    updateStudent,
+    deleteStudent,
     publishExam,
+    updateExam,
+    deleteExam,
     uploadContent,
+    updateContent,
+    deleteContent,
     createReward,
+    updateReward,
+    deleteReward,
     updateUserStatus,
     sendMessage,
     toggleExamPublished,
@@ -523,6 +975,18 @@ export function useAdminDashboard() {
     resolveFlag,
     saveSettings,
     openQuickAction,
+    examManagerMode,
+    managingExam,
+    examManagerPreset,
+    openExamManager,
+    closeExamManager,
+    saveExamManager,
+    duplicateExam,
+    publishCourseExams,
+    approveReferral,
+    markReferralSignedUp,
+    rejectReferral,
+    deleteReferral,
   };
 }
 

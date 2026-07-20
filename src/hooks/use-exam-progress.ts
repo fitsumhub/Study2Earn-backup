@@ -52,6 +52,11 @@ function readAttempts(): AttemptsStore {
   }
 }
 
+/** Non-hook access to recorded attempts (e.g. admin analytics). */
+export function readExamAttempts(): ExamAttemptRecord[] {
+  return readAttempts();
+}
+
 function writeStore(store: ProgressStore) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   window.dispatchEvent(new Event("exam-progress-change"));

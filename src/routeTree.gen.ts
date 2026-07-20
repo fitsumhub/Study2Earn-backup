@@ -9,22 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RewardsRouteImport } from './routes/rewards'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AiStudyRouteImport } from './routes/ai-study'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExamsIndexRouteImport } from './routes/exams.index'
+import { Route as ExamsMistakesRouteImport } from './routes/exams.mistakes'
 import { Route as ExamsCourseIdRouteImport } from './routes/exams.$courseId'
 import { Route as ExamsCourseIdIndexRouteImport } from './routes/exams.$courseId.index'
+import { Route as RewardsClaimRedemptionIdRouteImport } from './routes/rewards.claim.$redemptionId'
+import { Route as LibraryReadBookIdRouteImport } from './routes/library.read.$bookId'
 import { Route as ExamsCourseIdChapterIdRouteImport } from './routes/exams.$courseId.$chapterId'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -45,6 +57,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -60,6 +77,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExamsRoute = ExamsRouteImport.update({
   id: '/exams',
   path: '/exams',
@@ -68,6 +90,11 @@ const ExamsRoute = ExamsRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiStudyRoute = AiStudyRouteImport.update({
+  id: '/ai-study',
+  path: '/ai-study',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -85,6 +112,11 @@ const ExamsIndexRoute = ExamsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ExamsRoute,
 } as any)
+const ExamsMistakesRoute = ExamsMistakesRouteImport.update({
+  id: '/mistakes',
+  path: '/mistakes',
+  getParentRoute: () => ExamsRoute,
+} as any)
 const ExamsCourseIdRoute = ExamsCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
@@ -95,6 +127,17 @@ const ExamsCourseIdIndexRoute = ExamsCourseIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ExamsCourseIdRoute,
 } as any)
+const RewardsClaimRedemptionIdRoute =
+  RewardsClaimRedemptionIdRouteImport.update({
+    id: '/claim/$redemptionId',
+    path: '/claim/$redemptionId',
+    getParentRoute: () => RewardsRoute,
+  } as any)
+const LibraryReadBookIdRoute = LibraryReadBookIdRouteImport.update({
+  id: '/read/$bookId',
+  path: '/read/$bookId',
+  getParentRoute: () => LibraryRoute,
+} as any)
 const ExamsCourseIdChapterIdRoute = ExamsCourseIdChapterIdRouteImport.update({
   id: '/$chapterId',
   path: '/$chapterId',
@@ -104,51 +147,72 @@ const ExamsCourseIdChapterIdRoute = ExamsCourseIdChapterIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRouteWithChildren
+  '/help': typeof HelpRoute
   '/leaderboard': typeof LeaderboardRoute
-  '/library': typeof LibraryRoute
+  '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/rewards': typeof RewardsRoute
+  '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
+  '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams/': typeof ExamsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
+  '/library/read/$bookId': typeof LibraryReadBookIdRoute
+  '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
   '/exams/$courseId/': typeof ExamsCourseIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
+  '/help': typeof HelpRoute
   '/leaderboard': typeof LeaderboardRoute
-  '/library': typeof LibraryRoute
+  '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/rewards': typeof RewardsRoute
+  '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams': typeof ExamsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
+  '/library/read/$bookId': typeof LibraryReadBookIdRoute
+  '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
   '/exams/$courseId': typeof ExamsCourseIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRouteWithChildren
+  '/help': typeof HelpRoute
   '/leaderboard': typeof LeaderboardRoute
-  '/library': typeof LibraryRoute
+  '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/rewards': typeof RewardsRoute
+  '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
+  '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams/': typeof ExamsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
+  '/library/read/$bookId': typeof LibraryReadBookIdRoute
+  '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
   '/exams/$courseId/': typeof ExamsCourseIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -156,69 +220,101 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ai-study'
     | '/dashboard'
     | '/exams'
+    | '/help'
     | '/leaderboard'
     | '/library'
     | '/login'
+    | '/privacy'
     | '/profile'
     | '/register'
     | '/rewards'
     | '/sitemap.xml'
+    | '/terms'
     | '/exams/$courseId'
+    | '/exams/mistakes'
     | '/exams/'
     | '/exams/$courseId/$chapterId'
+    | '/library/read/$bookId'
+    | '/rewards/claim/$redemptionId'
     | '/exams/$courseId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/ai-study'
     | '/dashboard'
+    | '/help'
     | '/leaderboard'
     | '/library'
     | '/login'
+    | '/privacy'
     | '/profile'
     | '/register'
     | '/rewards'
     | '/sitemap.xml'
+    | '/terms'
+    | '/exams/mistakes'
     | '/exams'
     | '/exams/$courseId/$chapterId'
+    | '/library/read/$bookId'
+    | '/rewards/claim/$redemptionId'
     | '/exams/$courseId'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/ai-study'
     | '/dashboard'
     | '/exams'
+    | '/help'
     | '/leaderboard'
     | '/library'
     | '/login'
+    | '/privacy'
     | '/profile'
     | '/register'
     | '/rewards'
     | '/sitemap.xml'
+    | '/terms'
     | '/exams/$courseId'
+    | '/exams/mistakes'
     | '/exams/'
     | '/exams/$courseId/$chapterId'
+    | '/library/read/$bookId'
+    | '/rewards/claim/$redemptionId'
     | '/exams/$courseId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AiStudyRoute: typeof AiStudyRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRouteWithChildren
+  HelpRoute: typeof HelpRoute
   LeaderboardRoute: typeof LeaderboardRoute
-  LibraryRoute: typeof LibraryRoute
+  LibraryRoute: typeof LibraryRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
-  RewardsRoute: typeof RewardsRoute
+  RewardsRoute: typeof RewardsRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -247,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -268,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exams': {
       id: '/exams'
       path: '/exams'
@@ -280,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-study': {
+      id: '/ai-study'
+      path: '/ai-study'
+      fullPath: '/ai-study'
+      preLoaderRoute: typeof AiStudyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -303,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamsIndexRouteImport
       parentRoute: typeof ExamsRoute
     }
+    '/exams/mistakes': {
+      id: '/exams/mistakes'
+      path: '/mistakes'
+      fullPath: '/exams/mistakes'
+      preLoaderRoute: typeof ExamsMistakesRouteImport
+      parentRoute: typeof ExamsRoute
+    }
     '/exams/$courseId': {
       id: '/exams/$courseId'
       path: '/$courseId'
@@ -316,6 +440,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/exams/$courseId/'
       preLoaderRoute: typeof ExamsCourseIdIndexRouteImport
       parentRoute: typeof ExamsCourseIdRoute
+    }
+    '/rewards/claim/$redemptionId': {
+      id: '/rewards/claim/$redemptionId'
+      path: '/claim/$redemptionId'
+      fullPath: '/rewards/claim/$redemptionId'
+      preLoaderRoute: typeof RewardsClaimRedemptionIdRouteImport
+      parentRoute: typeof RewardsRoute
+    }
+    '/library/read/$bookId': {
+      id: '/library/read/$bookId'
+      path: '/read/$bookId'
+      fullPath: '/library/read/$bookId'
+      preLoaderRoute: typeof LibraryReadBookIdRouteImport
+      parentRoute: typeof LibraryRoute
     }
     '/exams/$courseId/$chapterId': {
       id: '/exams/$courseId/$chapterId'
@@ -343,28 +481,56 @@ const ExamsCourseIdRouteWithChildren = ExamsCourseIdRoute._addFileChildren(
 
 interface ExamsRouteChildren {
   ExamsCourseIdRoute: typeof ExamsCourseIdRouteWithChildren
+  ExamsMistakesRoute: typeof ExamsMistakesRoute
   ExamsIndexRoute: typeof ExamsIndexRoute
 }
 
 const ExamsRouteChildren: ExamsRouteChildren = {
   ExamsCourseIdRoute: ExamsCourseIdRouteWithChildren,
+  ExamsMistakesRoute: ExamsMistakesRoute,
   ExamsIndexRoute: ExamsIndexRoute,
 }
 
 const ExamsRouteWithChildren = ExamsRoute._addFileChildren(ExamsRouteChildren)
 
+interface LibraryRouteChildren {
+  LibraryReadBookIdRoute: typeof LibraryReadBookIdRoute
+}
+
+const LibraryRouteChildren: LibraryRouteChildren = {
+  LibraryReadBookIdRoute: LibraryReadBookIdRoute,
+}
+
+const LibraryRouteWithChildren =
+  LibraryRoute._addFileChildren(LibraryRouteChildren)
+
+interface RewardsRouteChildren {
+  RewardsClaimRedemptionIdRoute: typeof RewardsClaimRedemptionIdRoute
+}
+
+const RewardsRouteChildren: RewardsRouteChildren = {
+  RewardsClaimRedemptionIdRoute: RewardsClaimRedemptionIdRoute,
+}
+
+const RewardsRouteWithChildren =
+  RewardsRoute._addFileChildren(RewardsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AiStudyRoute: AiStudyRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRouteWithChildren,
+  HelpRoute: HelpRoute,
   LeaderboardRoute: LeaderboardRoute,
-  LibraryRoute: LibraryRoute,
+  LibraryRoute: LibraryRouteWithChildren,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
-  RewardsRoute: RewardsRoute,
+  RewardsRoute: RewardsRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

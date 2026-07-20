@@ -1,57 +1,32 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-import {
-  defaultReferrals,
-  generateReferralCode,
-  getReferralLink,
-  referralTiers,
-  type ReferralRecord,
-} from "@/lib/referral-data";
+import { getReferralLink, referralTiers, type ReferralRecord } from "@/lib/referral-data";
+import { readReferralStore, subscribeReferrals, type ReferralStore } from "@/lib/referral-store";
 
-type ReferralStore = {
-  code: string;
-  referrals: ReferralRecord[];
-  tierBonusesClaimed: number[];
-};
+let cachedStore: ReferralStore = readReferralStore();
 
-const STORAGE_KEY = "study2earn-referrals";
-
-function readStore(): ReferralStore {
-  if (typeof window === "undefined") {
-    return { code: "ABEBE-DEMO", referrals: defaultReferrals, tierBonusesClaimed: [1, 3] };
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ReferralStore;
-  } catch {
-    /* use defaults */
-  }
-  return {
-    code: generateReferralCode(),
-    referrals: defaultReferrals,
-    tierBonusesClaimed: [1, 3],
-  };
+function refreshReferralCache() {
+  cachedStore = readReferralStore();
 }
 
-function writeStore(store: ReferralStore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  window.dispatchEvent(new Event("referral-change"));
-}
-
-let cached = readStore();
-
-function subscribe(cb: () => void) {
-  window.addEventListener("referral-change", cb);
-  return () => window.removeEventListener("referral-change", cb);
+function subscribe(callback: () => void) {
+  refreshReferralCache();
+  return subscribeReferrals(() => {
+    refreshReferralCache();
+    callback();
+  });
 }
 
 function getSnapshot() {
-  cached = readStore();
-  return cached;
+  return cachedStore;
+}
+
+function getServerSnapshot() {
+  return cachedStore;
 }
 
 export function useReferral() {
-  const store = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const store = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const completed = store.referrals.filter((r) => r.status === "completed").length;
   const signedUp = store.referrals.filter(
@@ -60,8 +35,10 @@ export function useReferral() {
   const pending = store.referrals.filter((r) => r.status === "pending").length;
   const referralXp = store.referrals.reduce((sum, r) => sum + r.xpEarned, 0);
 
+  // Milestones unlock automatically once the completed-referral count reaches
+  // them — matches the "unlocked" state shown in the milestones list.
   const tierBonuses = referralTiers
-    .filter((t) => completed >= t.count && store.tierBonusesClaimed.includes(t.count))
+    .filter((t) => completed >= t.count)
     .reduce((sum, t) => sum + t.xpBonus, 0);
 
   const totalReferralXp = referralXp + tierBonuses;
@@ -106,7 +83,7 @@ export function useReferral() {
   );
 
   return {
-    referrals: store.referrals,
+    referrals: store.referrals as ReferralRecord[],
     code: store.code,
     referralLink,
     completed,

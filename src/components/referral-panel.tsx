@@ -68,14 +68,14 @@ export function ReferralPanel() {
   };
 
   return (
-    <section className="mb-12">
+    <section>
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wider text-brand-gold">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Refer & earn
           </p>
-          <h2 className="font-serif text-2xl font-bold text-brand-navy">Referral program</h2>
-          <p className="mt-1 max-w-xl text-sm text-slate-600">
+          <h2 className="text-xl font-bold text-slate-900">Referral program</h2>
+          <p className="mt-1 max-w-xl text-sm text-slate-500">
             Invite classmates to Study2Earn. Earn XP when they sign up and complete their first
             chapter.
           </p>
@@ -86,7 +86,7 @@ export function ReferralPanel() {
       </div>
 
       {/* Hero referral card */}
-      <div className="mb-8 overflow-hidden rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-navy via-brand-navy to-[#1a2f5c] p-6 text-white shadow-lg md:p-8">
+      <div className="mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-brand-navy via-brand-navy to-[#1a2f5c] p-6 text-white md:p-8">
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
             <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-brand-gold/20">
@@ -183,7 +183,7 @@ export function ReferralPanel() {
       </div>
 
       {/* How it works */}
-      <div className="mb-8 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
         {[
           {
             step: "01",
@@ -204,24 +204,21 @@ export function ReferralPanel() {
             icon: Gift,
           },
         ].map((item) => (
-          <div
-            key={item.step}
-            className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
-          >
+          <div key={item.step} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center gap-3">
               <span className="font-mono text-xs font-bold text-brand-gold">{item.step}</span>
-              <item.icon className="size-4 text-brand-navy" />
+              <item.icon className="size-4 text-slate-500" />
             </div>
-            <h4 className="font-semibold text-brand-navy">{item.title}</h4>
-            <p className="mt-1 text-sm text-slate-500">{item.desc}</p>
+            <h4 className="text-sm font-semibold text-slate-900">{item.title}</h4>
+            <p className="mt-1 text-xs text-slate-500">{item.desc}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Referral history */}
-        <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-          <h3 className="font-serif text-lg font-bold text-brand-navy">Your referrals</h3>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-900">Your referrals</h3>
           <p className="mt-1 text-sm text-slate-500">
             {pending > 0
               ? `${pending} invite${pending !== 1 ? "s" : ""} still pending signup`
@@ -236,10 +233,10 @@ export function ReferralPanel() {
               referrals.map((ref) => (
                 <div
                   key={ref.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-4"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 p-4"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-brand-navy">{ref.name}</p>
+                    <p className="font-semibold text-slate-900">{ref.name}</p>
                     <p className="truncate text-xs text-slate-500">{ref.university}</p>
                     <p className="mt-1 text-[10px] text-slate-400">{ref.date}</p>
                   </div>
@@ -263,22 +260,22 @@ export function ReferralPanel() {
         </div>
 
         {/* Milestone tiers */}
-        <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center gap-2">
-            <Trophy className="size-5 text-brand-gold" />
-            <h3 className="font-serif text-lg font-bold text-brand-navy">Referral milestones</h3>
+            <Trophy className="size-4 text-brand-gold" />
+            <h3 className="text-sm font-semibold text-slate-900">Referral milestones</h3>
           </div>
           <p className="mt-1 text-sm text-slate-500">
             Hit referral targets to unlock bonus XP and badges
           </p>
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 space-y-3">
             {referralTiers.map((tier) => {
               const unlocked = completed >= tier.count;
               return (
                 <div
                   key={tier.count}
                   className={cn(
-                    "flex items-center gap-4 rounded-xl border p-4 transition",
+                    "flex items-center gap-4 rounded-lg border p-4 transition",
                     unlocked
                       ? "border-emerald-200 bg-emerald-50/50"
                       : "border-slate-100 bg-slate-50/50",
@@ -293,7 +290,7 @@ export function ReferralPanel() {
                     {unlocked ? <Check className="size-5" /> : tier.count}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-brand-navy">
+                    <p className="font-semibold text-slate-900">
                       {tier.count} referral{tier.count !== 1 ? "s" : ""}
                     </p>
                     <p className="text-sm text-slate-500">{tier.reward}</p>

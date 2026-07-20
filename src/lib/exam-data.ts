@@ -7,11 +7,12 @@ export type ExamCourse = {
   id: string;
   name: string;
   short: string;
-  tint: string;
   category: "Natural Science" | "Social Science" | "Common";
   durationMinutes: number;
   questionsPerExam: number;
   chapters: ExamChapter[];
+  /** Real cover image (URL or local: pointer). Falls back to the generated cover. */
+  coverUrl?: string;
 };
 
 export type MCQuestion = {
@@ -27,7 +28,6 @@ export const examCourses: ExamCourse[] = [
     id: "emerging-tech",
     name: "Introduction to Emerging Technologies",
     short: "Emerging Tech",
-    tint: "from-cyan-100 to-cyan-50",
     category: "Common",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -44,7 +44,6 @@ export const examCourses: ExamCourse[] = [
     id: "general-physics",
     name: "General Physics",
     short: "Physics",
-    tint: "from-blue-100 to-blue-50",
     category: "Natural Science",
     durationMinutes: 25,
     questionsPerExam: 10,
@@ -65,7 +64,6 @@ export const examCourses: ExamCourse[] = [
     id: "inclusiveness",
     name: "Inclusiveness",
     short: "Inclusiveness",
-    tint: "from-orange-100 to-orange-50",
     category: "Common",
     durationMinutes: 15,
     questionsPerExam: 8,
@@ -80,7 +78,6 @@ export const examCourses: ExamCourse[] = [
     id: "general-biology",
     name: "General Biology (Biol. 1012)",
     short: "Biology",
-    tint: "from-lime-100 to-lime-50",
     category: "Natural Science",
     durationMinutes: 25,
     questionsPerExam: 10,
@@ -101,7 +98,6 @@ export const examCourses: ExamCourse[] = [
     id: "math-natural",
     name: "Mathematics for Natural Sciences",
     short: "Math (Nat.)",
-    tint: "from-violet-100 to-violet-50",
     category: "Natural Science",
     durationMinutes: 30,
     questionsPerExam: 10,
@@ -120,7 +116,6 @@ export const examCourses: ExamCourse[] = [
     id: "math-social",
     name: "Mathematics for Social Sciences",
     short: "Math (Soc.)",
-    tint: "from-purple-100 to-purple-50",
     category: "Social Science",
     durationMinutes: 25,
     questionsPerExam: 8,
@@ -137,7 +132,6 @@ export const examCourses: ExamCourse[] = [
     id: "english-i",
     name: "Communicative English Language Skills I",
     short: "English I",
-    tint: "from-amber-100 to-amber-50",
     category: "Common",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -153,7 +147,6 @@ export const examCourses: ExamCourse[] = [
     id: "english-ii",
     name: "Communicative English Language Skills II",
     short: "English II",
-    tint: "from-yellow-100 to-yellow-50",
     category: "Common",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -169,7 +162,6 @@ export const examCourses: ExamCourse[] = [
     id: "physical-fitness",
     name: "Physical Fitness",
     short: "Fitness",
-    tint: "from-green-100 to-green-50",
     category: "Common",
     durationMinutes: 15,
     questionsPerExam: 8,
@@ -185,7 +177,6 @@ export const examCourses: ExamCourse[] = [
     id: "moral-citizenship",
     name: "Moral and Citizenship Education",
     short: "Moral & Civics",
-    tint: "from-teal-100 to-teal-50",
     category: "Social Science",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -202,7 +193,6 @@ export const examCourses: ExamCourse[] = [
     id: "economics",
     name: "Introduction to Economics",
     short: "Economics",
-    tint: "from-emerald-100 to-emerald-50",
     category: "Social Science",
     durationMinutes: 25,
     questionsPerExam: 8,
@@ -219,7 +209,6 @@ export const examCourses: ExamCourse[] = [
     id: "global-affairs",
     name: "Global Affairs",
     short: "Global Affairs",
-    tint: "from-sky-100 to-sky-50",
     category: "Social Science",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -235,7 +224,6 @@ export const examCourses: ExamCourse[] = [
     id: "geography-ethiopia",
     name: "Geography of Ethiopia and the Horn",
     short: "Geography",
-    tint: "from-yellow-100 to-yellow-50",
     category: "Social Science",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -252,7 +240,6 @@ export const examCourses: ExamCourse[] = [
     id: "general-psychology",
     name: "General Psychology",
     short: "Psychology",
-    tint: "from-rose-100 to-rose-50",
     category: "Social Science",
     durationMinutes: 25,
     questionsPerExam: 10,
@@ -271,7 +258,6 @@ export const examCourses: ExamCourse[] = [
     id: "entrepreneurship",
     name: "Entrepreneurship",
     short: "Entrepreneurship",
-    tint: "from-indigo-100 to-indigo-50",
     category: "Common",
     durationMinutes: 20,
     questionsPerExam: 8,
@@ -288,7 +274,6 @@ export const examCourses: ExamCourse[] = [
     id: "anthropology",
     name: "Anthropology",
     short: "Anthropology",
-    tint: "from-pink-100 to-pink-50",
     category: "Social Science",
     durationMinutes: 20,
     questionsPerExam: 8,

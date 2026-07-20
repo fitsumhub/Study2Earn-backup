@@ -1,4 +1,5 @@
 import { getBookThumbnail } from "@/lib/book-thumbnails";
+import { resolveMediaUrl } from "@/lib/media-store";
 import { cn } from "@/lib/utils";
 
 type BookCoverProps = {
@@ -9,12 +10,45 @@ type BookCoverProps = {
   category?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
+  /** Real cover image (URL or local: pointer). Falls back to the generated cover. */
+  coverUrl?: string;
 };
 
-export function BookCover({ short, id, name, category, className, size = "md" }: BookCoverProps) {
+export function BookCover({
+  short,
+  id,
+  name,
+  category,
+  className,
+  size = "md",
+  coverUrl,
+}: BookCoverProps) {
   const style = getBookThumbnail(short, id);
   const Icon = style.icon;
   const trackLabel = category ?? style.label;
+  const coverSrc = resolveMediaUrl(coverUrl);
+
+  if (coverSrc) {
+    return (
+      <div
+        className={cn(
+          "group/cover relative aspect-[2/3] w-full overflow-hidden rounded-lg shadow-md outline-1 -outline-offset-1 outline-black/10 transition duration-300 group-hover:scale-[1.02] group-hover:shadow-xl",
+          className,
+        )}
+      >
+        <img
+          src={coverSrc}
+          alt={name ? `Cover of ${name}` : `Cover of ${short}`}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+        />
+        {/* Book-feel overlays on top of the real cover */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20" />
+        <div className="absolute bottom-0 left-0 top-0 w-[7%] bg-black/20 shadow-[inset_-2px_0_6px_rgba(0,0,0,0.3)]" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div

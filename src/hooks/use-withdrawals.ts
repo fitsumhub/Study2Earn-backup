@@ -1,10 +1,15 @@
 import { useCallback, useSyncExternalStore } from "react";
 
+import { useAuth } from "@/hooks/use-auth";
 import { getBankById } from "@/lib/ethiopian-banks";
 import {
-  CURRENT_USER,
+  ETB_PER_USDT,
   MIN_WITHDRAWAL_ETB,
+  MIN_WITHDRAWAL_USDT,
+  defaultWithdrawals,
   etbToXp,
+  isValidBinanceUid,
+  usdtToXp,
   type WithdrawalRequest,
   type WithdrawalStatus,
 } from "@/lib/withdrawal-data";
@@ -18,38 +23,66 @@ function nextId(requests: WithdrawalRequest[]) {
   return `WD-${next}`;
 }
 
-function getSnapshot() {
-  return readWithdrawals();
+let cachedWithdrawals: WithdrawalRequest[] = defaultWithdrawals;
+
+function refreshWithdrawalCache() {
+  cachedWithdrawals = readWithdrawals();
 }
 
-export function useWithdrawals() {
-  const all = useSyncExternalStore(subscribeWithdrawals, getSnapshot, getSnapshot);
+function subscribe(callback: () => void) {
+  refreshWithdrawalCache();
+  return subscribeWithdrawals(() => {
+    refreshWithdrawalCache();
+    callback();
+  });
+}
 
-  const myRequests = all.filter((r) => r.userId === CURRENT_USER.id);
+function getSnapshot() {
+  return cachedWithdrawals;
+}
+
+function getServerSnapshot() {
+  return defaultWithdrawals;
+}
+
+export type SubmitBankWithdrawal = {
+  method: "bank";
+  bankId: string;
+  accountNumber: string;
+  accountName: string;
+  amountEtb: number;
+};
+
+export type SubmitUsdtWithdrawal = {
+  method: "usdt";
+  binanceUid: string;
+  amountUsdt: number;
+};
+
+export type SubmitWithdrawalData = SubmitBankWithdrawal | SubmitUsdtWithdrawal;
+
+export function useWithdrawals() {
+  const { user } = useAuth();
+  const all = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  const userId = user?.id ?? "";
+  const myRequests = all.filter((r) => r.userId === userId);
+  // XP is reserved the moment a request is submitted and stays deducted through
+  // "paid" — only a "rejected" request releases it back to the spendable balance.
   const pendingXp = myRequests
-    .filter((r) => r.status === "pending" || r.status === "approved")
+    .filter((r) => r.status !== "rejected")
     .reduce((sum, r) => sum + r.xpDeducted, 0);
 
   const submitWithdrawal = useCallback(
-    (data: { bankId: string; accountNumber: string; accountName: string; amountEtb: number }) => {
-      const bank = getBankById(data.bankId);
-      if (!bank) return { ok: false as const, error: "Invalid bank selected" };
-      if (data.amountEtb < MIN_WITHDRAWAL_ETB) {
-        return { ok: false as const, error: `Minimum withdrawal is ${MIN_WITHDRAWAL_ETB} ETB` };
-      }
+    (data: SubmitWithdrawalData) => {
+      if (!user) return { ok: false as const, error: "Sign in required" };
 
-      const request: WithdrawalRequest = {
+      const base = {
         id: nextId(all),
-        userId: CURRENT_USER.id,
-        userName: CURRENT_USER.name,
-        university: CURRENT_USER.university,
-        bankId: bank.id,
-        bankName: bank.name,
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        amountEtb: data.amountEtb,
-        xpDeducted: etbToXp(data.amountEtb),
-        status: "pending",
+        userId: user.id,
+        userName: user.name,
+        university: user.university,
+        status: "pending" as const,
         requestedAt: new Date().toLocaleString("en-US", {
           month: "short",
           day: "numeric",
@@ -59,10 +92,48 @@ export function useWithdrawals() {
         }),
       };
 
+      if (data.method === "bank") {
+        const bank = getBankById(data.bankId);
+        if (!bank) return { ok: false as const, error: "Invalid bank selected" };
+        if (data.amountEtb < MIN_WITHDRAWAL_ETB) {
+          return { ok: false as const, error: `Minimum withdrawal is ${MIN_WITHDRAWAL_ETB} ETB` };
+        }
+
+        const request: WithdrawalRequest = {
+          ...base,
+          method: "bank",
+          bankId: bank.id,
+          bankName: bank.name,
+          accountNumber: data.accountNumber,
+          accountName: data.accountName,
+          amountEtb: data.amountEtb,
+          xpDeducted: etbToXp(data.amountEtb),
+        };
+
+        writeWithdrawals([request, ...all]);
+        return { ok: true as const, request };
+      }
+
+      if (!isValidBinanceUid(data.binanceUid)) {
+        return { ok: false as const, error: "Enter a valid Binance UID (6–12 digits)" };
+      }
+      if (data.amountUsdt < MIN_WITHDRAWAL_USDT) {
+        return { ok: false as const, error: `Minimum withdrawal is ${MIN_WITHDRAWAL_USDT} USDT` };
+      }
+
+      const request: WithdrawalRequest = {
+        ...base,
+        method: "usdt",
+        binanceUid: data.binanceUid.trim(),
+        amountUsdt: data.amountUsdt,
+        amountEtb: Math.round(data.amountUsdt * ETB_PER_USDT),
+        xpDeducted: usdtToXp(data.amountUsdt),
+      };
+
       writeWithdrawals([request, ...all]);
       return { ok: true as const, request };
     },
-    [all],
+    [all, user],
   );
 
   const updateStatus = useCallback(
