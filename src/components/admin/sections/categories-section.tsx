@@ -1,18 +1,11 @@
 import { BookOpen, FolderTree, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { CategoryDialog, type CategoryDialogState } from "@/components/admin/category-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,20 +16,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 import { useCategories } from "@/hooks/use-categories";
-import {
-  CATEGORY_COLORS,
-  CATEGORY_COLOR_KEYS,
-  type BookCategory,
-  type CategoryColor,
-} from "@/lib/category-store";
+import { CATEGORY_COLORS, type BookCategory } from "@/lib/category-store";
 import { cn } from "@/lib/utils";
 
-type EditState = { mode: "create" } | { mode: "edit"; category: BookCategory } | null;
+type EditState = CategoryDialogState;
 
 export function CategoriesSection({ admin }: { admin: AdminDashboardState }) {
   const { categories, addCategory, updateCategory, deleteCategory, resetToDefaults } =
@@ -233,121 +218,5 @@ export function CategoriesSection({ admin }: { admin: AdminDashboardState }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-function CategoryDialog({
-  state,
-  onClose,
-  onCreate,
-  onUpdate,
-}: {
-  state: EditState;
-  onClose: () => void;
-  onCreate: (data: { name: string; color: CategoryColor; description?: string }) => boolean;
-  onUpdate: (
-    id: string,
-    data: { name: string; color: CategoryColor; description?: string },
-  ) => boolean;
-}) {
-  const editing = state?.mode === "edit" ? state.category : null;
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<CategoryColor>("blue");
-  const [description, setDescription] = useState("");
-
-  // Reset form fields whenever the dialog opens for a different target.
-  const key = state?.mode === "edit" ? state.category.id : (state?.mode ?? "closed");
-  useEffect(() => {
-    setName(editing?.name ?? "");
-    setColor(editing?.color ?? "blue");
-    setDescription(editing?.description ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  const open = state !== null;
-
-  function submit() {
-    const payload = { name: name.trim(), color, description: description.trim() || undefined };
-    if (!payload.name) return;
-    const ok = editing ? onUpdate(editing.id, payload) : onCreate(payload);
-    if (ok) onClose();
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Edit category" : "New category"}</DialogTitle>
-          <DialogDescription>
-            Categories power the library filters and book badges.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="cat-name">Name</Label>
-            <Input
-              id="cat-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Fiction"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  submit();
-                }
-              }}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORY_COLOR_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  title={CATEGORY_COLORS[key].label}
-                  onClick={() => setColor(key)}
-                  className={cn(
-                    "size-8 rounded-lg ring-offset-2 transition",
-                    CATEGORY_COLORS[key].swatch,
-                    color === key
-                      ? "ring-2 ring-brand-navy"
-                      : "ring-0 hover:ring-2 hover:ring-slate-300",
-                  )}
-                  aria-label={`${CATEGORY_COLORS[key].label} color`}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="cat-desc">Description</Label>
-            <Textarea
-              id="cat-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional — what this category is for"
-              rows={2}
-            />
-          </div>
-          <div className="rounded-lg border bg-slate-50 p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              Preview
-            </p>
-            <Badge variant="secondary" className={cn(CATEGORY_COLORS[color].badge)}>
-              {name.trim() || "Category name"}
-            </Badge>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={!name.trim()}>
-            {editing ? "Save changes" : "Add category"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

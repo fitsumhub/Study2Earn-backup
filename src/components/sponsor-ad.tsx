@@ -11,7 +11,7 @@ import {
   type SponsorAd as SponsorAdType,
 } from "@/lib/ad-store";
 import { resolveMediaUrl } from "@/lib/media-store";
-import { cn } from "@/lib/utils";
+import { cn, safeHref } from "@/lib/utils";
 
 type CreativeAd = Pick<
   SponsorAdType,
@@ -73,7 +73,7 @@ function CtaLink({
   if (!ad.ctaLabel) return null;
   return (
     <a
-      href={preview ? undefined : ad.ctaUrl}
+      href={preview ? undefined : safeHref(ad.ctaUrl)}
       target={preview ? undefined : "_blank"}
       rel="noopener noreferrer sponsored"
       onClick={(e) => {
@@ -144,7 +144,7 @@ function ImageAd({ ad, onCta, onDismiss, preview, className }: CardProps) {
   return (
     <aside aria-label={`Sponsored image from ${ad.sponsor}`} className={cn(FRAME, className)}>
       <a
-        href={preview ? undefined : ad.ctaUrl}
+        href={preview ? undefined : safeHref(ad.ctaUrl)}
         target={preview ? undefined : "_blank"}
         rel="noopener noreferrer sponsored"
         onClick={(e) => {
@@ -242,30 +242,6 @@ function VideoAd({ ad, onCta, onDismiss, preview, className }: CardProps) {
 
 /* ── Format: Google / embed ─────────────────────────────────────── */
 function GoogleAdSlot({ adCode }: { adCode?: string }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const host = ref.current;
-    if (!host || !adCode) return;
-    // Admin-provided embed (their own ad-network snippet). Inject then
-    // re-create <script> nodes so they actually execute.
-    host.innerHTML = adCode;
-    host.querySelectorAll("script").forEach((old) => {
-      const s = document.createElement("script");
-      for (const attr of Array.from(old.attributes)) s.setAttribute(attr.name, attr.value);
-      s.text = old.textContent ?? "";
-      old.replaceWith(s);
-    });
-    try {
-      // Nudge AdSense to fill any <ins class="adsbygoogle"> just injected.
-      (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle =
-        (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || [];
-      (window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({});
-    } catch {
-      /* no-op in dev / without a publisher account */
-    }
-  }, [adCode]);
-
   if (!adCode) {
     // Placeholder ad slot (no code configured yet).
     return (
@@ -283,7 +259,18 @@ function GoogleAdSlot({ adCode }: { adCode?: string }) {
       </div>
     );
   }
-  return <div ref={ref} className="w-full overflow-hidden" />;
+  // Admin-provided embed runs inside a sandboxed, cross-origin iframe rather
+  // than the live page: scripts execute (so real ad networks still fill),
+  // but they can't reach this origin's cookies, localStorage, or DOM.
+  return (
+    <iframe
+      title="Advertisement"
+      srcDoc={adCode}
+      sandbox="allow-scripts allow-popups"
+      className="w-full overflow-hidden border-0"
+      style={{ minHeight: 120 }}
+    />
+  );
 }
 
 function GoogleAd({ ad, onDismiss, className }: CardProps) {

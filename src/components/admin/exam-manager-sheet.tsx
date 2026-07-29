@@ -17,6 +17,16 @@ import {
   type ExamFormData,
 } from "@/components/admin/forms/exam-form";
 import { ExamQuestionEditor } from "@/components/admin/exam-question-editor";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +65,7 @@ export function ExamManagerSheet({
   onSave,
   mode,
   preset,
+  initialTab = "details",
 }: {
   exam: AdminExam | null;
   open: boolean;
@@ -63,16 +74,43 @@ export function ExamManagerSheet({
   mode: "create" | "edit";
   /** Prefill for create mode (e.g. courseId when adding a chapter from a course group). */
   preset?: Partial<ExamFormData> | null;
+  /** Which tab to land on when the sheet opens — e.g. "preview" for the Preview button. */
+  initialTab?: Tab;
 }) {
   const [tab, setTab] = useState<Tab>("details");
   const [form, setForm] = useState<ExamFormData>(emptyForm);
+  // Snapshot of the question bank as of the last successful save (or initial load),
+  // used to warn before discarding unsaved question edits on close.
+  const savedQuestionBankRef = useRef<AdminExamQuestion[]>([]);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setTab("details");
-      setForm(exam ? examToForm(exam) : { ...emptyForm, ...preset });
+      setTab(initialTab);
+      const loaded = exam ? examToForm(exam) : { ...emptyForm, ...preset };
+      setForm(loaded);
+      savedQuestionBankRef.current = loaded.questionBank;
     }
+    // initialTab is read once per open (a fresh mode/tab request), not tracked live —
+    // omitting it from deps is intentional so re-renders don't reset the active tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, exam, preset]);
+
+  const hasUnsavedQuestions =
+    JSON.stringify(form.questionBank) !== JSON.stringify(savedQuestionBankRef.current);
+
+  const handleSave = (data: ExamFormData) => {
+    savedQuestionBankRef.current = data.questionBank;
+    onSave(data);
+  };
+
+  const requestClose = () => {
+    if (hasUnsavedQuestions) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onClose();
+  };
 
   const loadTemplates = () => {
     if (!form.courseId || !form.chapterId) return;
@@ -160,7 +198,7 @@ export function ExamManagerSheet({
   ];
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+    <Sheet open={open} onOpenChange={(v) => !v && requestClose()}>
       <SheetContent className="flex w-full flex-col overflow-hidden sm:max-w-2xl lg:max-w-3xl">
         <SheetHeader className="shrink-0">
           <SheetTitle className="font-serif text-brand-navy">
@@ -171,14 +209,14 @@ export function ExamManagerSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 flex shrink-0 gap-1 border-b pb-2">
+        <div className="mt-4 flex shrink-0 gap-1 overflow-x-auto border-b pb-2">
           {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+                "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition",
                 tab === t.id ? "bg-brand-navy text-white" : "text-slate-600 hover:bg-slate-100",
               )}
             >
@@ -199,8 +237,8 @@ export function ExamManagerSheet({
               key={exam?.id ?? "new"}
               initial={form}
               submitLabel={mode === "create" ? "Create exam" : "Save changes"}
-              onCancel={onClose}
-              onSubmit={(data) => onSave({ ...data, questionBank: form.questionBank })}
+              onCancel={requestClose}
+              onSubmit={(data) => handleSave({ ...data, questionBank: form.questionBank })}
             />
           )}
 
@@ -242,7 +280,7 @@ export function ExamManagerSheet({
                   className="hidden"
                   onChange={handleImportFile}
                 />
-                <Button type="button" size="sm" onClick={() => onSave(form)}>
+                <Button type="button" size="sm" onClick={() => handleSave(form)}>
                   Save question bank
                 </Button>
               </div>
@@ -325,6 +363,30 @@ export function ExamManagerSheet({
           )}
         </div>
       </SheetContent>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved question changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've edited the question bank without saving. Closing now will lose those changes —
+              go back and click "Save question bank" first if you want to keep them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                setConfirmDiscard(false);
+                onClose();
+              }}
+            >
+              Discard changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

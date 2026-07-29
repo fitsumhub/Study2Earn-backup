@@ -78,7 +78,7 @@ export function useReadingTimer(active: boolean, bookId?: string, bookName?: str
       addReadingSeconds(userId, TICK_SECONDS);
       // Per-book progress + XP reward
       if (bookId) {
-        addBookReadingSeconds(bookId, TICK_SECONDS);
+        addBookReadingSeconds(userId, bookId, TICK_SECONDS);
       }
     };
 

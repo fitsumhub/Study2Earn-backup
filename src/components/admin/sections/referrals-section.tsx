@@ -1,5 +1,16 @@
-import { Check, PowerOff, Share2, Trash2, UserCheck, UserPlus, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  Check,
+  Plus,
+  PowerOff,
+  RotateCcw,
+  Share2,
+  Trash2,
+  Trophy,
+  UserCheck,
+  UserPlus,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
+import { useReferralTiers } from "@/hooks/use-referral-tiers";
 import type { AdminReferral } from "@/lib/admin-types";
-import { referralTiers } from "@/lib/referral-data";
+import type { ReferralTierConfig } from "@/lib/referral-tiers-store";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<AdminReferral["status"], string> = {
@@ -312,58 +324,168 @@ export function ReferralsSection({ admin }: { admin: AdminDashboardState }) {
               No referrals match filters
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Referrer</TableHead>
-                  <TableHead>Referred student</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>XP</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayed.map((ref) => (
-                  <ReferralRow
-                    key={ref.id}
-                    referral={ref}
-                    onApprove={() => approveReferral(ref.id)}
-                    onSignUp={() => markReferralSignedUp(ref.id)}
-                    onReject={() => rejectReferral(ref.id)}
-                    onDelete={() => deleteReferral(ref.id)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead>Referred student</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>XP</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayed.map((ref) => (
+                    <ReferralRow
+                      key={ref.id}
+                      referral={ref}
+                      onApprove={() => approveReferral(ref.id)}
+                      onSignUp={() => markReferralSignedUp(ref.id)}
+                      onReject={() => rejectReferral(ref.id)}
+                      onDelete={() => deleteReferral(ref.id)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="font-serif text-brand-navy">Milestone tiers</CardTitle>
-          <CardDescription>Bonus XP unlocked when referrers hit invite targets</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {referralTiers.map((tier) => (
-              <div
-                key={tier.count}
-                className="rounded-xl border border-slate-100 bg-slate-50/50 p-4"
-              >
-                <p className="text-xs font-bold uppercase tracking-wider text-brand-gold">
-                  {tier.count} referral{tier.count !== 1 ? "s" : ""}
-                </p>
-                <p className="mt-1 font-semibold text-brand-navy">{tier.reward}</p>
-                {tier.xpBonus > 0 && (
-                  <p className="mt-1 text-sm text-muted-foreground">+{tier.xpBonus} XP bonus</p>
-                )}
-              </div>
-            ))}
+      <MilestoneTiersCard />
+    </div>
+  );
+}
+
+function MilestoneTiersCard() {
+  const { tiers, addTier, updateTier, removeTier, resetToDefaults } = useReferralTiers();
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <CardTitle className="font-serif text-brand-navy flex items-center gap-2">
+              <Trophy className="size-5 text-brand-gold" />
+              Milestone tiers
+            </CardTitle>
+            <CardDescription>
+              Bonus XP unlocked when referrers hit invite targets — shown on the student referral
+              panel
+            </CardDescription>
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={resetToDefaults}>
+            <RotateCcw className="size-3.5" />
+            Reset to defaults
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {tiers.map((tier) => (
+          <TierRow
+            key={tier.id}
+            tier={tier}
+            onUpdate={(patch) => updateTier(tier.id, patch)}
+            onRemove={() => removeTier(tier.id)}
+          />
+        ))}
+        <Button variant="outline" className="gap-2" onClick={addTier}>
+          <Plus className="size-4" />
+          Add milestone
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TierRow({
+  tier,
+  onUpdate,
+  onRemove,
+}: {
+  tier: ReferralTierConfig;
+  onUpdate: (patch: Partial<Omit<ReferralTierConfig, "id">>) => void;
+  onRemove: () => void;
+}) {
+  // Numeric fields are edited as local drafts and only committed (and thus
+  // only re-sorted by count) on blur/Enter — committing on every keystroke
+  // made the field snap back to 1/0 whenever it was cleared mid-edit, and
+  // reordering the list while the admin was still typing was disorienting.
+  const [countDraft, setCountDraft] = useState(String(tier.count));
+  const [xpDraft, setXpDraft] = useState(String(tier.xpBonus));
+
+  useEffect(() => setCountDraft(String(tier.count)), [tier.count]);
+  useEffect(() => setXpDraft(String(tier.xpBonus)), [tier.xpBonus]);
+
+  const commitCount = () => {
+    const n = parseInt(countDraft, 10);
+    if (Number.isFinite(n) && n >= 1) onUpdate({ count: n });
+    else setCountDraft(String(tier.count));
+  };
+
+  const commitXp = () => {
+    const n = parseInt(xpDraft, 10);
+    if (Number.isFinite(n) && n >= 0) onUpdate({ xpBonus: n });
+    else setXpDraft(String(tier.xpBonus));
+  };
+
+  const blurOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") e.currentTarget.blur();
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-3">
+      <div className="grid gap-1.5">
+        <Label htmlFor={`tier-count-${tier.id}`} className="text-[11px] text-muted-foreground">
+          Referrals needed
+        </Label>
+        <Input
+          id={`tier-count-${tier.id}`}
+          type="number"
+          min={1}
+          value={countDraft}
+          onChange={(e) => setCountDraft(e.target.value)}
+          onBlur={commitCount}
+          onKeyDown={blurOnEnter}
+          className="w-28"
+        />
+      </div>
+      <div className="grid min-w-[10rem] flex-1 gap-1.5">
+        <Label htmlFor={`tier-reward-${tier.id}`} className="text-[11px] text-muted-foreground">
+          Reward label
+        </Label>
+        <Input
+          id={`tier-reward-${tier.id}`}
+          value={tier.reward}
+          onChange={(e) => onUpdate({ reward: e.target.value })}
+          placeholder="e.g. Campus champion bonus"
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor={`tier-xp-${tier.id}`} className="text-[11px] text-muted-foreground">
+          XP bonus
+        </Label>
+        <Input
+          id={`tier-xp-${tier.id}`}
+          type="number"
+          min={0}
+          value={xpDraft}
+          onChange={(e) => setXpDraft(e.target.value)}
+          onBlur={commitXp}
+          onKeyDown={blurOnEnter}
+          className="w-28"
+        />
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="mt-5 shrink-0 text-destructive hover:bg-destructive/10"
+        onClick={onRemove}
+      >
+        <Trash2 className="size-4" />
+      </Button>
     </div>
   );
 }

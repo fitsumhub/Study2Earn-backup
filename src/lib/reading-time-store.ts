@@ -9,7 +9,15 @@ export type ReadingTimeRecord = {
   totalSeconds: number;
   rewardClaimed: boolean;
   claimedAt?: string;
+  /** Distinct "YYYY-MM-DD" days with verified reading — feeds the study streak. */
+  activeDays?: string[];
 };
+
+const MAX_ACTIVE_DAYS = 120;
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 type ReadingTimeStore = Record<string, ReadingTimeRecord>;
 
@@ -49,11 +57,21 @@ export function addReadingSeconds(userId: string, seconds: number) {
   if (!userId || seconds <= 0) return;
   const store = readStore();
   const current = store[userId] ?? emptyRecord();
+  const today = todayKey();
+  const activeDays = current.activeDays?.includes(today)
+    ? current.activeDays
+    : [today, ...(current.activeDays ?? [])].slice(0, MAX_ACTIVE_DAYS);
   store[userId] = {
     ...current,
     totalSeconds: current.totalSeconds + seconds,
+    activeDays,
   };
   writeStore(store);
+}
+
+/** Distinct days this student has verified reading time on — used for the study streak. */
+export function getReadingActiveDays(userId: string): string[] {
+  return readReadingTime(userId).activeDays ?? [];
 }
 
 /**

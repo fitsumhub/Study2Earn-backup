@@ -9,6 +9,8 @@ export function FormField({
   type = "text",
   required,
   placeholder,
+  min,
+  max,
 }: {
   label: string;
   id: string;
@@ -17,6 +19,8 @@ export function FormField({
   type?: string;
   required?: boolean;
   placeholder?: string;
+  min?: number;
+  max?: number;
 }) {
   return (
     <div className="grid gap-2">
@@ -28,6 +32,8 @@ export function FormField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         required={required}
+        min={type === "number" ? min : undefined}
+        max={type === "number" ? max : undefined}
       />
     </div>
   );

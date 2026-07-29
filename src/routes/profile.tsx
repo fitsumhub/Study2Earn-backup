@@ -10,8 +10,10 @@ import {
   CheckCircle2,
   Clock,
   Coins,
+  Copy,
   Loader2,
   LogOut,
+  Medal,
   Pencil,
   Shield,
   Sparkles,
@@ -51,6 +53,7 @@ import {
   resolveMediaUrl,
   saveLocalFile,
 } from "@/lib/media-store";
+import { leaderboard } from "@/lib/mock-data";
 import { useReadingTime } from "@/hooks/use-reading-time";
 import { useWallet } from "@/hooks/use-wallet";
 import { cn } from "@/lib/utils";
@@ -88,6 +91,8 @@ type Badge = {
   icon: typeof Star;
   color: string;
   earned: boolean;
+  current: number;
+  target: number;
 };
 
 function getBadges(
@@ -102,6 +107,8 @@ function getBadges(
       icon: CheckCircle2,
       color: "text-emerald-600 bg-emerald-50 border-emerald-200",
       earned: examStats.totalAttempts >= 1,
+      current: examStats.totalAttempts,
+      target: 1,
     },
     {
       id: "scholar",
@@ -110,6 +117,8 @@ function getBadges(
       icon: Award,
       color: "text-blue-600 bg-blue-50 border-blue-200",
       earned: examStats.completed >= 5,
+      current: examStats.completed,
+      target: 5,
     },
     {
       id: "bookworm",
@@ -118,6 +127,8 @@ function getBadges(
       icon: BookOpen,
       color: "text-purple-600 bg-purple-50 border-purple-200",
       earned: readingSecs >= 3600,
+      current: readingSecs,
+      target: 3600,
     },
     {
       id: "persistent",
@@ -126,6 +137,8 @@ function getBadges(
       icon: Zap,
       color: "text-amber-600 bg-amber-50 border-amber-200",
       earned: examStats.totalAttempts >= 10,
+      current: examStats.totalAttempts,
+      target: 10,
     },
     {
       id: "earner",
@@ -134,6 +147,8 @@ function getBadges(
       icon: Coins,
       color: "text-yellow-600 bg-yellow-50 border-yellow-200",
       earned: examStats.totalXp >= 200,
+      current: examStats.totalXp,
+      target: 200,
     },
     {
       id: "champion",
@@ -142,9 +157,19 @@ function getBadges(
       icon: Trophy,
       color: "text-orange-600 bg-orange-50 border-orange-200",
       earned: examStats.completed >= 10,
+      current: examStats.completed,
+      target: 10,
     },
   ];
   return badges;
+}
+
+function formatBadgeProgress(badge: Badge) {
+  const current = Math.min(badge.current, badge.target);
+  if (badge.id === "bookworm") {
+    return `${Math.floor(current / 60)} / ${badge.target / 60} min`;
+  }
+  return `${current} / ${badge.target}`;
 }
 
 function ProfileContent() {
@@ -159,11 +184,17 @@ function ProfileContent() {
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
 
   const [editingAccount, setEditingAccount] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [universityDraft, setUniversityDraft] = useState("");
   const [trackDraft, setTrackDraft] = useState<StudyTrack | "none">("none");
+
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
 
   if (!user) return null;
 
@@ -171,6 +202,10 @@ function ProfileContent() {
   const recentAttempts = getRecentAttempts(5);
   const badges = getBadges(examStats, readingTime.totalSeconds);
   const earnedBadges = badges.filter((b) => b.earned).length;
+  const nextBadge = badges
+    .filter((b) => !b.earned)
+    .sort((a, b) => b.current / b.target - a.current / a.target)[0];
+  const nationalRank = leaderboard.find((entry) => entry.id === user.id)?.rank;
 
   const handleSignOut = () => {
     signOut();
@@ -207,6 +242,19 @@ function ProfileContent() {
     }
   }
 
+  function handleCopyId() {
+    navigator.clipboard
+      .writeText(user!.id)
+      .then(() => {
+        setIdCopied(true);
+        toast.success("Student ID copied");
+        setTimeout(() => setIdCopied(false), 1500);
+      })
+      .catch(() => {
+        toast.error("Couldn't copy — try selecting the ID manually");
+      });
+  }
+
   function handleRemovePhoto() {
     if (isLocalFileUrl(user!.avatarUrl)) deleteLocalFile(user!.avatarUrl);
     updateProfile({ avatarUrl: undefined });
@@ -234,6 +282,52 @@ function ProfileContent() {
     });
     setEditingAccount(false);
     toast.success("Profile updated");
+  }
+
+  function startChangePassword() {
+    setCurrentPwd("");
+    setNewPwd("");
+    setConfirmPwd("");
+    setChangingPassword(true);
+  }
+
+  function saveChangePassword() {
+    let currentEncoded: string;
+    let newEncoded: string;
+    try {
+      currentEncoded = btoa(currentPwd);
+      newEncoded = btoa(newPwd);
+    } catch {
+      toast.error("Password contains unsupported characters", {
+        description: "Stick to letters, numbers, and common symbols.",
+      });
+      return;
+    }
+
+    // Existing accounts created without a password (e.g. the demo account)
+    // have no hash yet — skip verification and let them set one.
+    if (user!.passwordHash && currentEncoded !== user!.passwordHash) {
+      toast.error("Current password is incorrect");
+      return;
+    }
+    if (newPwd.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    if (user!.passwordHash && newEncoded === user!.passwordHash) {
+      toast.error("New password must be different from your current password");
+      return;
+    }
+    updateProfile({ passwordHash: newEncoded });
+    setChangingPassword(false);
+    setCurrentPwd("");
+    setNewPwd("");
+    setConfirmPwd("");
+    toast.success("Password updated");
   }
 
   const withdrawableEtb = Math.floor(wallet.balance / 8);
@@ -353,9 +447,27 @@ function ProfileContent() {
                 <Trophy className="size-3" />
                 {examStats.completed} chapters passed
               </span>
-              <span className="text-xs text-slate-400 bg-white px-2.5 py-1 rounded-full font-mono border border-slate-100">
+              {nationalRank && (
+                <Link
+                  to="/leaderboard"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 font-bold rounded-full text-xs border border-blue-200 hover:bg-blue-100 transition"
+                >
+                  <Medal className="size-3" />#{nationalRank} nationally
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleCopyId}
+                title="Copy student ID"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 bg-white px-2.5 py-1 rounded-full font-mono border border-slate-100 hover:border-slate-200 hover:text-slate-600 transition"
+              >
+                {idCopied ? (
+                  <Check className="size-3 text-emerald-500" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
                 {user.id}
-              </span>
+              </button>
             </div>
             {ownedGlows.length > 0 && (
               <div className="mt-3 flex items-center gap-2">
@@ -655,6 +767,22 @@ function ProfileContent() {
                 </div>
               ))}
             </div>
+            {nextBadge && (
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Next: {nextBadge.label}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400 tabular-nums">
+                    {formatBadgeProgress(nextBadge)}
+                  </span>
+                </div>
+                <Progress
+                  value={Math.min(100, Math.round((nextBadge.current / nextBadge.target) * 100))}
+                  className="h-1.5 [&>div]:bg-brand-gold"
+                />
+              </div>
+            )}
           </Card>
 
           {/* ── Account info ── */}
@@ -781,16 +909,73 @@ function ProfileContent() {
 
           {/* ── Security ── */}
           <Card title="Security" icon={Shield}>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between py-3 border-b border-slate-100 text-sm font-medium text-slate-300 cursor-not-allowed"
-              disabled
-            >
-              <span>Change password</span>
-              <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
-                Soon
-              </span>
-            </button>
+            {changingPassword ? (
+              <div className="space-y-3.5 py-3 border-b border-slate-100">
+                {user.passwordHash && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="current-password"
+                      className="text-xs font-semibold text-slate-500"
+                    >
+                      Current password
+                    </Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={currentPwd}
+                      onChange={(e) => setCurrentPwd(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-password" className="text-xs font-semibold text-slate-500">
+                    New password
+                  </Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPwd}
+                    onChange={(e) => setNewPwd(e.target.value)}
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="confirm-new-password"
+                    className="text-xs font-semibold text-slate-500"
+                  >
+                    Confirm new password
+                  </Label>
+                  <Input
+                    id="confirm-new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPwd}
+                    onChange={(e) => setConfirmPwd(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button size="sm" onClick={saveChangePassword} className="gap-1.5">
+                    <Check className="size-3.5" />
+                    Update password
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setChangingPassword(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={startChangePassword}
+                className="flex w-full items-center justify-between py-3 border-b border-slate-100 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
+              >
+                <span>Change password</span>
+                <ArrowRight className="size-3.5 text-slate-400" />
+              </button>
+            )}
             <button
               type="button"
               className="flex w-full items-center justify-between py-3 border-b border-slate-100 text-sm font-medium text-slate-300 cursor-not-allowed"

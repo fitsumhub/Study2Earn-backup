@@ -94,6 +94,18 @@ export const recentUsers = [
     joined: "Jun 12, 2026",
     xp: 3540,
   },
+  // Matches DEMO_USER.id in auth-data.ts, so the signed-in demo account has a
+  // real row here too — adjusting its XP from admin actually updates the
+  // demo account's own wallet, not just a disconnected mock number.
+  {
+    id: "STU-8842",
+    name: "Abebe Balcha",
+    university: "Addis Ababa University",
+    program: "Engineering",
+    status: "active" as const,
+    joined: "Jun 10, 2026",
+    xp: 1240,
+  },
 ];
 
 export const adminActivity = [

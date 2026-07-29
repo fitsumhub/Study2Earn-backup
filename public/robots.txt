@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /rewards
+Disallow: /profile
+
+Sitemap: /sitemap.xml

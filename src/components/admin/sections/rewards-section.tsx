@@ -1,5 +1,7 @@
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   Banknote,
   Building2,
   Check,
@@ -9,8 +11,11 @@ import {
   Gift,
   Palette,
   Pencil,
+  Plus,
+  RotateCcw,
   ShieldCheck,
   Trash2,
+  Trophy,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -22,6 +27,15 @@ import { UsdtLogo } from "@/components/usdt-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -30,8 +44,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
+import { useLeaderboardPrizes } from "@/hooks/use-leaderboard-prizes";
 import { getBankById } from "@/lib/ethiopian-banks";
+import { resolveMediaUrl } from "@/lib/media-store";
+import {
+  PRIZE_ICON_MAP,
+  PRIZE_ICON_OPTIONS,
+  PRIZE_TINT_MAP,
+  PRIZE_TINT_OPTIONS,
+} from "@/lib/leaderboard-prizes-store";
 import type { WithdrawalRequest } from "@/lib/withdrawal-data";
 import { cn } from "@/lib/utils";
 
@@ -203,29 +226,31 @@ export function RewardsSection({ admin }: { admin: AdminDashboardState }) {
               No {withdrawalFilter === "all" ? "" : withdrawalFilter} withdrawal requests
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Bank</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredWithdrawals.map((req) => (
-                  <WithdrawalRow
-                    key={req.id}
-                    request={req}
-                    onApprove={() => approveWithdrawal(req.id)}
-                    onReject={() => rejectWithdrawal(req.id)}
-                    onMarkPaid={() => markPaid(req.id)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredWithdrawals.map((req) => (
+                    <WithdrawalRow
+                      key={req.id}
+                      request={req}
+                      onApprove={() => approveWithdrawal(req.id)}
+                      onReject={() => rejectWithdrawal(req.id)}
+                      onMarkPaid={() => markPaid(req.id)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -273,6 +298,7 @@ export function RewardsSection({ admin }: { admin: AdminDashboardState }) {
             badge: "bg-slate-100 text-slate-600",
           };
           const TagIcon = tagMeta.icon;
+          const photo = resolveMediaUrl(reward.imageUrl);
 
           return (
             <Card
@@ -282,17 +308,20 @@ export function RewardsSection({ admin }: { admin: AdminDashboardState }) {
                 !reward.active && "opacity-60",
               )}
             >
-              {/* Gradient header strip */}
+              {/* Photo (if uploaded) or gradient header strip */}
               <div
                 className={cn(
-                  "flex items-center justify-between bg-gradient-to-br px-4 py-3",
-                  tagMeta.gradient,
+                  "relative flex items-center justify-between px-4 py-3",
+                  photo ? "h-24 bg-cover bg-center" : "bg-gradient-to-br",
+                  !photo && tagMeta.gradient,
                 )}
+                style={photo ? { backgroundImage: `url(${photo})` } : undefined}
               >
-                <div className="flex size-8 items-center justify-center rounded-lg bg-white/20 text-white">
+                {photo && <div className="absolute inset-0 bg-black/30" />}
+                <div className="relative flex size-8 items-center justify-center rounded-lg bg-white/20 text-white">
                   <TagIcon className="size-4" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="relative flex items-center gap-2">
                   {reward.active ? (
                     <span className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
                       <CheckCircle2 className="size-3" /> Active
@@ -363,7 +392,159 @@ export function RewardsSection({ admin }: { admin: AdminDashboardState }) {
           );
         })}
       </div>
+
+      <LeaderboardPrizesCard />
     </div>
+  );
+}
+
+function LeaderboardPrizesCard() {
+  const { config, updateMeta, addPrize, updatePrize, removePrize, movePrize, resetToDefaults } =
+    useLeaderboardPrizes();
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <CardTitle className="font-serif text-brand-navy flex items-center gap-2">
+              <Trophy className="size-5 text-brand-gold" />
+              Leaderboard grand prizes
+            </CardTitle>
+            <CardDescription>
+              What Yearly leaderboard winners actually receive — shown on the public Leaderboard
+              page's Yearly tab
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={resetToDefaults}>
+            <RotateCcw className="size-3.5" />
+            Reset to defaults
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="prizes-tagline">Banner tagline</Label>
+            <Input
+              id="prizes-tagline"
+              value={config.tagline}
+              onChange={(e) => updateMeta({ tagline: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="prizes-description">Banner description</Label>
+            <Textarea
+              id="prizes-description"
+              value={config.description}
+              onChange={(e) => updateMeta({ description: e.target.value })}
+              rows={1}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {config.prizes.map((prize, index) => {
+            const Icon = PRIZE_ICON_MAP[prize.icon];
+            return (
+              <div
+                key={prize.id}
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-3"
+              >
+                <div
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white",
+                    PRIZE_TINT_MAP[prize.tint],
+                  )}
+                >
+                  <Icon className="size-5" />
+                </div>
+                <Input
+                  value={prize.rankLabel}
+                  onChange={(e) => updatePrize(prize.id, { rankLabel: e.target.value })}
+                  className="w-24 shrink-0 font-mono text-xs"
+                  placeholder="#1"
+                />
+                <Input
+                  value={prize.title}
+                  onChange={(e) => updatePrize(prize.id, { title: e.target.value })}
+                  className="min-w-[10rem] flex-1"
+                  placeholder="Prize name"
+                />
+                <Select
+                  value={prize.icon}
+                  onValueChange={(v) => updatePrize(prize.id, { icon: v as typeof prize.icon })}
+                >
+                  <SelectTrigger className="w-36 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIZE_ICON_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center gap-2">
+                          <opt.icon className="size-3.5" />
+                          {opt.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex shrink-0 items-center gap-1">
+                  {PRIZE_TINT_OPTIONS.map((tint) => (
+                    <button
+                      key={tint.value}
+                      type="button"
+                      title={tint.label}
+                      onClick={() => updatePrize(prize.id, { tint: tint.value })}
+                      className={cn(
+                        "size-5 rounded-full bg-gradient-to-br transition",
+                        tint.gradient,
+                        prize.tint === tint.value
+                          ? "ring-2 ring-offset-2 ring-brand-navy"
+                          : "opacity-60 hover:opacity-100",
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    disabled={index === 0}
+                    onClick={() => movePrize(prize.id, "up")}
+                  >
+                    <ArrowUp className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    disabled={index === config.prizes.length - 1}
+                    onClick={() => movePrize(prize.id, "down")}
+                  >
+                    <ArrowDown className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-destructive hover:bg-destructive/10"
+                    onClick={() => removePrize(prize.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <Button variant="outline" className="gap-2" onClick={addPrize}>
+          <Plus className="size-4" />
+          Add prize tier
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -38,7 +38,8 @@ import {
   PASSING_SCORE,
   getExamQuestions,
 } from "@/lib/exam-data";
-import { useExamProgress } from "@/hooks/use-exam-progress";
+import { useAuth } from "@/hooks/use-auth";
+import { calculateExamXp, useExamProgress } from "@/hooks/use-exam-progress";
 import { getChapterMeta } from "@/lib/chapter-meta";
 import {
   clearExamSession,
@@ -46,6 +47,7 @@ import {
   writeExamSession,
   type ActiveExamSession,
 } from "@/lib/exam-session-store";
+import { readIntegrityRules, recordIntegrityEvent } from "@/lib/integrity-store";
 import { recordExamMistakes } from "@/lib/mistake-store";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +91,7 @@ function ScoreRing({ score, passed }: { score: number; passed: boolean }) {
 }
 
 export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter: ExamChapter }) {
+  const { user } = useAuth();
   const { recordAttempt, getChapterProgress } = useExamProgress();
   const chapterIndex = course.chapters.findIndex((ch) => ch.id === chapter.id);
   const meta = getChapterMeta(course, chapter, chapterIndex >= 0 ? chapterIndex : 0);
@@ -167,10 +170,41 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
     if (phase === "results" && !recordedRef.current) {
       recordedRef.current = true;
       clearExamSession();
-      const result = recordAttempt(course.id, chapter.id, score, score >= PASSING_SCORE);
+
+      const rush = readIntegrityRules().examRush;
+      const elapsedSeconds = Math.max(0, Math.round((Date.now() - attemptSeed) / 1000));
+      const rushed = rush.enabled && elapsedSeconds < rush.threshold;
+
+      const result = recordAttempt(
+        course.id,
+        chapter.id,
+        score,
+        score >= PASSING_SCORE,
+        String(attemptSeed),
+        { withholdXp: rushed },
+      );
       recordExamMistakes(course, chapter, questions, answers);
       setLastResult(result);
-      if (score >= PASSING_SCORE) {
+
+      if (rushed && !result.duplicate) {
+        recordIntegrityEvent({
+          rule: "examRush",
+          student: user?.name || "A student",
+          detail: `Submitted "${chapter.title}" (${questions.length} questions) in ${elapsedSeconds}s — XP withheld`,
+          penalty: result.firstCompletion
+            ? calculateExamXp(score, true)
+            : calculateExamXp(score, false),
+          severity: "high",
+        });
+      }
+
+      if (result.duplicate) {
+        toast.info("This attempt was already recorded (e.g. in another tab).");
+      } else if (rushed) {
+        toast.warning("Submitted too quickly to review — XP withheld", {
+          description: `Take at least ${rush.threshold}s so the attempt counts toward XP.`,
+        });
+      } else if (score >= PASSING_SCORE) {
         toast.success(
           result.firstCompletion
             ? `Chapter complete! +${result.xp} XP (includes first-pass bonus)`
@@ -186,7 +220,7 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
       recordedRef.current = false;
       setLastResult(null);
     }
-  }, [phase, score, course, chapter, questions, answers, recordAttempt]);
+  }, [phase, score, course, chapter, questions, answers, recordAttempt, attemptSeed, user]);
 
   const startExam = () => {
     setAttemptSeed(Date.now());

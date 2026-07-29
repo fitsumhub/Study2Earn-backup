@@ -1,7 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import { DEMO_USER, defaultSession, type AuthUser, type StudyTrack } from "@/lib/auth-data";
-import { REFERRAL_FRIEND_BONUS } from "@/lib/referral-data";
 import { recordReferralSignup } from "@/lib/referral-store";
 import {
   readAuth,
@@ -34,6 +33,17 @@ function getServerSnapshot() {
   return defaultSession;
 }
 
+// Enough entropy that a new signup can't accidentally land on DEMO_USER's id
+// (and thus its admin role) — the old `Date.now().toString().slice(-4)`
+// scheme cycled through only 10,000 values every 10 seconds.
+function generateStudentId(): string {
+  let id: string;
+  do {
+    id = `STU-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
+  } while (id === DEMO_USER.id);
+  return id;
+}
+
 export function useAuth() {
   const session = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -50,17 +60,18 @@ export function useAuth() {
       referralCode?: string;
       password?: string;
     }) => {
+      const newId = generateStudentId();
       let startXp = 50;
       if (data.referralCode?.trim()) {
-        recordReferralSignup(data.referralCode, data.name, data.university);
-        startXp += REFERRAL_FRIEND_BONUS;
+        const bonus = recordReferralSignup(data.referralCode, data.name, data.university, newId);
+        if (bonus) startXp += bonus;
       }
 
       // Simulate secure password hashing
       const passwordHash = data.password ? btoa(data.password) : undefined;
 
       storeSignIn({
-        id: `STU-${Date.now().toString().slice(-4)}`,
+        id: newId,
         name: data.name.trim() || DEMO_USER.name,
         email: data.email.trim() || DEMO_USER.email,
         university: data.university.trim() || DEMO_USER.university,

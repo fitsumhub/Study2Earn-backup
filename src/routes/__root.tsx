@@ -11,7 +11,9 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { AdSenseLoader } from "../components/adsense-loader";
 import { NotificationWatcher } from "../components/notification-watcher";
+import { PwaRegister } from "../components/pwa-register";
 import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -144,20 +146,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Gamified Exit Exam preparation for Ethiopian freshman university students. Study, compete, earn rewards.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2cec9155-b2c2-413a-9534-19517698e1ff/id-preview-422a8329--50eb3f11-5dd2-4e27-b357-f5b5bf5e021f.lovable.app-1781435818299.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2cec9155-b2c2-413a-9534-19517698e1ff/id-preview-422a8329--50eb3f11-5dd2-4e27-b357-f5b5bf5e021f.lovable.app-1781435818299.png",
-      },
+      { property: "og:image", content: "/og-image.jpg" },
+      { name: "twitter:image", content: "/og-image.jpg" },
       { name: "theme-color", content: "#1e3a8a" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Study2Earn" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -205,6 +205,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ScrollToTop />
       <NotificationWatcher />
+      <AdSenseLoader />
+      <PwaRegister />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster richColors position="top-right" />

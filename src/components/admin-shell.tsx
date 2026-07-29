@@ -9,6 +9,7 @@ import {
   FileText,
   FolderTree,
   Gift,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -59,6 +60,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 import { useAuth } from "@/hooks/use-auth";
@@ -79,6 +81,7 @@ const navMain: {
   { label: "Exams", section: "exams", icon: ClipboardList, badgeKey: "exams" },
   { label: "Rewards", section: "rewards", icon: Gift, badgeKey: "rewards" },
   { label: "Sponsors", section: "ads", icon: Megaphone },
+  { label: "API & Integrations", section: "integrations", icon: KeyRound },
   { label: "Withdrawals", section: "withdrawals", icon: Banknote, badgeKey: "withdrawals" },
   { label: "Referrals", section: "referrals", icon: Share2, badgeKey: "referrals" },
   { label: "Analytics", section: "analytics", icon: BarChart3 },
@@ -156,41 +159,15 @@ export function AdminShell({
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navMain.map((item) => {
-                  const badge = item.badgeKey ? navBadges[item.badgeKey] : 0;
-                  return (
-                    <SidebarMenuItem key={item.section}>
-                      <SidebarMenuButton
-                        isActive={section === item.section}
-                        onClick={() => setSection(item.section)}
-                        className={cn(
-                          "relative transition-all",
-                          section === item.section
-                            ? "bg-brand-navy text-white hover:bg-brand-navy hover:text-white font-semibold shadow-sm"
-                            : "hover:bg-brand-navy/5",
-                        )}
-                      >
-                        {section === item.section && (
-                          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-gold" />
-                        )}
-                        <item.icon className="size-4" />
-                        <span className="flex-1">{item.label}</span>
-                        {badge > 0 && (
-                          <Badge
-                            className={cn(
-                              "h-5 min-w-5 justify-center px-1.5 text-[10px] text-white",
-                              section === item.section
-                                ? "bg-brand-gold"
-                                : "bg-brand-gold animate-pulse",
-                            )}
-                          >
-                            {badge}
-                          </Badge>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                {navMain.map((item) => (
+                  <AdminNavItem
+                    key={item.section}
+                    item={item}
+                    active={section === item.section}
+                    badge={item.badgeKey ? navBadges[item.badgeKey] : 0}
+                    onSelect={() => setSection(item.section)}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -199,41 +176,15 @@ export function AdminShell({
             <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navSystem.map((item) => {
-                  const badge = item.badgeKey ? navBadges[item.badgeKey] : 0;
-                  return (
-                    <SidebarMenuItem key={item.section}>
-                      <SidebarMenuButton
-                        isActive={section === item.section}
-                        onClick={() => setSection(item.section)}
-                        className={cn(
-                          "relative transition-all",
-                          section === item.section
-                            ? "bg-brand-navy text-white hover:bg-brand-navy hover:text-white font-semibold shadow-sm"
-                            : "hover:bg-brand-navy/5",
-                        )}
-                      >
-                        {section === item.section && (
-                          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-gold" />
-                        )}
-                        <item.icon className="size-4" />
-                        <span className="flex-1">{item.label}</span>
-                        {badge > 0 && (
-                          <Badge
-                            className={cn(
-                              "h-5 min-w-5 justify-center px-1.5 text-[10px] text-white",
-                              section === item.section
-                                ? "bg-brand-gold"
-                                : "bg-brand-gold animate-pulse",
-                            )}
-                          >
-                            {badge}
-                          </Badge>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                {navSystem.map((item) => (
+                  <AdminNavItem
+                    key={item.section}
+                    item={item}
+                    active={section === item.section}
+                    badge={item.badgeKey ? navBadges[item.badgeKey] : 0}
+                    onSelect={() => setSection(item.section)}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -345,6 +296,56 @@ export function AdminShell({
         onOpen={openNotification}
       />
     </SidebarProvider>
+  );
+}
+
+function AdminNavItem({
+  item,
+  active,
+  badge,
+  onSelect,
+}: {
+  item: { label: string; section: AdminSection; icon: typeof LayoutDashboard };
+  active: boolean;
+  badge: number;
+  onSelect: () => void;
+}) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={active}
+        onClick={() => {
+          onSelect();
+          // On mobile the nav lives in an off-canvas drawer — close it after
+          // picking a section instead of leaving it covering the new page.
+          if (isMobile) setOpenMobile(false);
+        }}
+        className={cn(
+          "relative transition-all",
+          active
+            ? "bg-brand-navy text-white hover:bg-brand-navy hover:text-white font-semibold shadow-sm"
+            : "hover:bg-brand-navy/5",
+        )}
+      >
+        {active && (
+          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-gold" />
+        )}
+        <item.icon className="size-4" />
+        <span className="flex-1">{item.label}</span>
+        {badge > 0 && (
+          <Badge
+            className={cn(
+              "h-5 min-w-5 justify-center px-1.5 text-[10px] text-white",
+              active ? "bg-brand-gold" : "bg-brand-gold animate-pulse",
+            )}
+          >
+            {badge}
+          </Badge>
+        )}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
@@ -480,7 +481,8 @@ export function AdminStatCard({
       className={cn(
         "rounded-xl border bg-white p-5 text-left shadow-sm transition-all duration-200",
         meta?.border ?? "border-l-4 border-l-slate-200",
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        onClick &&
+          "cursor-pointer hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
       )}
     >
       <div className="flex items-start justify-between gap-3">

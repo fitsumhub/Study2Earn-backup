@@ -6,6 +6,7 @@ import { PageLoader } from "@/components/page-loader";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
 import { getRedemptionById, type RedemptionRecord } from "@/lib/redemption-store";
+import { kindMeta, kindOf } from "@/lib/reward-kind";
 
 export const Route = createFileRoute("/rewards/claim/$redemptionId")({
   head: ({ params }) => ({
@@ -48,7 +49,9 @@ function RewardClaimPage() {
                   <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">
                     Study2Earn
                   </p>
-                  <h1 className="font-serif text-2xl font-bold text-brand-navy">Reward voucher</h1>
+                  <h1 className="font-serif text-2xl font-bold text-brand-navy">
+                    Redemption receipt
+                  </h1>
                 </div>
                 <Button
                   type="button"
@@ -76,7 +79,9 @@ function RewardClaimPage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Category
                     </p>
-                    <p className="mt-1 font-medium text-brand-navy">{record.tag}</p>
+                    <p className="mt-1 font-medium text-brand-navy">
+                      {kindMeta[kindOf(record.tag)].label}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -89,7 +94,7 @@ function RewardClaimPage() {
                 </div>
                 <div className="rounded-xl bg-brand-navy/5 p-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Voucher code
+                    Receipt code
                   </p>
                   <p className="mt-2 font-mono text-2xl font-bold tracking-widest text-brand-navy">
                     {record.voucherCode}
@@ -102,7 +107,9 @@ function RewardClaimPage() {
                   <p className="mt-1 text-sm text-slate-600">{record.redeemedAt}</p>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Present this code to redeem your reward. Valid for 30 days from redemption date.
+                  This reward was applied to your account automatically the moment you redeemed it —
+                  no further action needed. Keep this receipt code for your records; quote it if you
+                  ever need to contact support about this redemption.
                 </p>
               </div>
 

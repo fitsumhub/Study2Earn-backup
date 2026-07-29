@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { isAdminUser } from "@/lib/auth-data";
 import { getBankById } from "@/lib/ethiopian-banks";
 import {
   ETB_PER_USDT,
@@ -74,8 +75,14 @@ export function useWithdrawals() {
     .reduce((sum, r) => sum + r.xpDeducted, 0);
 
   const submitWithdrawal = useCallback(
-    (data: SubmitWithdrawalData) => {
+    (data: SubmitWithdrawalData, spendableXp: number) => {
       if (!user) return { ok: false as const, error: "Sign in required" };
+
+      const requestedXp =
+        data.method === "bank" ? etbToXp(data.amountEtb) : usdtToXp(data.amountUsdt);
+      if (requestedXp > spendableXp) {
+        return { ok: false as const, error: "Amount exceeds your available XP balance" };
+      }
 
       const base = {
         id: nextId(all),
@@ -138,6 +145,15 @@ export function useWithdrawals() {
 
   const updateStatus = useCallback(
     (id: string, status: WithdrawalStatus, adminNote?: string) => {
+      if (!isAdminUser(user)) {
+        return { ok: false as const, error: "Admin access required" };
+      }
+      const target = all.find((r) => r.id === id);
+      if (!target) return { ok: false as const, error: "Request not found" };
+      if (target.userId === user?.id) {
+        return { ok: false as const, error: "You can't process your own withdrawal request" };
+      }
+
       writeWithdrawals(
         all.map((r) =>
           r.id === id
@@ -156,8 +172,9 @@ export function useWithdrawals() {
             : r,
         ),
       );
+      return { ok: true as const };
     },
-    [all],
+    [all, user],
   );
 
   const pendingCount = all.filter((r) => r.status === "pending").length;

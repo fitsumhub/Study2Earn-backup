@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
-import { BookPdfViewer } from "@/components/book-pdf-viewer";
+import { PageLoader } from "@/components/page-loader";
 import { useLibraryProgress } from "@/hooks/use-library-progress";
 import { libraryBooks } from "@/lib/mock-data";
+
+const BookPdfViewer = lazy(() =>
+  import("@/components/book-pdf-viewer").then((m) => ({ default: m.BookPdfViewer })),
+);
 
 export const Route = createFileRoute("/library/read/$bookId")({
   head: () => ({
@@ -37,7 +41,15 @@ function LibraryReadPage() {
 
   return (
     <div className="h-screen w-screen overflow-hidden">
-      <BookPdfViewer book={book} onClose={() => navigate({ to: "/library" })} />
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-50 bg-[#f3f4f8]">
+            <PageLoader label="Preparing your reader…" fullScreen />
+          </div>
+        }
+      >
+        <BookPdfViewer book={book} onClose={() => navigate({ to: "/library" })} />
+      </Suspense>
     </div>
   );
 }

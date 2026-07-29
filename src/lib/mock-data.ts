@@ -662,6 +662,7 @@ export const libraryBooks: LibraryBook[] = [
 
 export const leaderboard = [
   {
+    id: "lb-1",
     rank: 1,
     name: "Selamawit Tadesse",
     uni: "Addis Ababa University",
@@ -670,6 +671,7 @@ export const leaderboard = [
     trend: "▲ Top 1%",
   },
   {
+    id: "lb-2",
     rank: 2,
     name: "Yonas Bekele",
     uni: "Jimma University",
@@ -678,6 +680,7 @@ export const leaderboard = [
     trend: "Stable",
   },
   {
+    id: "lb-3",
     rank: 3,
     name: "Hanna Demissie",
     uni: "Bahir Dar University",
@@ -686,6 +689,7 @@ export const leaderboard = [
     trend: "▲ Up 2",
   },
   {
+    id: "lb-4",
     rank: 4,
     name: "Dawit Haile",
     uni: "Mekelle University",
@@ -694,6 +698,7 @@ export const leaderboard = [
     trend: "▲ Up 1",
   },
   {
+    id: "lb-5",
     rank: 5,
     name: "Meron Tesfaye",
     uni: "Hawassa University",
@@ -702,6 +707,7 @@ export const leaderboard = [
     trend: "▼ Down 1",
   },
   {
+    id: "lb-6",
     rank: 6,
     name: "Biruk Ayalew",
     uni: "Gondar University",
@@ -710,6 +716,7 @@ export const leaderboard = [
     trend: "Stable",
   },
   {
+    id: "lb-7",
     rank: 7,
     name: "Tigist Alemu",
     uni: "Adama Science & Tech",
@@ -718,6 +725,7 @@ export const leaderboard = [
     trend: "▲ Up 3",
   },
   {
+    id: "lb-8",
     rank: 8,
     name: "Eyob Girma",
     uni: "Arba Minch University",
@@ -726,6 +734,7 @@ export const leaderboard = [
     trend: "Stable",
   },
   {
+    id: "lb-9",
     rank: 9,
     name: "Liya Mengistu",
     uni: "Wollo University",
@@ -734,6 +743,9 @@ export const leaderboard = [
     trend: "▲ Up 1",
   },
   {
+    // Matches DEMO_USER.id in auth-data.ts so the demo account's dashboard
+    // "your rank" card has something real to show out of the box.
+    id: "STU-8842",
     rank: 10,
     name: "Abebe Balcha",
     uni: "Addis Ababa University",
@@ -745,6 +757,7 @@ export const leaderboard = [
 
 export const leaderboardMonthly = [
   {
+    id: "lb-m-1",
     rank: 1,
     name: "Hanna Demissie",
     uni: "Bahir Dar University",
@@ -753,6 +766,7 @@ export const leaderboardMonthly = [
     trend: "▲ Up 2",
   },
   {
+    id: "lb-m-2",
     rank: 2,
     name: "Selamawit Tadesse",
     uni: "Addis Ababa University",
@@ -761,6 +775,7 @@ export const leaderboardMonthly = [
     trend: "▼ Down 1",
   },
   {
+    id: "lb-m-3",
     rank: 3,
     name: "Tigist Alemu",
     uni: "Adama Science & Tech",
@@ -769,6 +784,7 @@ export const leaderboardMonthly = [
     trend: "▲ Up 4",
   },
   {
+    id: "lb-m-4",
     rank: 4,
     name: "Yonas Bekele",
     uni: "Jimma University",
@@ -777,6 +793,7 @@ export const leaderboardMonthly = [
     trend: "▼ Down 2",
   },
   {
+    id: "lb-m-5",
     rank: 5,
     name: "Dawit Haile",
     uni: "Mekelle University",
@@ -785,6 +802,7 @@ export const leaderboardMonthly = [
     trend: "▲ Up 1",
   },
   {
+    id: "lb-m-6",
     rank: 6,
     name: "Alem Seyoum",
     uni: "Addis Ababa University",
@@ -793,6 +811,7 @@ export const leaderboardMonthly = [
     trend: "▲ New",
   },
   {
+    id: "lb-m-7",
     rank: 7,
     name: "Meron Tesfaye",
     uni: "Hawassa University",
@@ -801,6 +820,7 @@ export const leaderboardMonthly = [
     trend: "▼ Down 2",
   },
   {
+    id: "lb-m-8",
     rank: 8,
     name: "Biruk Ayalew",
     uni: "Gondar University",
@@ -809,6 +829,7 @@ export const leaderboardMonthly = [
     trend: "Stable",
   },
   {
+    id: "lb-m-9",
     rank: 9,
     name: "Liya Mengistu",
     uni: "Wollo University",
@@ -817,6 +838,7 @@ export const leaderboardMonthly = [
     trend: "Stable",
   },
   {
+    id: "lb-m-10",
     rank: 10,
     name: "Eyob Girma",
     uni: "Arba Minch University",
@@ -828,6 +850,7 @@ export const leaderboardMonthly = [
 
 export const leaderboardYearly = [
   {
+    id: "lb-y-1",
     rank: 1,
     name: "Selamawit Tadesse",
     uni: "Addis Ababa University",
@@ -836,6 +859,7 @@ export const leaderboardYearly = [
     trend: "▲ Top 1%",
   },
   {
+    id: "lb-y-2",
     rank: 2,
     name: "Hanna Demissie",
     uni: "Bahir Dar University",
@@ -844,6 +868,7 @@ export const leaderboardYearly = [
     trend: "▲ Up 1",
   },
   {
+    id: "lb-y-3",
     rank: 3,
     name: "Yonas Bekele",
     uni: "Jimma University",
@@ -852,6 +877,7 @@ export const leaderboardYearly = [
     trend: "▼ Down 1",
   },
   {
+    id: "lb-y-4",
     rank: 4,
     name: "Tigist Alemu",
     uni: "Adama Science & Tech",
@@ -860,6 +886,7 @@ export const leaderboardYearly = [
     trend: "▲ Up 3",
   },
   {
+    id: "lb-y-5",
     rank: 5,
     name: "Dawit Haile",
     uni: "Mekelle University",
@@ -868,6 +895,7 @@ export const leaderboardYearly = [
     trend: "Stable",
   },
   {
+    id: "lb-y-6",
     rank: 6,
     name: "Meron Tesfaye",
     uni: "Hawassa University",
@@ -876,6 +904,7 @@ export const leaderboardYearly = [
     trend: "▼ Down 1",
   },
   {
+    id: "lb-y-7",
     rank: 7,
     name: "Alem Seyoum",
     uni: "Addis Ababa University",
@@ -884,6 +913,7 @@ export const leaderboardYearly = [
     trend: "▲ Up 5",
   },
   {
+    id: "lb-y-8",
     rank: 8,
     name: "Biruk Ayalew",
     uni: "Gondar University",
@@ -892,6 +922,8 @@ export const leaderboardYearly = [
     trend: "Stable",
   },
   {
+    // Matches DEMO_USER.id in auth-data.ts, same as the weekly leaderboard entry.
+    id: "STU-8842",
     rank: 9,
     name: "Abebe Balcha",
     uni: "Addis Ababa University",
@@ -900,6 +932,7 @@ export const leaderboardYearly = [
     trend: "▼ Down 1",
   },
   {
+    id: "lb-y-10",
     rank: 10,
     name: "Liya Mengistu",
     uni: "Wollo University",

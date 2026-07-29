@@ -1,41 +1,58 @@
 import { useCallback, useSyncExternalStore } from "react";
 
+import { useAuth } from "@/hooks/use-auth";
 import {
   getLibraryXpTotal,
   readLibraryBooks,
   subscribeLibrary,
-  writeLibraryBooks,
+  writeLibraryProgress,
 } from "@/lib/library-store";
 import { libraryBooks, type LibraryBook } from "@/lib/mock-data";
 
-let cachedBooks: LibraryBook[] = libraryBooks;
+const EMPTY_BOOKS: LibraryBook[] = libraryBooks.map((b) => ({
+  ...b,
+  progress: 0,
+  xpEarned: 0,
+  chapterList: b.chapterList.map((c) => ({ ...c, done: false })),
+}));
 
-function refreshLibraryCache() {
-  cachedBooks = readLibraryBooks();
-}
+let cachedUserId = "";
+let cachedBooks: LibraryBook[] = EMPTY_BOOKS;
 
-function subscribe(callback: () => void) {
-  refreshLibraryCache();
-  return subscribeLibrary(() => {
-    refreshLibraryCache();
-    callback();
-  });
-}
-
-function getSnapshot() {
-  return cachedBooks;
-}
-
-function getServerSnapshot() {
-  return libraryBooks;
+function refreshLibraryCache(userId: string) {
+  cachedUserId = userId;
+  cachedBooks = userId ? readLibraryBooks(userId) : EMPTY_BOOKS;
 }
 
 export function useLibraryProgress() {
-  const books = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
 
-  const updateBooks = useCallback((updater: (prev: LibraryBook[]) => LibraryBook[]) => {
-    writeLibraryBooks(updater(readLibraryBooks()));
-  }, []);
+  const subscribe = useCallback(
+    (callback: () => void) => {
+      refreshLibraryCache(userId);
+      return subscribeLibrary(() => {
+        refreshLibraryCache(userId);
+        callback();
+      });
+    },
+    [userId],
+  );
+
+  const getSnapshot = useCallback(() => {
+    if (cachedUserId !== userId) refreshLibraryCache(userId);
+    return cachedBooks;
+  }, [userId]);
+
+  const books = useSyncExternalStore(subscribe, getSnapshot, () => EMPTY_BOOKS);
+
+  const updateBooks = useCallback(
+    (updater: (prev: LibraryBook[]) => LibraryBook[]) => {
+      if (!userId) return;
+      writeLibraryProgress(userId, updater(readLibraryBooks(userId)));
+    },
+    [userId],
+  );
 
   const totalLibraryXp = getLibraryXpTotal(books);
 

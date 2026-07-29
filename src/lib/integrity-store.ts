@@ -71,7 +71,7 @@ export const INTEGRITY_RULE_META: IntegrityRuleMeta[] = [
       "Withhold exam XP and flag the attempt when a mock exam is submitted far too quickly to have been read.",
     thresholdLabel: "Min time per exam",
     thresholdUnit: "seconds",
-    live: false,
+    live: true,
   },
   {
     id: "dailyCap",

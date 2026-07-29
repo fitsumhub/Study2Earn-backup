@@ -6,16 +6,18 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async ({ request }) => {
         const BASE_URL = new URL(request.url).origin;
+        // Only genuinely public, crawlable pages — auth-gated routes
+        // (dashboard, leaderboard, rewards, profile) redirect anonymous
+        // visitors to /login, so listing them just wastes crawl budget.
         const paths = [
           "/",
-          "/dashboard",
           "/library",
           "/exams",
-          "/leaderboard",
-          "/rewards",
-          "/profile",
           "/login",
           "/register",
+          "/help",
+          "/terms",
+          "/privacy",
         ];
         const urls = paths
           .map((p) => `  <url><loc>${BASE_URL}${p}</loc><changefreq>weekly</changefreq></url>`)

@@ -1,5 +1,8 @@
+import { FolderPlus } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
+import { CategoryDialog } from "@/components/admin/category-dialog";
 import { FormField } from "@/components/admin/forms/field";
 import { ImageUploadField, PdfUploadField } from "@/components/admin/forms/media-upload";
 import { Button } from "@/components/ui/button";
@@ -55,8 +58,9 @@ export function ContentForm({
   onCancel?: () => void;
   submitLabel?: string;
 }) {
-  const { categoryNames } = useCategories();
+  const { categoryNames, addCategory } = useCategories();
   const [form, setForm] = useState<ContentFormData>({ ...emptyContent, ...initial });
+  const [addingCategory, setAddingCategory] = useState(false);
   // Ensure the current value is always selectable even if its category was removed.
   const categories =
     form.category && !categoryNames.includes(form.category)
@@ -71,119 +75,151 @@ export function ContentForm({
     setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <form
-      onSubmit={(e: FormEvent) => {
-        e.preventDefault();
-        onSubmit(form);
-      }}
-      className="grid gap-4"
-    >
-      <FormField
-        label="Book title"
-        id="content-name"
-        value={form.name}
-        onChange={(v) => set("name", v)}
-        required
-      />
-      <div className="grid grid-cols-2 gap-4">
+    <>
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className="grid gap-4"
+      >
         <FormField
-          label="Short name"
-          id="content-short"
-          value={form.short}
-          onChange={(v) => set("short", v)}
-          placeholder="e.g. Physics"
-        />
-        <div className="grid gap-1.5">
-          <Label htmlFor="content-category">Category</Label>
-          <Select value={form.category} onValueChange={(v) => set("category", v)}>
-            <SelectTrigger id="content-category">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="content-description">Description</Label>
-        <Textarea
-          id="content-description"
-          value={form.description}
-          onChange={(e) => set("description", e.target.value)}
-          placeholder="Short description of this textbook…"
-          rows={2}
-        />
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        <FormField
-          label="Chapters"
-          id="content-chapters"
-          type="number"
-          value={form.chapters}
-          onChange={(v) => set("chapters", v)}
+          label="Book title"
+          id="content-name"
+          value={form.name}
+          onChange={(v) => set("name", v)}
           required
         />
-        <FormField
-          label="Pages"
-          id="content-pages"
-          type="number"
-          value={form.pages}
-          onChange={(v) => set("pages", v)}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            label="Short name"
+            id="content-short"
+            value={form.short}
+            onChange={(v) => set("short", v)}
+            placeholder="e.g. Physics"
+          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="content-category">Category</Label>
+            <div className="flex gap-1.5">
+              <Select value={form.category} onValueChange={(v) => set("category", v)}>
+                <SelectTrigger id="content-category" className="min-w-0 flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                title="Add a new category"
+                onClick={() => setAddingCategory(true)}
+              >
+                <FolderPlus className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="content-description">Description</Label>
+          <Textarea
+            id="content-description"
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="Short description of this textbook…"
+            rows={2}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <FormField
+            label="Chapters"
+            id="content-chapters"
+            type="number"
+            value={form.chapters}
+            onChange={(v) => set("chapters", v)}
+            required
+          />
+          <FormField
+            label="Pages"
+            id="content-pages"
+            type="number"
+            value={form.pages}
+            onChange={(v) => set("pages", v)}
+          />
+          <FormField
+            label="Students"
+            id="content-students"
+            value={form.students}
+            onChange={(v) => set("students", v)}
+          />
+        </div>
+        <PdfUploadField
+          label="Textbook PDF"
+          value={form.pdfUrl}
+          onChange={(v) => set("pdfUrl", v)}
         />
-        <FormField
-          label="Students"
-          id="content-students"
-          value={form.students}
-          onChange={(v) => set("students", v)}
+        <ImageUploadField
+          label="Cover image"
+          value={form.coverUrl}
+          onChange={(v) => set("coverUrl", v)}
+          maxDim={600}
+          hint="Optional — shown in the student library. Leave empty for the generated cover."
+          previewClassName="aspect-[2/3] h-20 w-auto"
         />
-      </div>
-      <PdfUploadField label="Textbook PDF" value={form.pdfUrl} onChange={(v) => set("pdfUrl", v)} />
-      <ImageUploadField
-        label="Cover image"
-        value={form.coverUrl}
-        onChange={(v) => set("coverUrl", v)}
-        maxDim={600}
-        hint="Optional — shown in the student library. Leave empty for the generated cover."
-        previewClassName="aspect-[2/3] h-20 w-auto"
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label htmlFor="content-published">Published</Label>
+              <p className="text-xs text-muted-foreground">Visible to students</p>
+            </div>
+            <Switch
+              id="content-published"
+              checked={form.published}
+              onCheckedChange={(v) => set("published", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label htmlFor="content-synced">Synced with MoE</Label>
+              <p className="text-xs text-muted-foreground">Curriculum up to date</p>
+            </div>
+            <Switch
+              id="content-synced"
+              checked={form.synced}
+              onCheckedChange={(v) => set("synced", v)}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit">{submitLabel}</Button>
+        </div>
+      </form>
+      <CategoryDialog
+        state={addingCategory ? { mode: "create" } : null}
+        onClose={() => setAddingCategory(false)}
+        onCreate={(data) => {
+          const res = addCategory(data);
+          if (!res.ok) {
+            toast.error(res.error);
+            return false;
+          }
+          set("category", data.name);
+          toast.success(`Category "${data.name}" added`);
+          return true;
+        }}
       />
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <Label htmlFor="content-published">Published</Label>
-            <p className="text-xs text-muted-foreground">Visible to students</p>
-          </div>
-          <Switch
-            id="content-published"
-            checked={form.published}
-            onCheckedChange={(v) => set("published", v)}
-          />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <Label htmlFor="content-synced">Synced with MoE</Label>
-            <p className="text-xs text-muted-foreground">Curriculum up to date</p>
-          </div>
-          <Switch
-            id="content-synced"
-            checked={form.synced}
-            onCheckedChange={(v) => set("synced", v)}
-          />
-        </div>
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button type="submit">{submitLabel}</Button>
-      </div>
-    </form>
+    </>
   );
 }
 

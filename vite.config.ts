@@ -9,6 +9,21 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   vite: {
     server: { port: 3001, strictPort: true },
+    build: {
+      rollupOptions: {
+        output: {
+          // Keep the heaviest, least-often-loaded libraries out of the main
+          // entry chunk (recharts is admin-only; pdfjs is only needed while
+          // actually reading a book).
+          manualChunks(id: string) {
+            if (id.includes("node_modules/recharts")) return "vendor-recharts";
+            if (id.includes("node_modules/pdfjs-dist") || id.includes("node_modules/react-pdf")) {
+              return "vendor-pdf";
+            }
+          },
+        },
+      },
+    },
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

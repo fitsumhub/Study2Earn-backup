@@ -1,5 +1,8 @@
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Check,
   ChevronDown,
   ChevronRight,
@@ -67,6 +70,49 @@ import { examCourses, getCourseById } from "@/lib/exam-data";
 import { cn } from "@/lib/utils";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+
+type ExamSortKey = "title" | "attempts" | "passScore" | "xp" | "status";
+
+function SortableHead({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: ExamSortKey;
+  activeKey: ExamSortKey | null;
+  dir: "asc" | "desc";
+  onSort: (key: ExamSortKey) => void;
+  className?: string;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn(
+          "inline-flex items-center gap-1 transition-colors hover:text-brand-navy",
+          active && "font-semibold text-brand-navy",
+        )}
+      >
+        {label}
+        {active ? (
+          dir === "asc" ? (
+            <ArrowUp className="size-3" />
+          ) : (
+            <ArrowDown className="size-3" />
+          )
+        ) : (
+          <ArrowUpDown className="size-3 opacity-30" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
 
 function patchExamForm(
   exam: AdminExam,
@@ -172,6 +218,44 @@ export function ExamsSection({ admin }: { admin: AdminDashboardState }) {
   }, [filtered]);
 
   const subjects = useMemo(() => [...new Set(exams.map((e) => e.subject))].sort(), [exams]);
+
+  // ── table-view sorting ─────────────────────────────────────────────────────
+  const [sortKey, setSortKey] = useState<ExamSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: ExamSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedForTable = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortKey) {
+        case "title":
+          return dir * (a.chapterTitle || a.title).localeCompare(b.chapterTitle || b.title);
+        case "attempts":
+          return (
+            dir *
+            ((realStats.get(realStatsKey(a))?.attempts ?? 0) -
+              (realStats.get(realStatsKey(b))?.attempts ?? 0))
+          );
+        case "passScore":
+          return dir * (a.passScore - b.passScore);
+        case "xp":
+          return dir * (a.xpReward - b.xpReward);
+        case "status":
+          return dir * (Number(a.published) - Number(b.published));
+        default:
+          return 0;
+      }
+    });
+  }, [filtered, sortKey, sortDir, realStats]);
 
   // ── selection helpers ──────────────────────────────────────────────────────
   const allFilteredIds = filtered.map((e) => e.id);
@@ -423,176 +507,212 @@ export function ExamsSection({ admin }: { admin: AdminDashboardState }) {
           </Card>
         ) : (
           <Card className="shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="Select all"
+            <div className="overflow-x-auto">
+              <Table className="min-w-[900px]">
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <SortableHead
+                      label="Exam / Chapter"
+                      sortKey="title"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
                     />
-                  </TableHead>
-                  <TableHead>Exam / Chapter</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead className="text-center">Difficulty</TableHead>
-                  <TableHead className="text-center">Q / min</TableHead>
-                  <TableHead className="text-center">Pass %</TableHead>
-                  <TableHead className="text-center">XP</TableHead>
-                  <TableHead className="text-center">Attempts</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((exam) => {
-                  const course = getCourseById(exam.courseId);
-                  const real = realStats.get(realStatsKey(exam));
-                  const health = healthById.get(exam.id);
-                  return (
-                    <TableRow
-                      key={exam.id}
-                      className={cn(selected.has(exam.id) && "bg-brand-navy/3")}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={selected.has(exam.id)}
-                          onCheckedChange={() => toggleSelect(exam.id)}
-                          aria-label={`Select ${exam.title}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <button
-                          type="button"
-                          onClick={() => openExamManager(exam)}
-                          className="text-left font-semibold text-brand-navy hover:underline text-sm"
-                        >
-                          {exam.chapterTitle || exam.title}
-                        </button>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-[11px] text-muted-foreground font-mono">{exam.id}</p>
-                          {health && !health.ok && <HealthBadge health={health} />}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {course?.short ?? exam.courseId}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">
-                          {exam.subject}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px]",
-                            exam.difficulty === "Advanced" &&
-                              "border-red-200 text-red-600 bg-red-50",
-                            exam.difficulty === "Intermediate" &&
-                              "border-amber-200 text-amber-700 bg-amber-50",
-                            exam.difficulty === "Easy" &&
-                              "border-emerald-200 text-emerald-700 bg-emerald-50",
-                          )}
-                        >
-                          {exam.difficulty}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {exam.questions} Q / {exam.duration} min
-                      </TableCell>
-                      {/* Pass score — quick editable */}
-                      <TableCell className="text-center">
-                        <QuickEditCell
-                          label="Pass score"
-                          value={exam.passScore}
-                          unit="%"
-                          min={30}
-                          max={100}
-                          onSave={(v) => handleQuickSave(exam, { passScore: v })}
-                        />
-                      </TableCell>
-                      {/* XP reward — quick editable */}
-                      <TableCell className="text-center">
-                        <QuickEditCell
-                          label="XP reward"
-                          value={exam.xpReward}
-                          unit="XP"
-                          min={10}
-                          max={1000}
-                          onSave={(v) => handleQuickSave(exam, { xpReward: v })}
-                          highlight
-                        />
-                      </TableCell>
-                      <TableCell className="text-center text-sm text-muted-foreground">
-                        {real ? (
-                          <div>
-                            <p className="font-semibold text-slate-700">{real.attempts}</p>
-                            <p className="text-[10px]">
-                              {real.passRate}% pass · avg {real.avgScore}%
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <button
-                          type="button"
-                          onClick={() => publishToggleWithCheck(exam)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors",
-                            exam.published
-                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                              : "bg-slate-100 text-slate-500 hover:bg-slate-200",
-                          )}
-                        >
-                          {exam.published ? (
-                            <>
-                              <Check className="size-2.5" /> Live
-                            </>
-                          ) : (
-                            "Draft"
-                          )}
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-brand-navy"
-                            title="Edit exam"
+                    <TableHead>Course</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead className="text-center">Difficulty</TableHead>
+                    <TableHead className="text-center">Q / min</TableHead>
+                    <SortableHead
+                      label="Pass %"
+                      sortKey="passScore"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      className="text-center"
+                    />
+                    <SortableHead
+                      label="XP"
+                      sortKey="xp"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      className="text-center"
+                    />
+                    <SortableHead
+                      label="Attempts"
+                      sortKey="attempts"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      className="text-center"
+                    />
+                    <SortableHead
+                      label="Status"
+                      sortKey="status"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      className="text-center"
+                    />
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedForTable.map((exam) => {
+                    const course = getCourseById(exam.courseId);
+                    const real = realStats.get(realStatsKey(exam));
+                    const health = healthById.get(exam.id);
+                    return (
+                      <TableRow
+                        key={exam.id}
+                        className={cn(selected.has(exam.id) && "bg-brand-navy/3")}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selected.has(exam.id)}
+                            onCheckedChange={() => toggleSelect(exam.id)}
+                            aria-label={`Select ${exam.title}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
                             onClick={() => openExamManager(exam)}
+                            className="text-left font-semibold text-brand-navy hover:underline text-sm"
                           >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            title="Duplicate"
-                            onClick={() => duplicateExam(exam.id)}
+                            {exam.chapterTitle || exam.title}
+                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[11px] text-muted-foreground font-mono">{exam.id}</p>
+                            {health && !health.ok && <HealthBadge health={health} />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {course?.short ?? exam.courseId}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {exam.subject}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px]",
+                              exam.difficulty === "Advanced" &&
+                                "border-red-200 text-red-600 bg-red-50",
+                              exam.difficulty === "Intermediate" &&
+                                "border-amber-200 text-amber-700 bg-amber-50",
+                              exam.difficulty === "Easy" &&
+                                "border-emerald-200 text-emerald-700 bg-emerald-50",
+                            )}
                           >
-                            <Copy className="size-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                            title="Delete exam"
-                            onClick={() => setConfirmDelete(exam)}
+                            {exam.difficulty}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {exam.questions} Q / {exam.duration} min
+                        </TableCell>
+                        {/* Pass score — quick editable */}
+                        <TableCell className="text-center">
+                          <QuickEditCell
+                            label="Pass score"
+                            value={exam.passScore}
+                            unit="%"
+                            min={30}
+                            max={100}
+                            onSave={(v) => handleQuickSave(exam, { passScore: v })}
+                          />
+                        </TableCell>
+                        {/* XP reward — quick editable */}
+                        <TableCell className="text-center">
+                          <QuickEditCell
+                            label="XP reward"
+                            value={exam.xpReward}
+                            unit="XP"
+                            min={10}
+                            max={1000}
+                            onSave={(v) => handleQuickSave(exam, { xpReward: v })}
+                            highlight
+                          />
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">
+                          {real ? (
+                            <div>
+                              <p className="font-semibold text-slate-700">{real.attempts}</p>
+                              <p className="text-[10px]">
+                                {real.passRate}% pass · avg {real.avgScore}%
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <button
+                            type="button"
+                            onClick={() => publishToggleWithCheck(exam)}
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors",
+                              exam.published
+                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                            )}
                           >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            {exam.published ? (
+                              <>
+                                <Check className="size-2.5" /> Live
+                              </>
+                            ) : (
+                              "Draft"
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-brand-navy"
+                              title="Edit exam"
+                              onClick={() => openExamManager(exam)}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              title="Duplicate"
+                              onClick={() => duplicateExam(exam.id)}
+                            >
+                              <Copy className="size-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              title="Delete exam"
+                              onClick={() => setConfirmDelete(exam)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         ))}
 
@@ -611,39 +731,58 @@ export function ExamsSection({ admin }: { admin: AdminDashboardState }) {
               const expanded = expandedCourses.has(courseId);
               const publishedCount = courseExams.filter((e) => e.published).length;
               const courseSelCount = courseExams.filter((e) => selected.has(e.id)).length;
+              const courseAllSelected =
+                courseExams.length > 0 && courseSelCount === courseExams.length;
 
               return (
                 <Card key={courseId} className="overflow-hidden shadow-sm">
                   {/* div (not button) — the action buttons inside would otherwise
                       nest interactive elements, which is invalid HTML */}
-                  <div className="flex w-full items-center gap-3 border-b bg-slate-50/80 px-5 py-4 text-left transition hover:bg-slate-100/80">
-                    <button
-                      type="button"
-                      onClick={() => toggleCourse(courseId)}
-                      aria-expanded={expanded}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                    >
-                      {expanded ? (
-                        <ChevronDown className="size-5 shrink-0 text-brand-navy" />
-                      ) : (
-                        <ChevronRight className="size-5 shrink-0 text-brand-navy" />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-serif text-lg font-bold text-brand-navy">
-                          {course?.name ?? "Other"}
+                  <div className="flex w-full flex-col gap-3 border-b bg-slate-50/80 px-5 py-4 text-left transition hover:bg-slate-100/80 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Checkbox
+                        checked={courseAllSelected || (courseSelCount > 0 && "indeterminate")}
+                        onCheckedChange={(v) =>
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            for (const e of courseExams) {
+                              if (v === true) next.add(e.id);
+                              else next.delete(e.id);
+                            }
+                            return next;
+                          })
+                        }
+                        aria-label={`Select all exams in ${course?.name ?? "this course"}`}
+                        className="shrink-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleCourse(courseId)}
+                        aria-expanded={expanded}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        {expanded ? (
+                          <ChevronDown className="size-5 shrink-0 text-brand-navy" />
+                        ) : (
+                          <ChevronRight className="size-5 shrink-0 text-brand-navy" />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-serif text-lg font-bold text-brand-navy">
+                            {course?.name ?? "Other"}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {courseExams.length} chapters · {publishedCount} published ·{" "}
+                            {course?.category ?? "—"}
+                            {courseSelCount > 0 && (
+                              <span className="ml-2 font-semibold text-brand-navy">
+                                · {courseSelCount} selected
+                              </span>
+                            )}
+                          </span>
                         </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {courseExams.length} chapters · {publishedCount} published ·{" "}
-                          {course?.category ?? "—"}
-                          {courseSelCount > 0 && (
-                            <span className="ml-2 font-semibold text-brand-navy">
-                              · {courseSelCount} selected
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                    <div className="flex shrink-0 gap-2">
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 sm:shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
@@ -680,6 +819,7 @@ export function ExamsSection({ admin }: { admin: AdminDashboardState }) {
                           selected={selected.has(exam.id)}
                           onSelect={() => toggleSelect(exam.id)}
                           onEdit={() => openExamManager(exam)}
+                          onPreview={() => openExamManager(exam, undefined, "preview")}
                           onToggle={() => publishToggleWithCheck(exam)}
                           onDuplicate={() => duplicateExam(exam.id)}
                           onDelete={() => setConfirmDelete(exam)}
@@ -799,6 +939,7 @@ function ExamRow({
   selected,
   onSelect,
   onEdit,
+  onPreview,
   onToggle,
   onDuplicate,
   onDelete,
@@ -810,6 +951,7 @@ function ExamRow({
   selected: boolean;
   onSelect: () => void;
   onEdit: () => void;
+  onPreview: () => void;
   onToggle: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -903,7 +1045,7 @@ function ExamRow({
         <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={onEdit}>
           <Settings2 className="size-3.5" /> Manage
         </Button>
-        <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={onEdit}>
+        <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={onPreview}>
           <Eye className="size-3.5" /> Preview
         </Button>
         <Button

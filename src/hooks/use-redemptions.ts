@@ -45,13 +45,21 @@ export function useRedemptions() {
   const redeem = useCallback(
     (item: { title: string; xp: number; tag: string }, currentBalance: number) => {
       if (!userId) return { ok: false as const, error: "Sign in required" };
+      if (!Number.isFinite(item.xp) || item.xp <= 0) {
+        return { ok: false as const, error: "Invalid reward cost" };
+      }
       if (currentBalance < item.xp) {
         return { ok: false as const, error: "Insufficient XP" };
+      }
+      // Ad-Free is designed to stack (redeeming again extends the perk);
+      // every other one-time reward (e.g. cosmetics) can only be claimed once.
+      if (item.tag.toLowerCase() !== "adfree" && records.some((r) => r.title === item.title)) {
+        return { ok: false as const, error: "Already redeemed" };
       }
       const record = addRedemption({ ...item, userId });
       return { ok: true as const, record };
     },
-    [userId],
+    [userId, records],
   );
 
   return {

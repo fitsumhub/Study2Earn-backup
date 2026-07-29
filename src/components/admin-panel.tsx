@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -52,6 +53,7 @@ import { AdsSection } from "@/components/admin/sections/ads-section";
 import { CategoriesSection } from "@/components/admin/sections/categories-section";
 import { IntegritySection } from "@/components/admin/sections/integrity-section";
 import { ContentSection } from "@/components/admin/sections/content-section";
+import { IntegrationsSection } from "@/components/admin/sections/integrations-section";
 import { SiteContentSection } from "@/components/admin/sections/site-content-section";
 import { ExamsSection } from "@/components/admin/sections/exams-section";
 import { ReferralsSection } from "@/components/admin/sections/referrals-section";
@@ -69,6 +71,8 @@ import {
 } from "@/components/admin/shared";
 import { StudentsTable } from "@/components/admin/students-table";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
+import { useComingSoon } from "@/hooks/use-coming-soon";
+import { COMING_SOON_PAGES } from "@/lib/coming-soon-store";
 import {
   examsBySubject,
   overviewMiniStats,
@@ -102,6 +106,8 @@ export function AdminPanel({ admin }: { admin: AdminDashboardState }) {
       return <RewardsSection admin={admin} />;
     case "ads":
       return <AdsSection />;
+    case "integrations":
+      return <IntegrationsSection />;
     case "withdrawals":
       return <WithdrawalsSection admin={admin} />;
     case "referrals":
@@ -135,6 +141,7 @@ function OverviewSection({ admin }: { admin: AdminDashboardState }) {
     setProfileUser,
     setMessageUser,
     setSuspendUser,
+    setAdjustPointsUser,
     updateUserStatus,
     openQuickAction,
   } = admin;
@@ -246,7 +253,7 @@ function OverviewSection({ admin }: { admin: AdminDashboardState }) {
                 type="button"
                 onClick={() => setSection(action.section)}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5",
+                  "flex items-center gap-3 rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
                   action.color,
                 )}
               >
@@ -345,6 +352,7 @@ function OverviewSection({ admin }: { admin: AdminDashboardState }) {
               onSuspend={setSuspendUser}
               onApprove={(id) => updateUserStatus(id, "active")}
               onReactivate={(id) => updateUserStatus(id, "active")}
+              onAdjustPoints={setAdjustPointsUser}
             />
           </CardContent>
         </Card>
@@ -820,55 +828,108 @@ function SettingsSection({ admin }: { admin: AdminDashboardState }) {
   const { settings, setSettings, saveSettings } = admin;
 
   return (
+    <div className="space-y-6">
+      <Card className="max-w-xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="font-serif text-brand-navy">Platform settings</CardTitle>
+          <CardDescription>Configure defaults and notification behavior</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="email-alerts">Email alerts</Label>
+              <p className="text-xs text-muted-foreground">Notify admins of pending approvals</p>
+            </div>
+            <Switch
+              id="email-alerts"
+              checked={settings.emailAlerts}
+              onCheckedChange={(v) => setSettings((s) => ({ ...s, emailAlerts: v }))}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="auto-approve">Auto-approve students</Label>
+              <p className="text-xs text-muted-foreground">
+                Skip manual verification for .edu.et emails
+              </p>
+            </div>
+            <Switch
+              id="auto-approve"
+              checked={settings.autoApprove}
+              onCheckedChange={(v) => setSettings((s) => ({ ...s, autoApprove: v }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="max-exams">Max daily exams per student</Label>
+            <Input
+              id="max-exams"
+              type="number"
+              value={settings.maxDailyExams}
+              onChange={(e) => setSettings((s) => ({ ...s, maxDailyExams: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="default-xp">Default XP per exam</Label>
+            <Input
+              id="default-xp"
+              type="number"
+              value={settings.defaultXpReward}
+              onChange={(e) => setSettings((s) => ({ ...s, defaultXpReward: e.target.value }))}
+            />
+          </div>
+          <Button onClick={saveSettings}>Save settings</Button>
+        </CardContent>
+      </Card>
+
+      <ComingSoonSettingsCard />
+    </div>
+  );
+}
+
+function ComingSoonSettingsCard() {
+  const { config, updatePage } = useComingSoon();
+
+  return (
     <Card className="max-w-xl shadow-sm">
       <CardHeader>
-        <CardTitle className="font-serif text-brand-navy">Platform settings</CardTitle>
-        <CardDescription>Configure defaults and notification behavior</CardDescription>
+        <CardTitle className="font-serif text-brand-navy">Coming Soon pages</CardTitle>
+        <CardDescription>
+          Replace an entire public page with a placeholder poster instead of its real content
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="email-alerts">Email alerts</Label>
-            <p className="text-xs text-muted-foreground">Notify admins of pending approvals</p>
-          </div>
-          <Switch
-            id="email-alerts"
-            checked={settings.emailAlerts}
-            onCheckedChange={(v) => setSettings((s) => ({ ...s, emailAlerts: v }))}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="auto-approve">Auto-approve students</Label>
-            <p className="text-xs text-muted-foreground">
-              Skip manual verification for .edu.et emails
-            </p>
-          </div>
-          <Switch
-            id="auto-approve"
-            checked={settings.autoApprove}
-            onCheckedChange={(v) => setSettings((s) => ({ ...s, autoApprove: v }))}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="max-exams">Max daily exams per student</Label>
-          <Input
-            id="max-exams"
-            type="number"
-            value={settings.maxDailyExams}
-            onChange={(e) => setSettings((s) => ({ ...s, maxDailyExams: e.target.value }))}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="default-xp">Default XP per exam</Label>
-          <Input
-            id="default-xp"
-            type="number"
-            value={settings.defaultXpReward}
-            onChange={(e) => setSettings((s) => ({ ...s, defaultXpReward: e.target.value }))}
-          />
-        </div>
-        <Button onClick={saveSettings}>Save settings</Button>
+      <CardContent className="space-y-4">
+        {COMING_SOON_PAGES.map(({ key, label }) => {
+          const page = config[key];
+          return (
+            <div key={key} className="rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={`coming-soon-${key}`} className="font-semibold">
+                  {label}
+                </Label>
+                <Switch
+                  id={`coming-soon-${key}`}
+                  checked={page.enabled}
+                  onCheckedChange={(v) => updatePage(key, { enabled: v })}
+                />
+              </div>
+              {page.enabled && (
+                <div className="mt-3 space-y-2">
+                  <Input
+                    value={page.title}
+                    onChange={(e) => updatePage(key, { title: e.target.value })}
+                    placeholder="Poster title"
+                  />
+                  <Textarea
+                    value={page.message}
+                    onChange={(e) => updatePage(key, { message: e.target.value })}
+                    placeholder="Poster message"
+                    rows={2}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

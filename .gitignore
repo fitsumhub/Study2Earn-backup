@@ -18,6 +18,11 @@ dist-ssr
 *.tsbuildinfo
 *.local
 
+# Environment variables (never commit real secrets — .env.example documents the shape)
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

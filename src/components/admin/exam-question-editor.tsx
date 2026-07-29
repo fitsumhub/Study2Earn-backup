@@ -1,4 +1,14 @@
-import { AlertTriangle, CheckCircle2, Copy, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  Copy,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -84,16 +94,29 @@ export function ExamQuestionEditor({
     onChange([...questions, newQuestion(questions.length)]);
   };
 
+  const move = (id: string, direction: -1 | 1) => {
+    const index = questions.findIndex((q) => q.id === id);
+    const target = index + direction;
+    if (index === -1 || target < 0 || target >= questions.length) return;
+    const next = [...questions];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  const [issuesOnly, setIssuesOnly] = useState(false);
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return questions;
-    return questions.filter(
-      (item) =>
+    return questions.filter((item) => {
+      if (issuesOnly && getQuestionIssues(item).length === 0) return false;
+      if (!q) return true;
+      return (
         item.question.toLowerCase().includes(q) ||
         item.options.some((o) => o.toLowerCase().includes(q)) ||
-        item.explanation.toLowerCase().includes(q),
-    );
-  }, [questions, search]);
+        item.explanation.toLowerCase().includes(q)
+      );
+    });
+  }, [questions, search, issuesOnly]);
 
   const brokenCount = useMemo(
     () => questions.filter((q) => getQuestionIssues(q).length > 0).length,
@@ -119,15 +142,33 @@ export function ExamQuestionEditor({
         </Button>
       </div>
 
-      {questions.length > 3 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search questions, options, explanations…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 text-sm"
-          />
+      {(questions.length > 3 || brokenCount > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search questions, options, explanations…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 pl-8 text-sm"
+            />
+          </div>
+          {brokenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIssuesOnly((v) => !v)}
+              aria-pressed={issuesOnly}
+              className={cn(
+                "flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors",
+                issuesOnly
+                  ? "border-red-300 bg-red-50 text-red-600"
+                  : "border-slate-200 text-slate-600 hover:border-red-200 hover:text-red-600",
+              )}
+            >
+              <AlertTriangle className="size-3.5" />
+              {brokenCount} issue{brokenCount !== 1 ? "s" : ""}
+            </button>
+          )}
         </div>
       )}
 
@@ -137,13 +178,17 @@ export function ExamQuestionEditor({
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-          No questions match “{search}”.
+          {issuesOnly && !search
+            ? "No questions with issues — the bank is healthy."
+            : `No questions match “${search}”.`}
         </div>
       ) : (
-        <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-1">
+        <div className="space-y-4 sm:max-h-[55vh] sm:overflow-y-auto sm:pr-1">
           {visible.map((q) => {
             const issues = getQuestionIssues(q);
-            const number = questions.findIndex((item) => item.id === q.id) + 1;
+            const index = questions.findIndex((item) => item.id === q.id);
+            const number = index + 1;
+            const canReorder = !search.trim() && !issuesOnly;
             return (
               <div
                 key={q.id}
@@ -169,6 +214,32 @@ export function ExamQuestionEditor({
                     )}
                   </div>
                   <div className="flex gap-1">
+                    {canReorder && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Move up"
+                          disabled={index === 0}
+                          className="size-7 text-slate-500 disabled:opacity-30"
+                          onClick={() => move(q.id, -1)}
+                        >
+                          <ChevronUp className="size-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Move down"
+                          disabled={index === questions.length - 1}
+                          className="size-7 text-slate-500 disabled:opacity-30"
+                          onClick={() => move(q.id, 1)}
+                        >
+                          <ChevronDown className="size-3.5" />
+                        </Button>
+                      </>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -218,7 +289,7 @@ export function ExamQuestionEditor({
                         value={opt}
                         placeholder={`Option ${String.fromCharCode(65 + oi)}`}
                         onChange={(e) => updateOption(q.id, oi, e.target.value)}
-                        className="bg-white"
+                        className="min-w-0 flex-1 bg-white"
                       />
                       {q.correctIndex === oi ? (
                         <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />

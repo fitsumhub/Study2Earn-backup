@@ -18,6 +18,7 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
     setProfileUser,
     setMessageUser,
     setSuspendUser,
+    setAdjustPointsUser,
     updateUserStatus,
     openQuickAction,
     openEdit,
@@ -155,6 +156,7 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
             onApprove={(id) => updateUserStatus(id, "active")}
             onReactivate={(id) => updateUserStatus(id, "active")}
             onDelete={deleteStudent}
+            onAdjustPoints={setAdjustPointsUser}
           />
         </CardContent>
       </Card>

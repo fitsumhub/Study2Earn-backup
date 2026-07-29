@@ -140,6 +140,13 @@ export async function processImageFile(
     el.src = dataUrl;
   });
 
+  // Guard against decompression-bomb-style images (tiny file, huge pixel
+  // dimensions) hanging the browser tab on the canvas resize below.
+  const MAX_PIXELS = 40_000_000; // e.g. ~8000x5000
+  if (img.width * img.height > MAX_PIXELS) {
+    throw new Error("Image dimensions are too large to process");
+  }
+
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
   const w = Math.max(1, Math.round(img.width * scale));
   const h = Math.max(1, Math.round(img.height * scale));

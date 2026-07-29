@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useReferral } from "@/hooks/use-referral";
+import { useReferralTiers } from "@/hooks/use-referral-tiers";
 import {
   REFERRAL_COMPLETE_XP,
   REFERRAL_FRIEND_BONUS,
   REFERRAL_SIGNUP_XP,
-  referralTiers,
   type ReferralRecord,
 } from "@/lib/referral-data";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ export function ReferralPanel() {
     progressToNext,
     copyToClipboard,
   } = useReferral();
+  const { tiers: referralTiers } = useReferralTiers();
 
   const copyCode = async () => {
     await copyToClipboard(code);

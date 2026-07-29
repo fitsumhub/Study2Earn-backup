@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { FormField } from "@/components/admin/forms/field";
+import { ImageUploadField } from "@/components/admin/forms/media-upload";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +24,7 @@ export type RewardFormData = {
   xp: string;
   tag: string;
   active: boolean;
+  imageUrl: string;
 };
 
 const emptyReward: RewardFormData = {
@@ -30,6 +32,7 @@ const emptyReward: RewardFormData = {
   xp: "500",
   tag: "ETB",
   active: true,
+  imageUrl: "",
 };
 
 export function RewardForm({
@@ -67,6 +70,12 @@ export function RewardForm({
         onChange={(v) => set("title", v)}
         required
       />
+      <ImageUploadField
+        label="Photo"
+        value={form.imageUrl}
+        onChange={(v) => set("imageUrl", v)}
+        hint="Shown on the reward card — paste an image URL or upload from your device"
+      />
       <div className="grid grid-cols-2 gap-4">
         <FormField
           label="XP cost"
@@ -75,6 +84,7 @@ export function RewardForm({
           value={form.xp}
           onChange={(v) => set("xp", v)}
           required
+          min={1}
         />
         <div className="grid gap-2">
           <Label htmlFor="reward-tag">Category</Label>
@@ -128,6 +138,7 @@ export function rewardToForm(reward: AdminReward): RewardFormData {
     xp: String(reward.xp),
     tag: reward.tag,
     active: reward.active,
+    imageUrl: reward.imageUrl ?? "",
   };
 }
 
@@ -135,11 +146,13 @@ export function formToReward(
   data: RewardFormData,
   id?: string,
 ): Omit<AdminReward, "id"> & { id?: string } {
+  const parsedXp = parseInt(data.xp, 10);
   return {
     id,
     title: data.title,
-    xp: parseInt(data.xp, 10) || 500,
+    xp: Number.isFinite(parsedXp) && parsedXp > 0 ? parsedXp : 500,
     tag: data.tag,
     active: data.active,
+    imageUrl: data.imageUrl.trim() || undefined,
   };
 }

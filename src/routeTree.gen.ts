@@ -24,6 +24,8 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AiStudyRouteImport } from './routes/ai-study'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RewardsIndexRouteImport } from './routes/rewards.index'
+import { Route as LibraryIndexRouteImport } from './routes/library.index'
 import { Route as ExamsIndexRouteImport } from './routes/exams.index'
 import { Route as ExamsMistakesRouteImport } from './routes/exams.mistakes'
 import { Route as ExamsCourseIdRouteImport } from './routes/exams.$courseId'
@@ -107,6 +109,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RewardsIndexRoute = RewardsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RewardsRoute,
+} as any)
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LibraryRoute,
+} as any)
 const ExamsIndexRoute = ExamsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -163,6 +175,8 @@ export interface FileRoutesByFullPath {
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
   '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams/': typeof ExamsIndexRoute
+  '/library/': typeof LibraryIndexRoute
+  '/rewards/': typeof RewardsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
   '/library/read/$bookId': typeof LibraryReadBookIdRoute
   '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
@@ -175,16 +189,16 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/help': typeof HelpRoute
   '/leaderboard': typeof LeaderboardRoute
-  '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams': typeof ExamsIndexRoute
+  '/library': typeof LibraryIndexRoute
+  '/rewards': typeof RewardsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
   '/library/read/$bookId': typeof LibraryReadBookIdRoute
   '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
@@ -210,6 +224,8 @@ export interface FileRoutesById {
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
   '/exams/mistakes': typeof ExamsMistakesRoute
   '/exams/': typeof ExamsIndexRoute
+  '/library/': typeof LibraryIndexRoute
+  '/rewards/': typeof RewardsIndexRoute
   '/exams/$courseId/$chapterId': typeof ExamsCourseIdChapterIdRoute
   '/library/read/$bookId': typeof LibraryReadBookIdRoute
   '/rewards/claim/$redemptionId': typeof RewardsClaimRedemptionIdRoute
@@ -236,6 +252,8 @@ export interface FileRouteTypes {
     | '/exams/$courseId'
     | '/exams/mistakes'
     | '/exams/'
+    | '/library/'
+    | '/rewards/'
     | '/exams/$courseId/$chapterId'
     | '/library/read/$bookId'
     | '/rewards/claim/$redemptionId'
@@ -248,16 +266,16 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/help'
     | '/leaderboard'
-    | '/library'
     | '/login'
     | '/privacy'
     | '/profile'
     | '/register'
-    | '/rewards'
     | '/sitemap.xml'
     | '/terms'
     | '/exams/mistakes'
     | '/exams'
+    | '/library'
+    | '/rewards'
     | '/exams/$courseId/$chapterId'
     | '/library/read/$bookId'
     | '/rewards/claim/$redemptionId'
@@ -282,6 +300,8 @@ export interface FileRouteTypes {
     | '/exams/$courseId'
     | '/exams/mistakes'
     | '/exams/'
+    | '/library/'
+    | '/rewards/'
     | '/exams/$courseId/$chapterId'
     | '/library/read/$bookId'
     | '/rewards/claim/$redemptionId'
@@ -413,6 +433,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rewards/': {
+      id: '/rewards/'
+      path: '/'
+      fullPath: '/rewards/'
+      preLoaderRoute: typeof RewardsIndexRouteImport
+      parentRoute: typeof RewardsRoute
+    }
+    '/library/': {
+      id: '/library/'
+      path: '/'
+      fullPath: '/library/'
+      preLoaderRoute: typeof LibraryIndexRouteImport
+      parentRoute: typeof LibraryRoute
+    }
     '/exams/': {
       id: '/exams/'
       path: '/'
@@ -494,10 +528,12 @@ const ExamsRouteChildren: ExamsRouteChildren = {
 const ExamsRouteWithChildren = ExamsRoute._addFileChildren(ExamsRouteChildren)
 
 interface LibraryRouteChildren {
+  LibraryIndexRoute: typeof LibraryIndexRoute
   LibraryReadBookIdRoute: typeof LibraryReadBookIdRoute
 }
 
 const LibraryRouteChildren: LibraryRouteChildren = {
+  LibraryIndexRoute: LibraryIndexRoute,
   LibraryReadBookIdRoute: LibraryReadBookIdRoute,
 }
 
@@ -505,10 +541,12 @@ const LibraryRouteWithChildren =
   LibraryRoute._addFileChildren(LibraryRouteChildren)
 
 interface RewardsRouteChildren {
+  RewardsIndexRoute: typeof RewardsIndexRoute
   RewardsClaimRedemptionIdRoute: typeof RewardsClaimRedemptionIdRoute
 }
 
 const RewardsRouteChildren: RewardsRouteChildren = {
+  RewardsIndexRoute: RewardsIndexRoute,
   RewardsClaimRedemptionIdRoute: RewardsClaimRedemptionIdRoute,
 }
 

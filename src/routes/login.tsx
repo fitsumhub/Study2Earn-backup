@@ -769,11 +769,6 @@ function RegisterWizard({
       return;
     }
     setSubmitting(true);
-    if (!isEduEt) {
-      toast.warning("Manual approval required", {
-        description: "Non-.edu.et emails may require admin review before access is granted.",
-      });
-    }
     signUp({
       name,
       email,
@@ -1006,10 +1001,14 @@ function RegisterWizard({
 
           <div className="mt-5 space-y-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label
+                htmlFor="reg-name"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
                 Full name
               </label>
               <input
+                id="reg-name"
                 type="text"
                 placeholder="Abebe Balcha"
                 value={name}
@@ -1019,13 +1018,17 @@ function RegisterWizard({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label
+                htmlFor="reg-university"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
                 University{" "}
                 <span className="font-normal normal-case tracking-normal text-slate-400">
                   (optional — not a student? leave blank)
                 </span>
               </label>
               <input
+                id="reg-university"
                 type="text"
                 list="reg-universities"
                 placeholder="Addis Ababa University"
@@ -1038,7 +1041,7 @@ function RegisterWizard({
                   <option key={u} value={u} />
                 ))}
               </datalist>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Anyone can join — students get a university on their profile, everyone else can skip
                 this.
               </p>
@@ -1076,18 +1079,20 @@ function RegisterWizard({
       {step === 3 && (
         <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
           <h1 className="font-serif text-3xl font-bold text-brand-navy">Secure your account</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Use your .edu.et email for instant approval.
-          </p>
+          <p className="mt-2 text-sm text-slate-500">Any email works to sign up.</p>
 
           <div className="mt-6 space-y-4">
             {/* Email with live .edu.et indicator */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label
+                htmlFor="reg-email"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
                 Email address
               </label>
               <div className="relative">
                 <input
+                  id="reg-email"
                   type="email"
                   placeholder="you@university.edu.et"
                   value={email}
@@ -1117,9 +1122,7 @@ function RegisterWizard({
                     isEduEt ? "text-emerald-600" : "text-amber-600",
                   )}
                 >
-                  {isEduEt
-                    ? "✓ University email — instant approval"
-                    : "⚠ Non-.edu.et email — may require admin review"}
+                  {isEduEt ? "✓ University email detected" : "Any email works to sign up"}
                 </p>
               )}
             </div>
@@ -1221,7 +1224,7 @@ function RegisterWizard({
               )}
               {isEduEt && (
                 <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                  Instant approval
+                  University email
                 </span>
               )}
             </div>
@@ -1252,13 +1255,17 @@ function RegisterWizard({
 
           {/* Referral code */}
           <div className="mt-3 space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label
+              htmlFor="reg-referral"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-500"
+            >
               Referral code{" "}
               <span className="font-normal normal-case tracking-normal text-slate-400">
                 (optional — earn extra XP)
               </span>
             </label>
             <input
+              id="reg-referral"
               type="text"
               placeholder="e.g. ABEBE-7X2K"
               value={referral}

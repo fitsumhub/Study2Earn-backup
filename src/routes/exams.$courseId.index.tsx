@@ -119,7 +119,7 @@ function CourseChaptersPage() {
                 <span className="font-bold text-brand-gold">{course.chapters.length * 200} XP</span>{" "}
                 available in this course
                 {stats.completed > 0 && (
-                  <span className="text-slate-400"> · {stats.completed * 100}+ already earned</span>
+                  <span className="text-slate-500"> · {stats.completed * 100}+ already earned</span>
                 )}
               </p>
             </div>
@@ -253,7 +253,7 @@ function ChapterRow({
             {completed ? (
               <span className="font-semibold text-emerald-600">Completed</span>
             ) : (
-              <span className="text-slate-400">Tap to view details &amp; start exam</span>
+              <span className="text-slate-500">Tap to view details &amp; start exam</span>
             )}
             {progress?.attempts ? <> · {progress.attempts} attempt(s)</> : null}
           </p>

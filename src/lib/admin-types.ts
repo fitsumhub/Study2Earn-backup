@@ -7,6 +7,7 @@ export type AdminSection =
   | "exams"
   | "rewards"
   | "ads"
+  | "integrations"
   | "withdrawals"
   | "referrals"
   | "analytics"
@@ -74,6 +75,8 @@ export type AdminReward = {
   xp: number;
   tag: string;
   active: boolean;
+  /** Optional photo shown on the reward card — a `local:<id>` pointer into the media store, or a direct URL. */
+  imageUrl?: string;
 };
 
 export type AdminContent = {
@@ -167,6 +170,10 @@ export const sectionMeta: Record<AdminSection, { title: string; description: str
   ads: {
     title: "Sponsor Ads",
     description: "Create and manage sponsor banner ads shown across the platform",
+  },
+  integrations: {
+    title: "API & Integrations",
+    description: "Google AdSense publisher ID and other third-party API keys",
   },
   withdrawals: {
     title: "Withdrawal Management",

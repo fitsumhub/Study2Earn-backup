@@ -2,6 +2,13 @@ import { useCallback, useSyncExternalStore } from "react";
 
 import { examCourses, getChapter, getCourseById } from "@/lib/exam-data";
 
+/** Highest XP a single attempt can legitimately earn (perfect score, first pass). */
+const MAX_XP_PER_ATTEMPT = calculateExamXp(100, true);
+
+function isRealChapter(courseId: string, chapterId: string) {
+  return !!getChapter(courseId, chapterId);
+}
+
 export type ChapterProgress = {
   completed: boolean;
   bestScore: number;
@@ -27,16 +34,70 @@ type AttemptsStore = ExamAttemptRecord[];
 
 const STORAGE_KEY = "study2earn-exam-progress";
 const ATTEMPTS_KEY = "study2earn-exam-attempts";
+const RECORDED_SEEDS_KEY = "study2earn-exam-recorded-seeds";
+const MAX_RECORDED_SEEDS = 200;
+
+/**
+ * Marks an exam session as "already graded" so the same resumed session
+ * opened in two tabs can't both award XP for one logical completion. Returns
+ * false (and records nothing) if this exact session was already recorded.
+ */
+function claimSessionSeed(seed: string): boolean {
+  if (typeof window === "undefined") return true;
+  let seeds: string[] = [];
+  try {
+    const raw = localStorage.getItem(RECORDED_SEEDS_KEY);
+    seeds = raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    seeds = [];
+  }
+  if (seeds.includes(seed)) return false;
+  localStorage.setItem(
+    RECORDED_SEEDS_KEY,
+    JSON.stringify([seed, ...seeds].slice(0, MAX_RECORDED_SEEDS)),
+  );
+  return true;
+}
 
 function progressKey(courseId: string, chapterId: string) {
   return `${courseId}:${chapterId}`;
 }
 
+/**
+ * Reads are sanitized against plausible bounds — this can't stop someone
+ * from editing their own localStorage (there's no backend to be the source
+ * of truth), but it does stop a raw `{xp: 999999}` write from being trusted
+ * at face value: scores clamp to 0–100, XP clamps to what that chapter could
+ * legitimately award, and entries referencing a chapter that doesn't exist
+ * are dropped.
+ */
 function readStore(): ProgressStore {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ProgressStore) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as ProgressStore;
+    if (!parsed || typeof parsed !== "object") return {};
+    const clean: ProgressStore = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const sep = key.indexOf(":");
+      if (sep < 0) continue;
+      const courseId = key.slice(0, sep);
+      const chapterId = key.slice(sep + 1);
+      if (!isRealChapter(courseId, chapterId)) continue;
+      if (!value || typeof value !== "object") continue;
+      clean[key] = {
+        completed: !!value.completed,
+        bestScore: Math.min(100, Math.max(0, Number(value.bestScore) || 0)),
+        attempts: Math.max(0, Math.floor(Number(value.attempts) || 0)),
+        lastAttempt: value.lastAttempt,
+        lastScore:
+          value.lastScore === undefined
+            ? undefined
+            : Math.min(100, Math.max(0, Number(value.lastScore) || 0)),
+      };
+    }
+    return clean;
   } catch {
     return {};
   }
@@ -46,7 +107,22 @@ function readAttempts(): AttemptsStore {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(ATTEMPTS_KEY);
-    return raw ? (JSON.parse(raw) as AttemptsStore) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as AttemptsStore;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (a) =>
+          a &&
+          typeof a.courseId === "string" &&
+          typeof a.chapterId === "string" &&
+          isRealChapter(a.courseId, a.chapterId),
+      )
+      .map((a) => ({
+        ...a,
+        score: Math.min(100, Math.max(0, Number(a.score) || 0)),
+        xp: Math.min(MAX_XP_PER_ATTEMPT, Math.max(0, Number(a.xp) || 0)),
+      }));
   } catch {
     return [];
   }
@@ -92,12 +168,18 @@ function getAttemptsSnapshot() {
   return cachedAttempts;
 }
 
+// Stable module-level defaults — a fresh `{}`/`[]` literal on every call
+// would make React think the store never settles and warn about a possible
+// infinite loop (it also does needlessly bust memoization on every render).
+const EMPTY_PROGRESS_STORE: ProgressStore = {};
+const EMPTY_ATTEMPTS: AttemptsStore = [];
+
 function getServerSnapshot(): ProgressStore {
-  return {};
+  return EMPTY_PROGRESS_STORE;
 }
 
 function getServerAttemptsSnapshot(): AttemptsStore {
-  return [];
+  return EMPTY_ATTEMPTS;
 }
 
 /** XP scales with score; bonus for first-time chapter completion. */
@@ -172,11 +254,23 @@ export function useExamProgress() {
   }, [store]);
 
   const recordAttempt = useCallback(
-    (courseId: string, chapterId: string, score: number, passed: boolean) => {
+    (
+      courseId: string,
+      chapterId: string,
+      score: number,
+      passed: boolean,
+      sessionSeed: string,
+      options?: { withholdXp?: boolean },
+    ) => {
+      if (!claimSessionSeed(`${courseId}:${chapterId}:${sessionSeed}`)) {
+        // Same resumed session already graded in another tab — don't double-award.
+        return { xp: 0, firstCompletion: false, duplicate: true as const };
+      }
+
       const key = progressKey(courseId, chapterId);
       const current = readStore()[key];
       const firstCompletion = passed && !(current?.completed ?? false);
-      const xp = calculateExamXp(score, firstCompletion);
+      const xp = options?.withholdXp ? 0 : calculateExamXp(score, firstCompletion);
 
       const next: ChapterProgress = {
         completed: passed || (current?.completed ?? false),
@@ -202,7 +296,7 @@ export function useExamProgress() {
       };
       writeAttempts([record, ...readAttempts()]);
 
-      return { xp, firstCompletion };
+      return { xp, firstCompletion, duplicate: false as const };
     },
     [],
   );

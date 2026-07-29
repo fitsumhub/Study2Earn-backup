@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  BookMarked,
   BookOpen,
   CheckCircle2,
   ClipboardList,
@@ -20,10 +21,11 @@ import { SponsorAd } from "@/components/sponsor-ad";
 import { SiteHeader, SiteFooter, BookCover } from "@/components/site-chrome";
 import { useLibraryProgress } from "@/hooks/use-library-progress";
 import { useReadingTime } from "@/hooks/use-reading-time";
+import { getReadingActiveDays } from "@/lib/reading-time-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useExamProgress } from "@/hooks/use-exam-progress";
 import { useWallet } from "@/hooks/use-wallet";
-import { examHistory, leaderboard } from "@/lib/mock-data";
+import { leaderboard } from "@/lib/mock-data";
 import { xpToEtb } from "@/lib/withdrawal-data";
 import { cn } from "@/lib/utils";
 
@@ -66,9 +68,10 @@ function DashboardPage() {
   );
 }
 
-function calcStreak(attempts: { date: string }[]): { current: number; studiedToday: boolean } {
-  if (attempts.length === 0) return { current: 0, studiedToday: false };
-  const days = new Set(attempts.map((a) => a.date.slice(0, 10)));
+/** A day counts toward the streak if the student took an exam OR did verified reading. */
+function calcStreak(activeDates: string[]): { current: number; studiedToday: boolean } {
+  if (activeDates.length === 0) return { current: 0, studiedToday: false };
+  const days = new Set(activeDates.map((d) => d.slice(0, 10)));
   const today = new Date().toISOString().slice(0, 10);
   const studiedToday = days.has(today);
   let streak = studiedToday ? 1 : 0;
@@ -87,12 +90,16 @@ function DashboardContent() {
   const reading = useReadingTime();
   const { books } = useLibraryProgress();
   const firstName = user?.name.split(" ")[0] ?? "Student";
-  const myRank = leaderboard.find((s) => s.name === user?.name);
+  const myRank = leaderboard.find((s) => s.id === user?.id);
   const { getNextChapter, getRecentAttempts, isChapterCompleted } = useExamProgress();
   const next = getNextChapter();
   const recentAttempts = getRecentAttempts(50);
   const examStats = wallet.examStats;
-  const { current: streakDays, studiedToday } = calcStreak(recentAttempts);
+  const activeDates = [
+    ...recentAttempts.map((a) => a.date),
+    ...getReadingActiveDays(user?.id ?? ""),
+  ];
+  const { current: streakDays, studiedToday } = calcStreak(activeDates);
   const nextIncomplete = next && !isChapterCompleted(next.course.id, next.chapter.id);
   const totalXp = wallet.balance;
   const withdrawableEtb = xpToEtb(totalXp);
@@ -105,26 +112,17 @@ function DashboardContent() {
   const fallbackBooks = books.slice(0, 4);
   const readingBooks = continueBooks.length > 0 ? continueBooks : fallbackBooks;
 
-  const displayHistory =
-    recentAttempts.length > 0
-      ? recentAttempts.slice(0, 5).map((a) => ({
-          key: a.id,
-          title: `${a.chapterTitle} — ${a.courseName}`,
-          date: formatAttemptDate(a.date),
-          score: a.score,
-          xp: a.xp,
-        }))
-      : examHistory.map((e) => ({
-          key: e.title,
-          title: e.title,
-          date: e.date,
-          score: e.score,
-          xp: e.xp,
-        }));
+  const displayHistory = recentAttempts.slice(0, 5).map((a) => ({
+    key: a.id,
+    title: `${a.chapterTitle} — ${a.courseName}`,
+    date: formatAttemptDate(a.date),
+    score: a.score,
+    xp: a.xp,
+  }));
 
   const rankDisplay = myRank ? `#${myRank.rank}` : "—";
   const rankSub = myRank
-    ? `${myRank.xp.toLocaleString()} XP on leaderboard`
+    ? `${totalXp.toLocaleString()} XP on leaderboard`
     : "Complete a mock to rank";
 
   const statCards = [
@@ -197,7 +195,7 @@ function DashboardContent() {
               </p>
             </div>
             <div className="hidden sm:flex flex-col items-end gap-1">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500">
                 {new Date().toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "long",
@@ -486,7 +484,7 @@ function DashboardContent() {
                     <span className="font-bold text-brand-navy text-xs">You</span>
                   </div>
                   <span className="text-xs font-mono text-brand-navy font-bold">
-                    {myRank.xp.toLocaleString()}{" "}
+                    {totalXp.toLocaleString()}{" "}
                     <span className="text-[10px] text-brand-gold">XP</span>
                   </span>
                 </div>
@@ -509,50 +507,63 @@ function DashboardContent() {
                 All courses
               </Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                    <th className="py-3">Exam</th>
-                    <th className="py-3">Date</th>
-                    <th className="py-3">Score</th>
-                    <th className="py-3 text-right">XP Earned</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayHistory.map((e, i) => (
-                    <tr
-                      key={e.key}
-                      className={cn(
-                        "border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/60",
-                        i % 2 === 1 && "bg-slate-50/40",
-                      )}
-                    >
-                      <td className="py-4 font-medium">
-                        <div className="flex items-center gap-2">
-                          <ClipboardList className="size-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[220px]">{e.title}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-slate-500">{e.date}</td>
-                      <td className="py-4">
-                        <span
-                          className={cn(
-                            "inline-block px-2 py-0.5 rounded text-xs font-bold",
-                            scoreStyle(e.score),
-                          )}
-                        >
-                          {e.score}%
-                        </span>
-                      </td>
-                      <td className="py-4 text-right font-mono font-bold text-brand-gold">
-                        +{e.xp}
-                      </td>
+            {displayHistory.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BookMarked className="size-8 text-slate-200 mb-3" />
+                <p className="text-sm text-slate-400">No exams yet</p>
+                <Link
+                  to="/exams"
+                  className="mt-3 text-xs font-semibold text-brand-navy hover:underline"
+                >
+                  Start your first mock exam →
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                      <th className="py-3">Exam</th>
+                      <th className="py-3">Date</th>
+                      <th className="py-3">Score</th>
+                      <th className="py-3 text-right">XP Earned</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {displayHistory.map((e, i) => (
+                      <tr
+                        key={e.key}
+                        className={cn(
+                          "border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/60",
+                          i % 2 === 1 && "bg-slate-50/40",
+                        )}
+                      >
+                        <td className="py-4 font-medium">
+                          <div className="flex items-center gap-2">
+                            <ClipboardList className="size-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate max-w-[220px]">{e.title}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 text-slate-500">{e.date}</td>
+                        <td className="py-4">
+                          <span
+                            className={cn(
+                              "inline-block px-2 py-0.5 rounded text-xs font-bold",
+                              scoreStyle(e.score),
+                            )}
+                          >
+                            {e.score}%
+                          </span>
+                        </td>
+                        <td className="py-4 text-right font-mono font-bold text-brand-gold">
+                          +{e.xp}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

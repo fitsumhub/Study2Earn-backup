@@ -20,11 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 import type { AdminUser, QuickAction } from "@/lib/admin-types";
+import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const createMeta: Record<QuickAction, { title: string; description: string }> = {
   addStudent: {
@@ -46,12 +49,15 @@ export function AdminDialogs({ admin }: { admin: AdminDashboardState }) {
     setMessageUser,
     suspendUser,
     setSuspendUser,
+    adjustPointsUser,
+    setAdjustPointsUser,
     addStudent,
     publishExam,
     uploadContent,
     createReward,
     updateUserStatus,
     sendMessage,
+    adjustUserXp,
     openEdit,
   } = admin;
 
@@ -74,6 +80,11 @@ export function AdminDialogs({ admin }: { admin: AdminDashboardState }) {
         }}
       />
       <MessageDialog user={messageUser} onClose={() => setMessageUser(null)} onSend={sendMessage} />
+      <AdjustPointsDialog
+        user={adjustPointsUser}
+        onClose={() => setAdjustPointsUser(null)}
+        onSubmit={adjustUserXp}
+      />
       <SuspendDialog
         user={suspendUser}
         onClose={() => setSuspendUser(null)}
@@ -246,6 +257,126 @@ function MessageDialog({
               Cancel
             </Button>
             <Button type="submit">Send</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AdjustPointsDialog({
+  user,
+  onClose,
+  onSubmit,
+}: {
+  user: AdminUser | null;
+  onClose: () => void;
+  onSubmit: (userId: string, delta: number, reason: string) => void;
+}) {
+  const [direction, setDirection] = useState<"add" | "reduce">("add");
+  const [amount, setAmount] = useState("50");
+  const [reason, setReason] = useState("");
+
+  if (!user) return null;
+
+  const parsedAmount = Math.max(0, Math.round(Number(amount)) || 0);
+  const delta = direction === "add" ? parsedAmount : -parsedAmount;
+  const newBalance = Math.max(0, user.xp + delta);
+
+  function reset() {
+    setDirection("add");
+    setAmount("50");
+    setReason("");
+  }
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+          reset();
+        }
+      }}
+    >
+      <DialogContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (parsedAmount === 0) return;
+            onSubmit(user.id, delta, reason);
+            reset();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Adjust points</DialogTitle>
+            <DialogDescription>
+              {user.name} ({user.id}) — current balance {user.xp.toLocaleString()} XP
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDirection("add")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-semibold transition-colors",
+                  direction === "add"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border-input text-muted-foreground hover:bg-accent",
+                )}
+              >
+                <Plus className="size-4" />
+                Add points
+              </button>
+              <button
+                type="button"
+                onClick={() => setDirection("reduce")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-semibold transition-colors",
+                  direction === "reduce"
+                    ? "border-red-300 bg-red-50 text-red-600"
+                    : "border-input text-muted-foreground hover:bg-accent",
+                )}
+              >
+                <Minus className="size-4" />
+                Reduce points
+              </button>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="adjust-amount">XP amount</Label>
+              <Input
+                id="adjust-amount"
+                type="number"
+                min={0}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="adjust-reason">Reason (sent to the student)</Label>
+              <Textarea
+                id="adjust-reason"
+                placeholder="e.g. Bonus for helping report a bug"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              New balance:{" "}
+              <span className="font-semibold text-brand-navy">
+                {newBalance.toLocaleString()} XP
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={parsedAmount === 0}>
+              {direction === "add" ? "Award" : "Deduct"} {parsedAmount || 0} XP
+            </Button>
           </div>
         </form>
       </DialogContent>

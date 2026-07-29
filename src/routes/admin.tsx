@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
-import { PageLoader } from "@/components/page-loader";
 import { RequireAuthClient } from "@/components/require-auth-client";
 import { AdminDialogs } from "@/components/admin-dialogs";
 import { AdminEditSheet } from "@/components/admin/admin-edit-sheet";
@@ -26,17 +24,11 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminDashboardPage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <AdminLoadingState />;
-  }
-
-  return <AdminDashboardContent />;
+  return (
+    <RequireAuthClient redirectTo="/admin" requireAdmin>
+      <AdminDashboardContent />
+    </RequireAuthClient>
+  );
 }
 
 function AdminDashboardContent() {
@@ -44,7 +36,7 @@ function AdminDashboardContent() {
   const meta = sectionMeta[admin.section];
 
   return (
-    <RequireAuthClient redirectTo="/admin">
+    <>
       <AdminShell title={meta.title} description={meta.description} admin={admin}>
         <AdminPanel admin={admin} />
       </AdminShell>
@@ -55,13 +47,10 @@ function AdminDashboardContent() {
         open={admin.examManagerMode !== null}
         mode={admin.examManagerMode === "create" ? "create" : "edit"}
         preset={admin.examManagerPreset}
+        initialTab={admin.examManagerInitialTab}
         onClose={admin.closeExamManager}
         onSave={admin.saveExamManager}
       />
-    </RequireAuthClient>
+    </>
   );
-}
-
-function AdminLoadingState() {
-  return <PageLoader label="Loading admin console…" fullScreen className="bg-slate-50" />;
 }

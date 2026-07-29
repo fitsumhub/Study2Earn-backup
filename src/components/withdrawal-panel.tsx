@@ -120,18 +120,24 @@ export function WithdrawalPanel({
   const handleConfirmedSubmit = () => {
     const result =
       method === "bank"
-        ? submitWithdrawal({
-            method: "bank",
-            bankId: selectedBank,
-            accountNumber: accountNumber.trim(),
-            accountName: accountName.trim(),
-            amountEtb,
-          })
-        : submitWithdrawal({
-            method: "usdt",
-            binanceUid: binanceUid.trim(),
-            amountUsdt,
-          });
+        ? submitWithdrawal(
+            {
+              method: "bank",
+              bankId: selectedBank,
+              accountNumber: accountNumber.trim(),
+              accountName: accountName.trim(),
+              amountEtb,
+            },
+            spendableXp,
+          )
+        : submitWithdrawal(
+            {
+              method: "usdt",
+              binanceUid: binanceUid.trim(),
+              amountUsdt,
+            },
+            spendableXp,
+          );
 
     setConfirmOpen(false);
     if (!result.ok) {

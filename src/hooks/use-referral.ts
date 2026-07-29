@@ -1,32 +1,42 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-import { getReferralLink, referralTiers, type ReferralRecord } from "@/lib/referral-data";
+import { useAuth } from "@/hooks/use-auth";
+import { useReferralTiers } from "@/hooks/use-referral-tiers";
+import { getReferralLink, type ReferralRecord } from "@/lib/referral-data";
 import { readReferralStore, subscribeReferrals, type ReferralStore } from "@/lib/referral-store";
 
-let cachedStore: ReferralStore = readReferralStore();
+const EMPTY_STORE: ReferralStore = { code: "", referrals: [], tierBonusesClaimed: [] };
 
-function refreshReferralCache() {
-  cachedStore = readReferralStore();
-}
+let cachedUserId = "";
+let cachedStore: ReferralStore = EMPTY_STORE;
 
-function subscribe(callback: () => void) {
-  refreshReferralCache();
-  return subscribeReferrals(() => {
-    refreshReferralCache();
-    callback();
-  });
-}
-
-function getSnapshot() {
-  return cachedStore;
-}
-
-function getServerSnapshot() {
-  return cachedStore;
+function refreshReferralCache(userId: string) {
+  cachedUserId = userId;
+  cachedStore = userId ? readReferralStore(userId) : EMPTY_STORE;
 }
 
 export function useReferral() {
-  const store = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const { tiers: referralTiers } = useReferralTiers();
+
+  const subscribe = useCallback(
+    (callback: () => void) => {
+      refreshReferralCache(userId);
+      return subscribeReferrals(() => {
+        refreshReferralCache(userId);
+        callback();
+      });
+    },
+    [userId],
+  );
+
+  const getSnapshot = useCallback(() => {
+    if (cachedUserId !== userId) refreshReferralCache(userId);
+    return cachedStore;
+  }, [userId]);
+
+  const store = useSyncExternalStore(subscribe, getSnapshot, () => EMPTY_STORE);
 
   const completed = store.referrals.filter((r) => r.status === "completed").length;
   const signedUp = store.referrals.filter(

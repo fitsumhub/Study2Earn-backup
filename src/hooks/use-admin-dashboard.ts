@@ -9,10 +9,13 @@ import type { RewardFormData } from "@/components/admin/forms/reward-form";
 import { formToReward } from "@/components/admin/forms/reward-form";
 import type { StudentFormData } from "@/components/admin/forms/student-form";
 import { formToStudent } from "@/components/admin/forms/student-form";
+import { useAuth } from "@/hooks/use-auth";
 import { useWithdrawals } from "@/hooks/use-withdrawals";
 import { buildDefaultAdminData, readAdminData, writeAdminData } from "@/lib/admin-store";
-import { readLibraryBooks, writeLibraryBooks } from "@/lib/library-store";
+import { readLibraryCatalog, writeLibraryCatalog } from "@/lib/library-store";
 import { deleteLocalFile, isLocalFileUrl } from "@/lib/media-store";
+import { sendBrowserNotification } from "@/lib/notification-store";
+import { addUserNotification } from "@/lib/user-notifications-store";
 import type { LibraryBook } from "@/lib/mock-data";
 import type {
   AdminActivity,
@@ -38,12 +41,13 @@ function nextId(prefix: string, items: { id: string }[]) {
 }
 
 /**
- * Mirror an admin content item into the student library store so uploads,
+ * Mirror an admin content item into the shared library catalog so uploads,
  * edits, covers, and publish toggles show up for students immediately.
- * Student-owned fields (progress, XP, chapter completion) are preserved.
+ * Catalog fields only — each student's own progress/XP lives in a separate
+ * per-user store and is untouched by catalog edits.
  */
 function syncContentToLibrary(item: AdminContent) {
-  const books = readLibraryBooks();
+  const books = readLibraryCatalog();
   const idx = books.findIndex((b) => b.id === item.id);
   const shared = {
     name: item.name,
@@ -65,7 +69,7 @@ function syncContentToLibrary(item: AdminContent) {
         : Array.from({ length: item.chapters }, (_, i) => ({
             title: prev.chapterList[i]?.title ?? `Chapter ${i + 1}`,
             pages: prev.chapterList[i]?.pages ?? Math.max(1, Math.ceil(item.pages / item.chapters)),
-            done: prev.chapterList[i]?.done ?? false,
+            done: false,
           }));
     books[idx] = { ...prev, ...shared, chapterList };
   } else {
@@ -84,11 +88,11 @@ function syncContentToLibrary(item: AdminContent) {
     };
     books.unshift(book);
   }
-  writeLibraryBooks(books);
+  writeLibraryCatalog(books);
 }
 
 function removeContentFromLibrary(item: AdminContent) {
-  writeLibraryBooks(readLibraryBooks().filter((b) => b.id !== item.id));
+  writeLibraryCatalog(readLibraryCatalog().filter((b) => b.id !== item.id));
   // Clean up any browser-stored uploads the book owned.
   if (isLocalFileUrl(item.pdfUrl)) deleteLocalFile(item.pdfUrl);
   if (isLocalFileUrl(item.coverUrl)) deleteLocalFile(item.coverUrl);
@@ -129,6 +133,7 @@ const defaultNotifications: AdminNotification[] = [
 ];
 
 export function useAdminDashboard() {
+  const { user: authUser, updateProfile } = useAuth();
   const {
     all: withdrawals,
     pendingCount: pendingWithdrawals,
@@ -159,10 +164,14 @@ export function useAdminDashboard() {
   const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
   const [messageUser, setMessageUser] = useState<AdminUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<AdminUser | null>(null);
+  const [adjustPointsUser, setAdjustPointsUser] = useState<AdminUser | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [examManagerMode, setExamManagerMode] = useState<"create" | "edit" | null>(null);
   const [managingExam, setManagingExam] = useState<AdminExam | null>(null);
   const [examManagerPreset, setExamManagerPreset] = useState<Partial<ExamFormData> | null>(null);
+  const [examManagerInitialTab, setExamManagerInitialTab] = useState<
+    "details" | "questions" | "preview"
+  >("details");
 
   useEffect(() => {
     const stored = readAdminData();
@@ -217,7 +226,11 @@ export function useAdminDashboard() {
     (id: string) => {
       const req = withdrawals.find((w) => w.id === id);
       if (!req) return;
-      approveWithdrawal(id);
+      const result = approveWithdrawal(id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       pushActivity({
         time: "Just now",
         action: "Withdrawal approved",
@@ -235,7 +248,11 @@ export function useAdminDashboard() {
     (id: string, note?: string) => {
       const req = withdrawals.find((w) => w.id === id);
       if (!req) return;
-      rejectWithdrawal(id, note);
+      const result = rejectWithdrawal(id, note);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       pushActivity({
         time: "Just now",
         action: "Withdrawal rejected",
@@ -251,7 +268,11 @@ export function useAdminDashboard() {
     (id: string) => {
       const req = withdrawals.find((w) => w.id === id);
       if (!req) return;
-      markPaid(id);
+      const result = markPaid(id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       pushActivity({
         time: "Just now",
         action: "Withdrawal paid",
@@ -557,18 +578,26 @@ export function useAdminDashboard() {
     [exams, pushActivity],
   );
 
-  const openExamManager = useCallback((exam?: AdminExam, preset?: Partial<ExamFormData>) => {
-    if (exam) {
-      setManagingExam(exam);
-      setExamManagerMode("edit");
-      setExamManagerPreset(null);
-    } else {
-      setManagingExam(null);
-      setExamManagerMode("create");
-      setExamManagerPreset(preset ?? null);
-    }
-    setActiveDialog(null);
-  }, []);
+  const openExamManager = useCallback(
+    (
+      exam?: AdminExam,
+      preset?: Partial<ExamFormData>,
+      initialTab?: "details" | "questions" | "preview",
+    ) => {
+      if (exam) {
+        setManagingExam(exam);
+        setExamManagerMode("edit");
+        setExamManagerPreset(null);
+      } else {
+        setManagingExam(null);
+        setExamManagerMode("create");
+        setExamManagerPreset(preset ?? null);
+      }
+      setExamManagerInitialTab(initialTab ?? "details");
+      setActiveDialog(null);
+    },
+    [],
+  );
 
   const closeExamManager = useCallback(() => {
     setExamManagerMode(null);
@@ -786,6 +815,7 @@ export function useAdminDashboard() {
       const reward = rewards.find((r) => r.id === id);
       setRewards((prev) => prev.filter((r) => r.id !== id));
       if (reward) {
+        if (isLocalFileUrl(reward.imageUrl)) deleteLocalFile(reward.imageUrl);
         pushActivity({
           time: "Just now",
           action: "Reward removed",
@@ -832,6 +862,42 @@ export function useAdminDashboard() {
     [users, pushActivity],
   );
 
+  const adjustUserXp = useCallback(
+    (userId: string, delta: number, reason: string) => {
+      const user = users.find((u) => u.id === userId);
+      if (!user || delta === 0) return;
+
+      const newXp = Math.max(0, user.xp + delta);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, xp: newXp } : u)));
+      setAdjustPointsUser(null);
+
+      const sign = delta > 0 ? "+" : "";
+      const title = `${sign}${delta} XP ${delta > 0 ? "awarded" : "deducted"}`;
+      const body = reason.trim() || "No reason given by admin.";
+
+      pushActivity({
+        time: "Just now",
+        action: delta > 0 ? "XP awarded" : "XP deducted",
+        detail: `${user.name} (${userId}) — ${sign}${delta} XP${reason.trim() ? `: ${reason.trim()}` : ""}`,
+        type: "user",
+      });
+      addUserNotification(userId, { kind: "xp-adjustment", title, body });
+
+      // This is a client-only demo: every account lives in this one browser's
+      // localStorage, so the only way an adjustment can affect a REAL wallet
+      // is when the target happens to be the current signed-in session.
+      const isSelf = authUser?.id === userId;
+      if (isSelf && authUser) {
+        updateProfile({ xp: Math.max(0, authUser.xp + delta) });
+        toast.success(title, { description: body });
+        sendBrowserNotification(`Study2Earn — ${title}`, body);
+      } else {
+        toast.success(`${title} — ${user.name}`, { description: body });
+      }
+    },
+    [users, authUser, updateProfile, pushActivity],
+  );
+
   const toggleExamPublished = useCallback(
     (examId: string) => {
       const exam = exams.find((e) => e.id === examId);
@@ -852,6 +918,85 @@ export function useAdminDashboard() {
       toast.success(active ? `"${reward.title}" activated` : `"${reward.title}" deactivated`);
     },
     [rewards],
+  );
+
+  const toggleContentPublished = useCallback(
+    (contentId: string) => {
+      const item = content.find((c) => c.id === contentId);
+      if (!item) return;
+      const published = !item.published;
+      const updated = { ...item, published };
+      setContent((prev) => prev.map((c) => (c.id === contentId ? updated : c)));
+      syncContentToLibrary(updated);
+      toast.success(published ? `"${item.name}" published` : `"${item.name}" unpublished`);
+    },
+    [content],
+  );
+
+  const bulkDeleteContent = useCallback(
+    (ids: string[]) => {
+      const targets = content.filter((c) => ids.includes(c.id));
+      if (targets.length === 0) return;
+      setContent((prev) => prev.filter((c) => !ids.includes(c.id)));
+      targets.forEach(removeContentFromLibrary);
+      pushActivity({
+        time: "Just now",
+        action: "Bulk content removed",
+        detail: `${targets.length} book${targets.length !== 1 ? "s" : ""} deleted`,
+        type: "content",
+      });
+      toast.success(`${targets.length} book${targets.length !== 1 ? "s" : ""} deleted`);
+    },
+    [content, pushActivity],
+  );
+
+  const bulkSetContentPublished = useCallback(
+    (ids: string[], published: boolean) => {
+      const targets = content.filter((c) => ids.includes(c.id));
+      if (targets.length === 0) return;
+      setContent((prev) => prev.map((c) => (ids.includes(c.id) ? { ...c, published } : c)));
+      targets.forEach((item) => syncContentToLibrary({ ...item, published }));
+      toast.success(
+        `${targets.length} book${targets.length !== 1 ? "s" : ""} ${published ? "published" : "unpublished"}`,
+      );
+    },
+    [content],
+  );
+
+  const bulkSetContentCategory = useCallback(
+    (ids: string[], category: string) => {
+      const targets = content.filter((c) => ids.includes(c.id));
+      if (targets.length === 0) return;
+      setContent((prev) => prev.map((c) => (ids.includes(c.id) ? { ...c, category } : c)));
+      targets.forEach((item) => syncContentToLibrary({ ...item, category }));
+      pushActivity({
+        time: "Just now",
+        action: "Bulk category change",
+        detail: `${targets.length} book${targets.length !== 1 ? "s" : ""} moved to "${category}"`,
+        type: "content",
+      });
+      toast.success(
+        `${targets.length} book${targets.length !== 1 ? "s" : ""} moved to "${category}"`,
+      );
+    },
+    [content, pushActivity],
+  );
+
+  const bulkSyncContent = useCallback(
+    (ids: string[]) => {
+      const targets = content.filter((c) => ids.includes(c.id) && !c.synced);
+      if (targets.length === 0) return;
+      const idSet = new Set(targets.map((c) => c.id));
+      setContent((prev) => prev.map((c) => (idSet.has(c.id) ? { ...c, synced: true } : c)));
+      pushActivity({
+        time: "Just now",
+        action: "Bulk content synced",
+        detail: `${targets.length} book${targets.length !== 1 ? "s" : ""} — MoE curriculum`,
+        type: "content",
+      });
+      toast.success(`${targets.length} book${targets.length !== 1 ? "s" : ""} synced`);
+    },
+    [content, pushActivity],
   );
 
   const syncContent = useCallback(
@@ -952,6 +1097,9 @@ export function useAdminDashboard() {
     setMessageUser,
     suspendUser,
     setSuspendUser,
+    adjustPointsUser,
+    setAdjustPointsUser,
+    adjustUserXp,
     markAllNotificationsRead,
     openNotification,
     exportReport,
@@ -964,6 +1112,11 @@ export function useAdminDashboard() {
     uploadContent,
     updateContent,
     deleteContent,
+    toggleContentPublished,
+    bulkDeleteContent,
+    bulkSetContentPublished,
+    bulkSetContentCategory,
+    bulkSyncContent,
     createReward,
     updateReward,
     deleteReward,
@@ -978,6 +1131,7 @@ export function useAdminDashboard() {
     examManagerMode,
     managingExam,
     examManagerPreset,
+    examManagerInitialTab,
     openExamManager,
     closeExamManager,
     saveExamManager,

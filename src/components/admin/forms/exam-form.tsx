@@ -199,6 +199,8 @@ export function ExamForm({
           value={form.questions}
           onChange={(v) => set("questions", v)}
           required
+          min={1}
+          max={100}
         />
         <FormField
           label="Duration (min)"
@@ -207,6 +209,7 @@ export function ExamForm({
           value={form.duration}
           onChange={(v) => set("duration", v)}
           required
+          min={1}
         />
       </div>
 
@@ -218,6 +221,8 @@ export function ExamForm({
             type="number"
             value={form.passScore}
             onChange={(v) => set("passScore", v)}
+            min={1}
+            max={100}
           />
           <FormField
             label="XP reward"
@@ -225,6 +230,7 @@ export function ExamForm({
             type="number"
             value={form.xpReward}
             onChange={(v) => set("xpReward", v)}
+            min={1}
           />
         </div>
       )}
@@ -273,6 +279,12 @@ export function examToForm(exam: AdminExam): ExamFormData {
   };
 }
 
+/** Parses a numeric field, falling back to `fallback` for NaN/zero/negative/out-of-range input. */
+function parseBounded(raw: string, fallback: number, min: number, max: number): number {
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+}
+
 export function formToExam(
   data: ExamFormData,
   id?: string,
@@ -281,16 +293,16 @@ export function formToExam(
     id,
     title: data.title,
     subject: data.subject,
-    questions: parseInt(data.questions, 10) || 10,
-    duration: parseInt(data.duration, 10) || 25,
+    questions: parseBounded(data.questions, 10, 1, 100),
+    duration: parseBounded(data.duration, 25, 1, 300),
     difficulty: data.difficulty,
     published: data.published,
     courseId: data.courseId,
     chapterId: data.chapterId,
     chapterTitle: data.chapterTitle,
     description: data.description,
-    passScore: parseInt(data.passScore, 10) || 60,
-    xpReward: parseInt(data.xpReward, 10) || 100,
+    passScore: parseBounded(data.passScore, 60, 1, 100),
+    xpReward: parseBounded(data.xpReward, 100, 1, 5000),
     questionBank: data.questionBank,
     attempts: 0,
   };

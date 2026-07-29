@@ -34,7 +34,9 @@ import { isAdminUser } from "@/lib/auth-data";
 import { DEFAULT_AVATAR_RING, GLOW_STYLES } from "@/lib/cosmetics-store";
 import { resolveMediaUrl } from "@/lib/media-store";
 import { xpToEtb } from "@/lib/withdrawal-data";
-import { cn } from "@/lib/utils";
+import { cn, safeHref } from "@/lib/utils";
+import { UserNotificationBell } from "@/components/user-notification-bell";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const DISMISSED_KEY = "study2earn-announcement-dismissed";
 
@@ -63,9 +65,9 @@ function AnnouncementBanner() {
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-10 py-2 text-center text-xs font-medium sm:text-sm">
         <Megaphone className="size-3.5 shrink-0 text-brand-gold" />
         <span className="truncate">{announcement.message}</span>
-        {announcement.linkUrl && announcement.linkLabel && (
+        {announcement.linkUrl && announcement.linkLabel && safeHref(announcement.linkUrl) && (
           <a
-            href={announcement.linkUrl}
+            href={safeHref(announcement.linkUrl)}
             className="inline-flex shrink-0 items-center gap-1 font-bold text-brand-gold hover:underline"
           >
             {announcement.linkLabel}
@@ -184,7 +186,7 @@ export function SiteHeader() {
               const locked = item.protected && !loggedIn;
               const Icon = item.icon;
               const cls = cn(
-                "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
                 active
                   ? "bg-brand-navy text-white font-semibold shadow-sm shadow-brand-navy/20"
                   : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
@@ -214,7 +216,7 @@ export function SiteHeader() {
               <Link
                 to="/admin"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
                   pathname.startsWith("/admin")
                     ? "bg-brand-navy text-white font-semibold shadow-sm shadow-brand-navy/20"
                     : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
@@ -225,6 +227,9 @@ export function SiteHeader() {
               </Link>
             )}
           </div>
+
+          {/* Notifications */}
+          {loggedIn && <UserNotificationBell />}
 
           {/* Theme toggle */}
           <button
@@ -278,22 +283,32 @@ export function SiteHeader() {
               </div>
             </Link>
           ) : (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                to="/login"
-                search={{ redirect: undefined, ref: undefined }}
-                className="text-sm font-medium text-slate-600 hover:text-brand-navy transition-colors"
-              >
-                Sign in
-              </Link>
+            <>
+              <div className="hidden items-center gap-2 sm:gap-3 md:flex">
+                <Link
+                  to="/login"
+                  search={{ redirect: undefined, ref: undefined }}
+                  className="text-sm font-medium text-slate-600 hover:text-brand-navy transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  search={{ ref: undefined, redirect: undefined }}
+                  className="rounded-lg bg-brand-navy px-3 py-2 sm:px-4 text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-sm shadow-brand-navy/20"
+                >
+                  Get started
+                </Link>
+              </div>
+              {/* Mobile: the top-left hamburger opens the drawer, which already has Sign in / Get started */}
               <Link
                 to="/register"
                 search={{ ref: undefined, redirect: undefined }}
-                className="rounded-lg bg-brand-navy px-3 py-2 sm:px-4 text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-sm shadow-brand-navy/20"
+                className="rounded-lg bg-brand-navy px-3 py-2 text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-sm shadow-brand-navy/20 md:hidden"
               >
                 Get started
               </Link>
-            </div>
+            </>
           )}
         </div>
       </nav>
@@ -429,6 +444,7 @@ export function SiteFooter() {
             <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
               🇪🇹 Built for Ethiopian students. Master the MoE Exit Exam, earn real rewards.
             </p>
+            <PwaInstallButton className="mt-5 gap-2 border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" />
             <p className="mt-4 text-xs text-slate-600">© 2026 Study2Earn Ethiopia</p>
           </div>
 
