@@ -25,6 +25,7 @@ export type RewardFormData = {
   tag: string;
   active: boolean;
   imageUrl: string;
+  description: string;
 };
 
 const emptyReward: RewardFormData = {
@@ -33,6 +34,7 @@ const emptyReward: RewardFormData = {
   tag: "ETB",
   active: true,
   imageUrl: "",
+  description: "",
 };
 
 export function RewardForm({
@@ -69,6 +71,13 @@ export function RewardForm({
         value={form.title}
         onChange={(v) => set("title", v)}
         required
+      />
+      <FormField
+        label="Description (Optional)"
+        id="reward-description"
+        value={form.description}
+        onChange={(v) => set("description", v)}
+        placeholder="Custom description (falls back to category default if blank)"
       />
       <ImageUploadField
         label="Photo"
@@ -139,6 +148,7 @@ export function rewardToForm(reward: AdminReward): RewardFormData {
     tag: reward.tag,
     active: reward.active,
     imageUrl: reward.imageUrl ?? "",
+    description: reward.description ?? "",
   };
 }
 
@@ -154,5 +164,6 @@ export function formToReward(
     tag: data.tag,
     active: data.active,
     imageUrl: data.imageUrl.trim() || undefined,
+    description: data.description.trim() || undefined,
   };
 }

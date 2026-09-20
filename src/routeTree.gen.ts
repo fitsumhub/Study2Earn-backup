@@ -27,8 +27,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RewardsIndexRouteImport } from './routes/rewards.index'
 import { Route as LibraryIndexRouteImport } from './routes/library.index'
 import { Route as ExamsIndexRouteImport } from './routes/exams.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ExamsMistakesRouteImport } from './routes/exams.mistakes'
 import { Route as ExamsCourseIdRouteImport } from './routes/exams.$courseId'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ExamsCourseIdIndexRouteImport } from './routes/exams.$courseId.index'
 import { Route as RewardsClaimRedemptionIdRouteImport } from './routes/rewards.claim.$redemptionId'
 import { Route as LibraryReadBookIdRouteImport } from './routes/library.read.$bookId'
@@ -124,6 +126,11 @@ const ExamsIndexRoute = ExamsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ExamsRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ExamsMistakesRoute = ExamsMistakesRouteImport.update({
   id: '/mistakes',
   path: '/mistakes',
@@ -133,6 +140,11 @@ const ExamsCourseIdRoute = ExamsCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
   getParentRoute: () => ExamsRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
 } as any)
 const ExamsCourseIdIndexRoute = ExamsCourseIdIndexRouteImport.update({
   id: '/',
@@ -158,7 +170,7 @@ const ExamsCourseIdChapterIdRoute = ExamsCourseIdChapterIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRouteWithChildren
@@ -172,8 +184,10 @@ export interface FileRoutesByFullPath {
   '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
   '/exams/mistakes': typeof ExamsMistakesRoute
+  '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/rewards/': typeof RewardsIndexRoute
@@ -184,7 +198,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
   '/help': typeof HelpRoute
@@ -195,7 +208,9 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/exams/mistakes': typeof ExamsMistakesRoute
+  '/admin': typeof AdminIndexRoute
   '/exams': typeof ExamsIndexRoute
   '/library': typeof LibraryIndexRoute
   '/rewards': typeof RewardsIndexRoute
@@ -207,7 +222,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ai-study': typeof AiStudyRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRouteWithChildren
@@ -221,8 +236,10 @@ export interface FileRoutesById {
   '/rewards': typeof RewardsRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/admin/login': typeof AdminLoginRoute
   '/exams/$courseId': typeof ExamsCourseIdRouteWithChildren
   '/exams/mistakes': typeof ExamsMistakesRoute
+  '/admin/': typeof AdminIndexRoute
   '/exams/': typeof ExamsIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/rewards/': typeof RewardsIndexRoute
@@ -249,8 +266,10 @@ export interface FileRouteTypes {
     | '/rewards'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/login'
     | '/exams/$courseId'
     | '/exams/mistakes'
+    | '/admin/'
     | '/exams/'
     | '/library/'
     | '/rewards/'
@@ -261,7 +280,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/ai-study'
     | '/dashboard'
     | '/help'
@@ -272,7 +290,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/login'
     | '/exams/mistakes'
+    | '/admin'
     | '/exams'
     | '/library'
     | '/rewards'
@@ -297,8 +317,10 @@ export interface FileRouteTypes {
     | '/rewards'
     | '/sitemap.xml'
     | '/terms'
+    | '/admin/login'
     | '/exams/$courseId'
     | '/exams/mistakes'
+    | '/admin/'
     | '/exams/'
     | '/library/'
     | '/rewards/'
@@ -310,7 +332,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AiStudyRoute: typeof AiStudyRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRouteWithChildren
@@ -454,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamsIndexRouteImport
       parentRoute: typeof ExamsRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/exams/mistakes': {
       id: '/exams/mistakes'
       path: '/mistakes'
@@ -467,6 +496,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/exams/$courseId'
       preLoaderRoute: typeof ExamsCourseIdRouteImport
       parentRoute: typeof ExamsRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/exams/$courseId/': {
       id: '/exams/$courseId/'
@@ -498,6 +534,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminLoginRoute: AdminLoginRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface ExamsCourseIdRouteChildren {
   ExamsCourseIdChapterIdRoute: typeof ExamsCourseIdChapterIdRoute
@@ -555,7 +603,7 @@ const RewardsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AiStudyRoute: AiStudyRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRouteWithChildren,

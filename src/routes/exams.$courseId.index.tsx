@@ -3,8 +3,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
-  Circle,
-  Coins,
   Play,
   Presentation,
 } from "lucide-react";
@@ -15,7 +13,6 @@ import { ChapterPresentation } from "@/components/chapter-presentation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { getCourseById, type ExamChapter } from "@/lib/exam-data";
 import { useExamProgress } from "@/hooks/use-exam-progress";
 import { cn } from "@/lib/utils";
@@ -69,61 +66,71 @@ function CourseChaptersPage() {
       <main className="flex-1">
         <div className="mx-auto max-w-3xl px-6 py-12">
           <Breadcrumbs items={[{ label: "Mock Exams", to: "/exams" }, { label: course.short }]} />
-          <Button variant="ghost" size="sm" className="mb-6 gap-2 -mt-2" asChild>
+          <Button variant="ghost" size="sm" className="mb-6 gap-2 -mt-2 text-slate-600 hover:text-brand-navy" asChild>
             <Link to="/exams">
               <ArrowLeft className="size-4" />
-              All courses
+              All Courses
             </Link>
           </Button>
 
-          <header className="mb-8 section-enter">
-            <p className="text-sm font-medium uppercase tracking-wider text-brand-gold">
-              {course.short}
-            </p>
-            <h1 className="mt-1 font-serif text-3xl font-bold text-brand-navy md:text-4xl">
-              {course.name}
-            </h1>
-            <p className="mt-3 text-slate-600">
-              Tap a chapter to view objectives, topics, and your progress — then start the timed
-              mock exam when ready.
-            </p>
-          </header>
+          {/* Course Hero Banner */}
+          <header className="mb-8 section-enter rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/70 to-amber-50/30 p-6 sm:p-8 shadow-xs relative overflow-hidden">
+            <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-brand-navy px-3 py-1 text-[11px] font-bold text-white shadow-xs">
+                    {course.category}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                    {course.durationMinutes} min / exam
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                    {course.questionsPerExam} Qs / chapter
+                  </span>
+                </div>
+                <h1 className="font-serif text-3xl font-bold text-brand-navy md:text-4xl">
+                  {course.name}
+                </h1>
+                <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
+                  Choose a chapter to practice timed MCQs, review core lecture concepts, and earn up to{" "}
+                  <span className="font-bold text-brand-gold">{course.chapters.length * 75} XP</span>.
+                </p>
+              </div>
 
-          {/* Progress card */}
-          <div className="mb-8 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Course progress
-                </p>
-                <p className="mt-1 font-serif text-2xl font-bold text-brand-navy">
-                  {stats.completed} / {stats.total} chapters
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {stats.total - stats.completed > 0
-                    ? `${stats.total - stats.completed} chapter${stats.total - stats.completed !== 1 ? "s" : ""} remaining`
-                    : "All chapters complete!"}
-                </p>
-              </div>
-              <div className="size-16 rounded-full bg-brand-gold/10 border-2 border-brand-gold/25 grid place-items-center">
-                <span className="font-serif text-xl font-bold text-brand-gold">
-                  {stats.percent}%
-                </span>
+              {/* Radial gauge */}
+              <div className="flex shrink-0 items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-xs">
+                <div className="relative size-16 shrink-0">
+                  <svg viewBox="0 0 64 64" className="size-16 -rotate-90">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="26"
+                      fill="none"
+                      stroke={stats.percent >= 80 ? "#10b981" : stats.percent >= 40 ? "#d97706" : "#3b82f6"}
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeDasharray={String(2 * Math.PI * 26)}
+                      strokeDashoffset={String(2 * Math.PI * 26 * (1 - (stats.total > 0 ? stats.percent / 100 : 0)))}
+                      className="transition-all duration-500"
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center font-serif text-sm font-bold text-brand-navy">
+                    {stats.percent}%
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mastery</p>
+                  <p className="font-bold text-slate-900 text-sm">{stats.completed}/{stats.total} Complete</p>
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                    +{stats.completed * 75} XP Earned
+                  </p>
+                </div>
               </div>
             </div>
-            <Progress value={stats.percent} className="h-2 [&>div]:bg-brand-gold" />
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-brand-gold/5 border border-brand-gold/20 px-3 py-2">
-              <Coins className="size-3.5 shrink-0 text-brand-gold" />
-              <p className="text-xs text-slate-600">
-                Up to{" "}
-                <span className="font-bold text-brand-gold">{course.chapters.length * 200} XP</span>{" "}
-                available in this course
-                {stats.completed > 0 && (
-                  <span className="text-slate-500"> · {stats.completed * 100}+ already earned</span>
-                )}
-              </p>
-            </div>
-          </div>
+          </header>
 
           {/* Chapter timeline */}
           <div className="relative">
@@ -203,84 +210,93 @@ function ChapterRow({
   const scoreColor =
     progress?.bestScore !== undefined
       ? progress.bestScore >= 80
-        ? "bg-green-50 text-green-700 border border-green-200"
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
         : progress.bestScore >= 60
-          ? "bg-amber-50 text-amber-700 border border-amber-200"
-          : "bg-red-50 text-red-700 border border-red-200"
+          ? "bg-amber-50 text-amber-700 border-amber-200"
+          : "bg-red-50 text-red-700 border-red-200"
       : "";
 
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border bg-white shadow-sm transition-all",
+        "overflow-hidden rounded-2xl border bg-white shadow-xs transition-all duration-200 hover:shadow-md",
         completed
-          ? "border-emerald-200 bg-green-50/20"
-          : "border-slate-100 hover:border-brand-navy/20 hover:shadow-md",
+          ? "border-emerald-200/90 bg-gradient-to-r from-emerald-50/30 to-white"
+          : "border-slate-200/80 hover:border-slate-300",
       )}
     >
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-slate-50/80"
+        className="flex w-full items-center gap-4 p-5 text-left transition-colors hover:bg-slate-50/60"
       >
         {/* Status circle (sits on top of timeline line) */}
         <div
           className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-full border-2 bg-white z-10 shadow-sm",
-            completed ? "border-emerald-400 text-emerald-600" : "border-slate-200 text-slate-400",
+            "flex size-10 shrink-0 items-center justify-center rounded-2xl border-2 bg-white z-10 shadow-xs transition-transform group-hover:scale-105",
+            completed ? "border-emerald-500 text-emerald-600 bg-emerald-50/50" : "border-slate-200 text-slate-500 font-bold",
           )}
         >
           {completed ? (
-            <CheckCircle2 className="size-4" />
+            <CheckCircle2 className="size-5" />
           ) : (
             <span className="text-xs font-bold">{index + 1}</span>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Chapter {index + 1}
-          </p>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-brand-navy">{chapter.title}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Chapter {index + 1}
+            </span>
+            {completed && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                Completed
+              </span>
+            )}
             {progress?.bestScore !== undefined && (
-              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", scoreColor)}>
-                {progress.bestScore}%
+              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded border", scoreColor)}>
+                Best: {progress.bestScore}%
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {completed ? (
-              <span className="font-semibold text-emerald-600">Completed</span>
+
+          <p className="font-bold text-slate-900 text-base mt-0.5">{chapter.title}</p>
+
+          <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+            <span className="flex items-center gap-1 font-semibold text-emerald-600">
+              +{completed ? 75 : 75} XP Available
+            </span>
+            {progress?.attempts ? (
+              <span className="text-slate-400">· {progress.attempts} attempt{progress.attempts !== 1 ? "s" : ""}</span>
             ) : (
-              <span className="text-slate-500">Tap to view details &amp; start exam</span>
+              <span className="text-slate-400">· Not attempted yet</span>
             )}
-            {progress?.attempts ? <> · {progress.attempts} attempt(s)</> : null}
-          </p>
+          </div>
         </div>
 
         <ChevronRight className="size-5 shrink-0 text-slate-300" />
       </button>
 
-      <div className="flex gap-2 border-t border-slate-100 px-5 py-3">
+      <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-3">
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="flex-1 gap-1.5 text-slate-600 hover:text-brand-navy"
+          className="flex-1 gap-1.5 text-xs font-semibold text-slate-700 hover:text-brand-navy border-slate-200"
           onClick={onPresent}
         >
           <Presentation className="size-3.5" />
-          View chapter
+          Study Chapter
         </Button>
         <Button
           asChild
           size="sm"
           className={cn(
-            "flex-1 gap-2",
+            "flex-1 gap-2 text-xs font-bold shadow-xs",
             completed
-              ? "bg-emerald-600 hover:bg-emerald-700"
-              : "bg-brand-navy hover:bg-brand-navy/90",
+              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+              : "bg-brand-navy hover:bg-brand-navy/90 text-white",
           )}
         >
           <Link
@@ -289,7 +305,7 @@ function ChapterRow({
             onClick={(e) => e.stopPropagation()}
           >
             <Play className="size-3.5" />
-            {completed ? "Retake" : "Start exam"}
+            {completed ? "Retake Exam" : "Take Exam"}
           </Link>
         </Button>
       </div>

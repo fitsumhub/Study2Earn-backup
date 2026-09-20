@@ -48,13 +48,33 @@ export type GenerateResult =
   | { ok: true; data: StudyPack }
   | { ok: false; reason: "generation_failed" | "api_error"; message?: string };
 
-type GenerateInput = { text: string; questionCount: number; subjectHint?: string };
+type GenerateInput = {
+  text: string;
+  questionCount: number;
+  subjectHint?: string;
+  systemPrompt?: string;
+  temperature?: number;
+  model?: string;
+};
 
-const SYSTEM_PROMPT =
+const DEFAULT_SYSTEM_PROMPT =
   "You write exam-style multiple-choice study material for Ethiopian Ministry of Education freshman Exit Exam preparation. Base every question strictly on the provided source text — never invent facts outside it. Each question has exactly 4 options with exactly one correct answer and a short explanation.";
 
 function buildUserPrompt(input: GenerateInput) {
   return `Generate exactly ${input.questionCount} multiple-choice questions and study notes from this source material${input.subjectHint ? ` (likely subject: ${input.subjectHint})` : ""}:\n\n${input.text}`;
+}
+
+function cleanJsonOutput(raw: string): string {
+  let text = raw.trim();
+  if (text.startsWith("```json")) {
+    text = text.slice(7);
+  } else if (text.startsWith("```")) {
+    text = text.slice(3);
+  }
+  if (text.endsWith("```")) {
+    text = text.slice(0, -3);
+  }
+  return text.trim();
 }
 
 /** Anthropic Claude — uses the Messages API's native structured-output
@@ -65,11 +85,13 @@ export async function runAnthropicGeneration(
 ): Promise<GenerateResult> {
   try {
     const client = new Anthropic({ apiKey });
+    const model = input.model?.trim() || "claude-3-5-sonnet-20241022";
+    const system = input.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
+
     const response = await client.messages.parse({
-      model: "claude-opus-4-8",
+      model,
       max_tokens: 8000,
-      thinking: { type: "adaptive" },
-      system: SYSTEM_PROMPT,
+      system,
       messages: [{ role: "user", content: buildUserPrompt(input) }],
       output_config: { format: zodOutputFormat(StudyPackSchema) },
     });
@@ -106,21 +128,25 @@ const JSON_SHAPE_INSTRUCTIONS = `Respond with ONLY a single JSON object — no m
   }
 }`;
 
-/** Any OpenAI-compatible Chat Completions endpoint (DeepSeek, Groq, Mistral,
- * a self-hosted gateway, ...). These don't offer Claude's guaranteed
- * structured-output contract, so the shape is prompted for explicitly and the
- * response is parsed + validated against the same StudyPackSchema before use. */
+/** Any OpenAI-compatible Chat Completions endpoint (OpenAI, DeepSeek, Groq, Gemini,
+ * Mistral, self-hosted gateway, etc.). */
 export async function runOpenAiCompatibleGeneration(
-  connection: { apiKey: string; baseUrl: string; model: string },
+  connection: { apiKey: string; baseUrl?: string; model: string },
   input: GenerateInput,
 ): Promise<GenerateResult> {
   try {
-    const client = new OpenAI({ apiKey: connection.apiKey, baseURL: connection.baseUrl });
+    const client = new OpenAI({
+      apiKey: connection.apiKey,
+      baseURL: connection.baseUrl?.trim() || undefined,
+    });
+    const system = input.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
+
     const response = await client.chat.completions.create({
       model: connection.model,
+      temperature: input.temperature ?? 0.3,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: `${SYSTEM_PROMPT}\n\n${JSON_SHAPE_INSTRUCTIONS}` },
+        { role: "system", content: `${system}\n\n${JSON_SHAPE_INSTRUCTIONS}` },
         { role: "user", content: buildUserPrompt(input) },
       ],
     });
@@ -132,7 +158,7 @@ export async function runOpenAiCompatibleGeneration(
 
     let parsedJson: unknown;
     try {
-      parsedJson = JSON.parse(content);
+      parsedJson = JSON.parse(cleanJsonOutput(content));
     } catch {
       return { ok: false, reason: "generation_failed" };
     }
@@ -151,6 +177,58 @@ export async function runOpenAiCompatibleGeneration(
       ok: false,
       reason: "api_error",
       message: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
+/** Test an AI API key and connection with a minimal probe request */
+export async function runAiConnectionTest(params: {
+  provider: string;
+  apiKey: string;
+  baseUrl?: string;
+  model?: string;
+}): Promise<{ ok: boolean; latencyMs: number; message: string }> {
+  const start = Date.now();
+  try {
+    if (params.provider === "anthropic") {
+      const client = new Anthropic({ apiKey: params.apiKey });
+      const model = params.model?.trim() || "claude-3-5-haiku-20241022";
+      await client.messages.create({
+        model,
+        max_tokens: 5,
+        messages: [{ role: "user", content: "Ping" }],
+      });
+      const latencyMs = Date.now() - start;
+      return {
+        ok: true,
+        latencyMs,
+        message: `Connected successfully to Anthropic (${model}) in ${latencyMs}ms.`,
+      };
+    }
+
+    // OpenAI, DeepSeek, Groq, Gemini, Custom
+    const client = new OpenAI({
+      apiKey: params.apiKey,
+      baseURL: params.baseUrl?.trim() || undefined,
+    });
+    const model = params.model?.trim() || "gpt-4o-mini";
+    await client.chat.completions.create({
+      model,
+      max_tokens: 5,
+      messages: [{ role: "user", content: "Ping" }],
+    });
+    const latencyMs = Date.now() - start;
+    return {
+      ok: true,
+      latencyMs,
+      message: `Connected successfully to ${params.provider.toUpperCase()} (${model}) in ${latencyMs}ms.`,
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    return {
+      ok: false,
+      latencyMs,
+      message: err instanceof Error ? err.message : "Unknown connection error",
     };
   }
 }

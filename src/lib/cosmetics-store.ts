@@ -1,4 +1,14 @@
-export type GlowTheme = "bronze" | "silver" | "gold" | "emerald" | "violet";
+export type GlowTheme =
+  | "bronze"
+  | "silver"
+  | "gold"
+  | "emerald"
+  | "violet"
+  | "cherry"
+  | "cosmic"
+  | "midnight"
+  | "cyberpunk"
+  | "ice";
 
 export const GLOW_STYLES: Record<
   GlowTheme,
@@ -34,6 +44,36 @@ export const GLOW_STYLES: Record<
     shadow: "shadow-[0_0_18px_rgba(167,139,250,0.5)]",
     dot: "bg-violet-400",
   },
+  cherry: {
+    label: "Cherry VIP Glow",
+    ring: "ring-rose-500/70",
+    shadow: "shadow-[0_0_18px_rgba(244,63,94,0.6)]",
+    dot: "bg-rose-500",
+  },
+  cosmic: {
+    label: "Cosmic VIP Glow",
+    ring: "ring-fuchsia-500/70",
+    shadow: "shadow-[0_0_18px_rgba(217,70,239,0.6)]",
+    dot: "bg-fuchsia-500",
+  },
+  midnight: {
+    label: "Midnight VIP Glow",
+    ring: "ring-slate-900/80",
+    shadow: "shadow-[0_0_18px_rgba(15,23,42,0.85)]",
+    dot: "bg-slate-900",
+  },
+  cyberpunk: {
+    label: "Cyberpunk VIP Glow",
+    ring: "ring-yellow-400/80",
+    shadow: "shadow-[0_0_18px_rgba(234,179,8,0.8)]",
+    dot: "bg-yellow-400",
+  },
+  ice: {
+    label: "Ice VIP Glow",
+    ring: "ring-cyan-300/70",
+    shadow: "shadow-[0_0_18px_rgba(103,232,249,0.65)]",
+    dot: "bg-cyan-300",
+  },
 };
 
 /** Default look for anyone who hasn't unlocked a glow — unchanged from before this feature existed. */
@@ -46,6 +86,11 @@ export function glowFromRewardTitle(title: string): GlowTheme {
   if (t.includes("silver")) return "silver";
   if (t.includes("emerald")) return "emerald";
   if (t.includes("violet") || t.includes("purple")) return "violet";
+  if (t.includes("cherry")) return "cherry";
+  if (t.includes("cosmic")) return "cosmic";
+  if (t.includes("midnight")) return "midnight";
+  if (t.includes("cyberpunk")) return "cyberpunk";
+  if (t.includes("ice")) return "ice";
   return "gold";
 }
 

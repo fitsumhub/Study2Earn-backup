@@ -56,6 +56,8 @@ import {
 import { leaderboard } from "@/lib/mock-data";
 import { useReadingTime } from "@/hooks/use-reading-time";
 import { useWallet } from "@/hooks/use-wallet";
+import { useFrames } from "@/hooks/use-frames";
+import { ProfileFrameAvatar } from "@/components/frames/ProfileFrameAvatar";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile")({
@@ -179,6 +181,7 @@ function ProfileContent() {
   const readingTime = useReadingTime();
   const wallet = useWallet();
   const { owned: ownedGlows, active: activeGlow, setActive: setActiveGlow } = useCosmetics();
+  const { equipped: equippedFrame } = useFrames();
 
   const { prefs: notifs, togglePref: toggleNotif } = useNotificationPrefs();
 
@@ -381,20 +384,30 @@ function ProfileContent() {
         {/* ── Profile header ── */}
         <header className="mb-10 flex flex-col sm:flex-row items-start sm:items-center gap-6 section-enter">
           <div className="relative shrink-0">
-            <div
-              className={cn(
-                "size-24 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-4 ring-offset-4 ring-offset-slate-50 flex items-center justify-center overflow-hidden",
-                activeGlow
-                  ? cn(GLOW_STYLES[activeGlow].ring, GLOW_STYLES[activeGlow].shadow)
-                  : cn(DEFAULT_AVATAR_RING, "shadow-xl shadow-brand-navy/20"),
-              )}
-            >
-              {avatarSrc ? (
-                <img src={avatarSrc} alt={user.name} className="size-full object-cover" />
-              ) : (
-                <span className="font-serif text-2xl font-bold text-white">{avatarInitials}</span>
-              )}
-            </div>
+            {equippedFrame ? (
+              <ProfileFrameAvatar
+                initials={avatarInitials}
+                avatarUrl={avatarSrc}
+                frameId={equippedFrame}
+                size="lg"
+                equipped
+              />
+            ) : (
+              <div
+                className={cn(
+                  "size-24 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-4 ring-offset-4 ring-offset-slate-50 flex items-center justify-center overflow-hidden",
+                  activeGlow
+                    ? cn(GLOW_STYLES[activeGlow].ring, GLOW_STYLES[activeGlow].shadow)
+                    : cn(DEFAULT_AVATAR_RING, "shadow-xl shadow-brand-navy/20"),
+                )}
+              >
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={user.name} className="size-full object-cover" />
+                ) : (
+                  <span className="font-serif text-2xl font-bold text-white">{avatarInitials}</span>
+                )}
+              </div>
+            )}
             {examStats.completed >= 5 && (
               <span className="absolute -top-1 -right-1 size-7 rounded-full bg-brand-gold border-2 border-white grid place-items-center shadow">
                 <Star className="size-3.5 fill-white text-white" />

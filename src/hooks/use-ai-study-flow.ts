@@ -70,17 +70,29 @@ export function useAiStudyFlow() {
     };
   }, []);
 
-  const aiReady =
-    integrations.aiStudy.enabled && Boolean(aiConfigured?.[integrations.aiStudy.provider]);
+  const activeProvider = integrations.aiStudy.provider;
+  const activeSettings = integrations.aiStudy.providers?.[activeProvider];
+  const adminApiKey = activeSettings?.apiKey?.trim() || integrations.aiStudy.apiKey?.trim();
+  const hasServerEnv = Boolean(aiConfigured?.[activeProvider]);
+  const aiReady = integrations.aiStudy.enabled && (Boolean(adminApiKey) || hasServerEnv);
 
   const requestAiGeneration = useCallback(
     async (text: string, count: number, subjectHint: string) => {
+      const provider = integrations.aiStudy.provider;
+      const settings = integrations.aiStudy.providers?.[provider];
+      const apiKey = settings?.apiKey?.trim() || integrations.aiStudy.apiKey?.trim();
+
       const response = await generateStudyPack({
         data: {
           text,
           questionCount: count,
           subjectHint,
-          provider: integrations.aiStudy.provider,
+          provider,
+          apiKey: apiKey || undefined,
+          model: settings?.model || undefined,
+          baseUrl: settings?.baseUrl || undefined,
+          systemPrompt: integrations.aiStudy.systemPrompt,
+          temperature: integrations.aiStudy.temperature,
           deepseekModel: integrations.aiStudy.deepseekModel,
           customBaseUrl: integrations.aiStudy.custom.baseUrl,
           customModel: integrations.aiStudy.custom.model,
@@ -213,6 +225,22 @@ export function useAiStudyFlow() {
     });
     processFile(demoFile, questionCount);
   }, [processFile, questionCount]);
+
+  const processPastedText = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (trimmed.length < 60) {
+        toast.error("Add a little more study material", {
+          description:
+            "Paste at least 60 characters so we can detect the subject and build useful questions.",
+        });
+        return;
+      }
+      const pastedFile = new File([trimmed], "Pasted-study-notes.txt", { type: "text/plain" });
+      processFile(pastedFile, questionCount);
+    },
+    [processFile, questionCount],
+  );
 
   const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,6 +443,7 @@ export function useAiStudyFlow() {
     handleFileInput,
     handleDrop,
     tryDemo,
+    processPastedText,
     reset,
     retake,
     changeSubject,

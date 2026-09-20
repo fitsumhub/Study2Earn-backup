@@ -380,6 +380,202 @@ export const questionPools: Record<string, AIQuestion[]> = {
         "Plagiarism is using another person's words, ideas, or work without proper acknowledgement. It is a serious academic offence in all educational institutions.",
     },
   ],
+  finance: [
+    {
+      id: "f1",
+      question: "In a forex quote of EUR/USD = 1.0850, what does the quote describe?",
+      options: [
+        "The value of one US dollar in euros",
+        "The value of one euro in US dollars",
+        "The daily percentage return of the euro",
+        "The spread charged by the broker",
+      ],
+      correctIndex: 1,
+      explanation:
+        "The base currency is EUR and the quote currency is USD, so one euro is worth 1.0850 US dollars.",
+    },
+    {
+      id: "f2",
+      question: "What is the primary purpose of a stop-loss order?",
+      options: [
+        "To guarantee a profitable trade",
+        "To increase leverage automatically",
+        "To limit potential loss if price moves against a position",
+        "To remove the bid-ask spread",
+      ],
+      correctIndex: 2,
+      explanation:
+        "A stop-loss defines an exit level intended to limit the loss on a trade. It cannot guarantee the exact fill price during fast markets.",
+    },
+    {
+      id: "f3",
+      question: "Why is excessive leverage dangerous for a new trader?",
+      options: [
+        "It makes charts impossible to read",
+        "Small price moves can create disproportionately large gains or losses",
+        "It removes the need for a trading plan",
+        "It guarantees wider spreads",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Leverage magnifies exposure. A small adverse move can consume a large share of account equity, so position size and risk limits matter.",
+    },
+    {
+      id: "f4",
+      question: "Which practice best supports disciplined trading?",
+      options: [
+        "Increasing position size after every loss",
+        "Trading without recording results",
+        "Using a written plan with predefined risk and review rules",
+        "Following every social-media signal",
+      ],
+      correctIndex: 2,
+      explanation:
+        "A written plan makes entries, exits, risk, and review criteria explicit, reducing impulsive decisions and making learning measurable.",
+    },
+    {
+      id: "f5",
+      question: "What does diversification aim to reduce in an investment portfolio?",
+      options: [
+        "All possible losses",
+        "The need for research",
+        "Concentration risk from relying on one asset or exposure",
+        "The time horizon of every investment",
+      ],
+      correctIndex: 2,
+      explanation:
+        "Diversification spreads exposure across assets or markets. It can reduce concentration risk but cannot eliminate market losses.",
+    },
+  ],
+  technology: [
+    {
+      id: "t1",
+      question: "What is the main purpose of semantic HTML?",
+      options: [
+        "To make every page load instantly",
+        "To describe the meaning and structure of content",
+        "To replace CSS",
+        "To encrypt a webpage",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Semantic elements communicate structure and meaning to browsers, assistive technology, and maintainers.",
+    },
+    {
+      id: "t2",
+      question: "Which CSS approach is most useful for responsive layouts?",
+      options: [
+        "Fixed pixel widths everywhere",
+        "Media queries and flexible layout primitives",
+        "Images containing all text",
+        "Disabling mobile browsers",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Flexible grids, fluid sizing, and media queries allow a layout to adapt across viewport sizes.",
+    },
+    {
+      id: "t3",
+      question: "What does a JavaScript event listener do?",
+      options: [
+        "Waits for a defined event and runs a callback",
+        "Compiles CSS into HTML",
+        "Deletes browser history",
+        "Changes the server operating system",
+      ],
+      correctIndex: 0,
+      explanation:
+        "An event listener subscribes to events such as clicks or input changes and invokes its callback when the event occurs.",
+    },
+    {
+      id: "t4",
+      question: "Why should interactive controls be keyboard accessible?",
+      options: [
+        "It reduces the number of HTML tags",
+        "It supports users who cannot or do not use a mouse",
+        "It removes the need for labels",
+        "It makes images sharper",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Keyboard access is a core accessibility requirement and supports many users with motor, visual, or preference-related needs.",
+    },
+    {
+      id: "t5",
+      question: "What is version control primarily used for?",
+      options: [
+        "Tracking and collaborating on changes to files",
+        "Hosting only image files",
+        "Replacing application testing",
+        "Increasing monitor resolution",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Version control records changes, enables collaboration, and provides a recoverable history of a project.",
+    },
+  ],
+  marketing: [
+    {
+      id: "mkt1",
+      question: "What is a target audience?",
+      options: [
+        "Every person on the internet",
+        "The specific group a message or product is designed to serve",
+        "Only existing employees",
+        "A list of competitors",
+      ],
+      correctIndex: 1,
+      explanation:
+        "A target audience is a defined group whose needs, context, and behavior guide the offer and communication.",
+    },
+    {
+      id: "mkt2",
+      question: "What does SEO primarily improve?",
+      options: [
+        "Organic discoverability in search engines",
+        "The battery life of a phone",
+        "The number of office desks",
+        "A bank account balance",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Search engine optimization improves how relevant pages can be discovered and understood in unpaid search results.",
+    },
+    {
+      id: "mkt3",
+      question: "Which metric measures the percentage of users who complete a desired action?",
+      options: ["Conversion rate", "File size", "Bounce voltage", "Screen resolution"],
+      correctIndex: 0,
+      explanation:
+        "Conversion rate is the proportion of visitors or users who complete a defined goal, such as a signup or purchase.",
+    },
+    {
+      id: "mkt4",
+      question: "Why is a content calendar useful?",
+      options: [
+        "It guarantees every post will go viral",
+        "It coordinates topics, timing, owners, and channels",
+        "It replaces audience research",
+        "It hides campaign results",
+      ],
+      correctIndex: 1,
+      explanation:
+        "A calendar creates a shared plan for publishing and helps teams maintain consistency while reviewing performance.",
+    },
+    {
+      id: "mkt5",
+      question: "What is an ethical approach to collecting marketing consent?",
+      options: [
+        "Hide consent in unrelated text",
+        "Use clear, voluntary choices and explain how data will be used",
+        "Share all contacts by default",
+        "Refuse to provide an opt-out",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Consent should be informed, specific, freely given, and easy to withdraw, with transparent data-use information.",
+    },
+  ],
 };
 
 export const notePools: Record<string, AINote> = {
@@ -416,6 +612,115 @@ export const notePools: Record<string, AINote> = {
       "Always define variables with units before substituting into formulae",
       "Draw free-body diagrams for all forces problems",
       "Memorise the five kinematic equations and know when each applies",
+    ],
+  },
+
+  finance: {
+    keyConcepts: [
+      "A currency pair compares the value of a base currency with a quote currency",
+      "Leverage increases market exposure and magnifies both gains and losses",
+      "Position size should be chosen from a predefined risk limit, not emotion",
+      "Technical analysis studies price and volume patterns; it does not predict with certainty",
+      "Diversification reduces concentration risk but never removes investment risk",
+    ],
+    definitions: [
+      { term: "Pip", definition: "A standard small unit of price movement in many currency pairs" },
+      { term: "Spread", definition: "The difference between a market's bid price and ask price" },
+      {
+        term: "Leverage",
+        definition:
+          "Borrowed exposure that allows a trader to control a larger position with less capital",
+      },
+      {
+        term: "Stop-loss",
+        definition:
+          "An order or rule intended to exit a position when a defined adverse price level is reached",
+      },
+      {
+        term: "Diversification",
+        definition: "Distributing exposure across assets or markets to reduce concentration risk",
+      },
+    ],
+    summary:
+      "Forex and investing require risk awareness before strategy. Learn how currency pairs are quoted, how spreads and leverage affect outcomes, and how a written plan turns decisions into repeatable experiments. No strategy guarantees profit, and this material is educational rather than financial advice.",
+    studyTips: [
+      "Calculate your maximum loss before entering a trade",
+      "Keep a journal with the reason, risk, result, and lesson for every position",
+      "Practice on a simulator before risking real money and verify that a provider is regulated",
+    ],
+  },
+
+  technology: {
+    keyConcepts: [
+      "HTML describes document structure, CSS controls presentation, and JavaScript adds behavior",
+      "Responsive layouts adapt content to different viewports and input methods",
+      "Accessible interfaces work with keyboards, screen readers, and other assistive technology",
+      "Version control makes collaboration and recovery possible",
+      "Performance and security are product requirements, not final polish",
+    ],
+    definitions: [
+      {
+        term: "DOM",
+        definition: "The browser's structured object representation of an HTML document",
+      },
+      {
+        term: "Semantic HTML",
+        definition: "HTML elements chosen for the meaning and structure they communicate",
+      },
+      {
+        term: "Responsive Design",
+        definition:
+          "An approach where layouts adapt to screen size, orientation, and device capabilities",
+      },
+      { term: "API", definition: "A defined interface through which software systems communicate" },
+      {
+        term: "Deployment",
+        definition: "The process of making an application available in a target environment",
+      },
+    ],
+    summary:
+      "Web development combines structure, presentation, behavior, and delivery. Build from semantic HTML, add resilient responsive CSS, use JavaScript for clear interactions, and validate accessibility, security, and performance throughout the project.",
+    studyTips: [
+      "Inspect the rendered DOM and network requests when debugging",
+      "Test every important flow with a keyboard and a narrow viewport",
+      "Commit small changes with messages that explain intent",
+    ],
+  },
+
+  marketing: {
+    keyConcepts: [
+      "Strong marketing starts with a specific audience and a clear problem to solve",
+      "Content should earn attention by being useful, relevant, and consistent",
+      "SEO improves discoverability through helpful content and clear technical structure",
+      "Conversion metrics need a defined goal and a trustworthy measurement method",
+      "Ethical growth respects consent, privacy, and audience trust",
+    ],
+    definitions: [
+      {
+        term: "Persona",
+        definition: "A research-informed representation of a meaningful audience segment",
+      },
+      {
+        term: "Conversion",
+        definition: "A desired action completed by a person interacting with a campaign or product",
+      },
+      {
+        term: "SEO",
+        definition:
+          "Practices that improve a page's organic discoverability and relevance in search",
+      },
+      { term: "CTA", definition: "A call to action that clearly invites the next step" },
+      {
+        term: "Attribution",
+        definition: "A method for assigning credit for an outcome across marketing touchpoints",
+      },
+    ],
+    summary:
+      "Digital marketing is a cycle of understanding an audience, creating useful communication, distributing it through suitable channels, and learning from honest measurement. Sustainable growth depends on relevance and trust more than volume alone.",
+    studyTips: [
+      "Write the audience and desired action before drafting campaign copy",
+      "Review one funnel stage at a time instead of optimizing every metric at once",
+      "Document consent and data practices as part of campaign planning",
     ],
   },
 

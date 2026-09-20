@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Ban, CheckCircle2, Clock, Pencil, Trash2, UserPlus, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Ban, CheckCircle2, Clock, Pencil, Trash2, UserPlus, Users, X } from "lucide-react";
 
 import { StudentsTable } from "@/components/admin/students-table";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,11 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
     openQuickAction,
     openEdit,
     deleteStudent,
+    bulkUpdateUserStatus,
+    bulkDeleteStudents,
   } = admin;
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const statusCounts = {
     all: users.length,
@@ -35,6 +38,18 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
 
   const displayed =
     statusFilter === "all" ? filteredUsers : filteredUsers.filter((u) => u.status === statusFilter);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [statusFilter, searchQuery]);
+
+  const handleSelectToggle = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const handleSelectAll = (select: boolean) => {
+    setSelectedIds(select ? displayed.map((u) => u.id) : []);
+  };
 
   return (
     <div className="space-y-6">
@@ -135,6 +150,64 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
           Add student
         </Button>
       </div>
+      
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-gold/30 bg-brand-gold/5 p-3 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+          <p className="text-sm font-semibold text-brand-navy ml-2">
+            {selectedIds.length} selected
+          </p>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+            onClick={() => {
+              bulkUpdateUserStatus(selectedIds, "active");
+              setSelectedIds([]);
+            }}
+          >
+            <CheckCircle2 className="mr-2 size-4" />
+            Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+            onClick={() => {
+              bulkUpdateUserStatus(selectedIds, "suspended");
+              setSelectedIds([]);
+            }}
+          >
+            <Ban className="mr-2 size-4" />
+            Suspend
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+            onClick={() => {
+              if (confirm(`Delete ${selectedIds.length} students? This cannot be undone.`)) {
+                bulkDeleteStudents(selectedIds);
+                setSelectedIds([]);
+              }
+            }}
+          >
+            <Trash2 className="mr-2 size-4" />
+            Delete
+          </Button>
+          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setSelectedIds([])}
+            className="size-8 text-slate-500 hover:text-slate-900"
+            aria-label="Clear selection"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="font-serif text-brand-navy">
@@ -149,6 +222,9 @@ export function StudentsSection({ admin, full }: { admin: AdminDashboardState; f
         <CardContent>
           <StudentsTable
             users={displayed}
+            selectedIds={selectedIds}
+            onSelectToggle={handleSelectToggle}
+            onSelectAll={handleSelectAll}
             onView={setProfileUser}
             onEdit={(user) => openEdit({ type: "student", item: user })}
             onMessage={setMessageUser}

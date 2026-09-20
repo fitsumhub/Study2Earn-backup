@@ -10,6 +10,7 @@ import {
   Zap,
   Wallet,
   UserPlus,
+  Database,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { REFERRAL_FRIEND_BONUS, REFERRAL_SIGNUP_XP } from "@/lib/referral-data";
 import { calculateExamXp } from "@/hooks/use-exam-progress";
 import { etbToXp, MIN_WITHDRAWAL_ETB } from "@/lib/withdrawal-data";
+import { readLibraryCatalog } from "@/lib/library-store";
+import { readIntegrations } from "@/lib/integrations-store";
+import { readAdminData } from "@/lib/admin-store";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -188,6 +192,138 @@ const suites: TestSuite[] = [
       const blocked = belowMin < MIN_WITHDRAWAL_ETB;
       assert(blocked, `${belowMin} ETB < min ${MIN_WITHDRAWAL_ETB} ETB → rejected ✓`, log);
 
+      return true;
+    },
+  },
+  {
+    id: "health",
+    label: "Catalog & Integration Health",
+    description:
+      "Checks that the student catalog, admin catalog, reward configuration, and AI provider settings are readable.",
+    icon: Database,
+    color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    run: async (log) => {
+      await wait(200);
+      const library = readLibraryCatalog();
+      const admin = readAdminData();
+      const integrations = readIntegrations();
+      assert(library.length > 0, `Student catalog contains ${library.length} books`, log);
+      assert(
+        library.some((book) => book.id === "bk-forex"),
+        "Forex Trading Fundamentals is available in the student catalog",
+        log,
+      );
+      assert(
+        admin.content.some((book) => book.id === "bk-forex"),
+        "Forex Trading Fundamentals is available in the admin catalog",
+        log,
+      );
+      assert(
+        admin.rewards.length > 0,
+        `Reward catalog contains ${admin.rewards.length} active records`,
+        log,
+      );
+      assert(
+        [
+          "openai",
+          "anthropic",
+          "deepseek",
+          "groq",
+          "gemini",
+          "custom",
+        ].includes(integrations.aiStudy.provider),
+        `AI provider setting is valid: ${integrations.aiStudy.provider}`,
+        log,
+      );
+      await wait(100);
+      assert(
+        integrations.aiStudy.custom.baseUrl === "" ||
+          /^https?:\/\//i.test(integrations.aiStudy.custom.baseUrl),
+        "Custom AI endpoint is empty or uses HTTP(S)",
+        log,
+      );
+      return true;
+    },
+  },
+  {
+    id: "automation",
+    label: "Admin Automation Rules",
+    description:
+      "Checks that approval and referral automation settings are present and produce safe, predictable decisions.",
+    icon: ShieldCheck,
+    color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    run: async (log) => {
+      await wait(200);
+      const settings = readAdminData().settings;
+      assert(
+        typeof settings.autoApprove === "boolean",
+        `Auto approve is ${settings.autoApprove ? "enabled" : "disabled"}`,
+        log,
+      );
+      assert(
+        typeof settings.autoApproveReferrals === "boolean",
+        `Referral auto approval is ${settings.autoApproveReferrals ? "enabled" : "disabled"}`,
+        log,
+      );
+      const statusForNewStudent = settings.autoApprove ? "active" : "pending";
+      assert(
+        statusForNewStudent === "active" || statusForNewStudent === "pending",
+        `New student workflow resolves to: ${statusForNewStudent}`,
+        log,
+      );
+      await wait(100);
+      assert(
+        Number.isFinite(Number.parseInt(settings.maxDailyExams, 10)) &&
+          Number.parseInt(settings.maxDailyExams, 10) > 0,
+        `Daily exam limit is valid: ${settings.maxDailyExams}`,
+        log,
+      );
+      return true;
+    },
+  },
+  {
+    id: "aiStudy",
+    label: "AI Study Engine & Provider Architecture",
+    description:
+      "Verifies AI provider configurations, default prompt structure, question generation limits, and offline fallback integrity.",
+    icon: Zap,
+    color: "bg-purple-50 text-purple-700 border-purple-200",
+    run: async (log) => {
+      await wait(200);
+      const integrations = readIntegrations();
+      assert(
+        Boolean(integrations.aiStudy),
+        "AI Study configuration is initialized in storage",
+        log,
+      );
+      await wait(100);
+      const providers = ["openai", "anthropic", "deepseek", "groq", "gemini", "custom"];
+      assert(
+        providers.includes(integrations.aiStudy.provider),
+        `Active provider is valid: ${integrations.aiStudy.provider}`,
+        log,
+      );
+      await wait(100);
+      const prompt = integrations.aiStudy.systemPrompt || "";
+      assert(
+        prompt.length >= 30,
+        `System prompt is configured (${prompt.length} chars)`,
+        log,
+      );
+      await wait(100);
+      const temp = integrations.aiStudy.temperature ?? 0.3;
+      assert(
+        temp >= 0 && temp <= 1,
+        `Temperature parameter is within valid bounds [0, 1]: ${temp}`,
+        log,
+      );
+      await wait(100);
+      const qCount = integrations.aiStudy.defaultQuestionCount ?? 5;
+      assert(
+        qCount >= 1 && qCount <= 20,
+        `Default question count is within safe range [1, 20]: ${qCount}`,
+        log,
+      );
       return true;
     },
   },

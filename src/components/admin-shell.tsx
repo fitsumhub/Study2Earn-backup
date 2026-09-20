@@ -14,18 +14,21 @@ import {
   LogOut,
   Megaphone,
   Banknote,
+  Moon,
   PanelTop,
   Search,
   Settings,
   Share2,
   Shield,
+  Sparkles,
+  Sun,
   TestTube2,
   TrendingUp,
   Users,
   Wallet,
   Zap,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +67,9 @@ import {
 } from "@/components/ui/sidebar";
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 import { useAuth } from "@/hooks/use-auth";
+import { isDeveloperUser } from "@/lib/auth-data";
+import { useFrames } from "@/hooks/use-frames";
+import { ProfileFrameAvatar } from "@/components/frames/ProfileFrameAvatar";
 import type { AdminNotification, AdminSection } from "@/lib/admin-types";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +85,7 @@ const navMain: {
   { label: "Categories", section: "categories", icon: FolderTree },
   { label: "Site Content", section: "siteContent", icon: PanelTop },
   { label: "Exams", section: "exams", icon: ClipboardList, badgeKey: "exams" },
+  { label: "AI Study", section: "aiStudy", icon: Sparkles },
   { label: "Rewards", section: "rewards", icon: Gift, badgeKey: "rewards" },
   { label: "Sponsors", section: "ads", icon: Megaphone },
   { label: "API & Integrations", section: "integrations", icon: KeyRound },
@@ -124,6 +131,7 @@ export function AdminShell({
     navBadges,
   } = admin;
   const { user, signOut } = useAuth();
+  const { equipped: equippedFrame } = useFrames();
   const navigate = useNavigate();
   const adminName = user?.name ?? "Admin";
   const adminInitials =
@@ -193,17 +201,26 @@ export function AdminShell({
         <SidebarFooter className="border-t border-sidebar-border p-3">
           <div className="rounded-xl border border-brand-gold/20 bg-gradient-to-br from-brand-navy/5 to-brand-gold/5 p-3">
             <div className="flex items-center gap-3">
-              <Avatar className="size-10 ring-2 ring-brand-gold/40 ring-offset-1">
-                <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-gold text-xs font-bold text-white">
-                  {adminInitials}
-                </AvatarFallback>
-              </Avatar>
+              {equippedFrame ? (
+                <ProfileFrameAvatar
+                  initials={adminInitials}
+                  frameId={equippedFrame}
+                  size="xs"
+                  equipped
+                />
+              ) : (
+                <Avatar className="size-10 ring-2 ring-brand-gold/40 ring-offset-1">
+                  <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-gold text-xs font-bold text-white">
+                    {adminInitials}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-brand-navy">{adminName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  <p className="truncate text-[10px] font-semibold text-emerald-600">
-                    Platform Director
+                  <span className={cn("size-1.5 rounded-full", isDeveloperUser(user) ? "bg-violet-500 animate-pulse" : "bg-emerald-500")} />
+                  <p className={cn("truncate text-[10px] font-semibold", isDeveloperUser(user) ? "text-violet-600 font-bold" : "text-emerald-600")}>
+                    {isDeveloperUser(user) ? "Lead Developer / Super Admin" : "Platform Director"}
                   </p>
                 </div>
               </div>
@@ -214,7 +231,7 @@ export function AdminShell({
                 title="Sign out"
                 onClick={() => {
                   signOut();
-                  void navigate({ to: "/login", search: { redirect: undefined, ref: undefined } });
+                  void navigate({ to: "/admin/login" });
                 }}
               >
                 <LogOut className="size-4" />
@@ -248,6 +265,7 @@ export function AdminShell({
               />
             </div>
           </div>
+          <ThemeToggle />
           <button
             type="button"
             className="relative flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-brand-navy transition-colors"
@@ -511,5 +529,37 @@ export function AdminStatCard({
       <p className="mt-1 text-xs font-semibold text-slate-500">{label}</p>
       <p className="mt-0.5 text-[10px] text-slate-400">{sub}</p>
     </Wrapper>
+  );
+}
+
+function ThemeToggle() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    // Check initial state
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("study2earn-theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("study2earn-theme", "light");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="relative flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-brand-navy transition-colors"
+      aria-label="Toggle Dark Mode"
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </button>
   );
 }

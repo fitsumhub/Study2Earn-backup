@@ -36,6 +36,7 @@ function AiStudyPage() {
               onDrop={flow.handleDrop}
               onFileInput={flow.handleFileInput}
               onDemo={flow.tryDemo}
+              onTextSubmit={flow.processPastedText}
               fileInputRef={flow.fileInputRef}
               questionCount={flow.questionCount}
               setQuestionCount={flow.setQuestionCount}

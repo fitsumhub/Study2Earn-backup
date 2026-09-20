@@ -6,7 +6,18 @@ import { Banknote, CircleDollarSign, Palette, ShieldCheck, type LucideIcon } fro
 // self-fulfilling: they apply instantly, client-side, no admin step needed.
 export type Kind = "etb" | "usdt" | "theme" | "adfree";
 
-export function kindOf(tag: string): Kind {
+export function kindOf(tag: string, title?: string): Kind {
+  // If the title contains clear keywords, override the tag to prevent admin
+  // configuration errors defaulting everything to bank payouts.
+  if (title) {
+    const tLower = title.toLowerCase();
+    if (tLower.includes("theme") || tLower.includes("glow")) return "theme";
+    if (tLower.includes("ad-free") || tLower.includes("adfree") || tLower.includes("no ads")) {
+      return "adfree";
+    }
+    if (tLower.includes("usdt") || tLower.includes("binance")) return "usdt";
+  }
+
   const t = tag.toLowerCase();
   if (t === "usdt") return "usdt";
   if (t === "theme") return "theme";

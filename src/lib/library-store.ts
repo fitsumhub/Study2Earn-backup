@@ -36,10 +36,12 @@ function readCatalog(): LibraryBook[] {
     if (!raw) return libraryBooks;
     const parsed = JSON.parse(raw) as LibraryBook[];
     if (!Array.isArray(parsed) || parsed.length === 0) return libraryBooks;
-    return parsed.map((book) => {
+    const existing = parsed.map((book) => {
       const defaults = libraryBooks.find((b) => b.id === book.id);
       return defaults ? { ...defaults, ...book } : book;
     });
+    const existingIds = new Set(existing.map((book) => book.id));
+    return [...existing, ...libraryBooks.filter((book) => !existingIds.has(book.id))];
   } catch {
     return libraryBooks;
   }

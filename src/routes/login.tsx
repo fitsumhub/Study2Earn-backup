@@ -14,6 +14,7 @@ import {
   Lock,
   Loader2,
   Mail,
+  Shield,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -577,6 +578,16 @@ export function AuthShell({
               )}
             </p>
             <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link
+              to="/admin/login"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-brand-navy transition-colors"
+            >
+              <Shield className="size-3 text-slate-400" />
+              Admin &amp; Developer Console Sign In
+            </Link>
           </div>
         </div>
       </div>

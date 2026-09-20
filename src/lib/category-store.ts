@@ -144,6 +144,18 @@ export const DEFAULT_CATEGORIES: BookCategory[] = [
     color: "emerald",
     description: "Free Ethiopian novels and short stories.",
   },
+  {
+    id: "cat-business-finance",
+    name: "Business & Finance",
+    color: "teal",
+    description: "Forex, investing, entrepreneurship and personal finance courses.",
+  },
+  {
+    id: "cat-technology",
+    name: "Technology",
+    color: "indigo",
+    description: "Web development, digital tools and tech literacy.",
+  },
 ];
 
 const STORAGE_KEY = "study2earn-categories";

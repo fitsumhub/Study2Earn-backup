@@ -506,6 +506,7 @@ export function useAdminDashboard() {
       const user: AdminUser = {
         ...formToStudent(data),
         id: nextId("STU", users),
+        status: settings.autoApprove ? "active" : "pending",
         joined: new Date().toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -520,9 +521,13 @@ export function useAdminDashboard() {
         detail: `${data.name} — ${data.university}`,
         type: "user",
       });
-      toast.success(`${data.name} added — pending approval`);
+      toast.success(
+        settings.autoApprove
+          ? `${data.name} added and approved automatically`
+          : `${data.name} added — pending approval`,
+      );
     },
-    [users, pushActivity],
+    [users, settings.autoApprove, pushActivity],
   );
 
   const updateStudent = useCallback(
@@ -556,6 +561,20 @@ export function useAdminDashboard() {
       }
     },
     [users, pushActivity],
+  );
+
+  const bulkDeleteStudents = useCallback(
+    (ids: string[]) => {
+      setUsers((prev) => prev.filter((u) => !ids.includes(u.id)));
+      pushActivity({
+        time: "Just now",
+        action: "Bulk student removal",
+        detail: `${ids.length} students removed`,
+        type: "user",
+      });
+      toast.success(`${ids.length} students removed`);
+    },
+    [pushActivity],
   );
 
   const publishExam = useCallback(
@@ -846,6 +865,23 @@ export function useAdminDashboard() {
     [users, pushActivity],
   );
 
+  const bulkUpdateUserStatus = useCallback(
+    (userIds: string[], status: AdminUser["status"]) => {
+      setUsers((prev) => prev.map((u) => (userIds.includes(u.id) ? { ...u, status } : u)));
+      
+      const label =
+        status === "active" ? "approved" : status === "suspended" ? "suspended" : "updated";
+      pushActivity({
+        time: "Just now",
+        action: `Bulk account ${label}`,
+        detail: `${userIds.length} accounts ${label}`,
+        type: status === "suspended" ? "moderation" : "user",
+      });
+      toast.success(`${userIds.length} accounts ${label}`);
+    },
+    [pushActivity],
+  );
+
   const sendMessage = useCallback(
     (userId: string, message: string) => {
       const user = users.find((u) => u.id === userId);
@@ -1106,6 +1142,7 @@ export function useAdminDashboard() {
     addStudent,
     updateStudent,
     deleteStudent,
+    bulkDeleteStudents,
     publishExam,
     updateExam,
     deleteExam,
@@ -1121,6 +1158,7 @@ export function useAdminDashboard() {
     updateReward,
     deleteReward,
     updateUserStatus,
+    bulkUpdateUserStatus,
     sendMessage,
     toggleExamPublished,
     toggleRewardActive,

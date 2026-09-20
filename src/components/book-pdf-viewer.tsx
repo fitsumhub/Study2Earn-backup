@@ -16,7 +16,6 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
 
 if (typeof window !== "undefined") {
   import("react-pdf/dist/Page/AnnotationLayer.css");
@@ -30,10 +29,7 @@ import { useReadingPosition } from "@/hooks/use-reading-position";
 import type { LibraryBook } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+type PdfModule = typeof import("react-pdf");
 
 type BookPdfViewerProps = {
   book: LibraryBook;
@@ -71,6 +67,7 @@ const READER_THEMES: Record<
 
 export function BookPdfViewer({ book, onClose }: BookPdfViewerProps) {
   const pdfUrl = getBookPdfUrl(book);
+  const [pdfModule, setPdfModule] = useState<PdfModule | null>(null);
   useReadingTimer(true, book.id, book.name);
   const position = useReadingPosition(book.id);
 
@@ -90,6 +87,21 @@ export function BookPdfViewer({ book, onClose }: BookPdfViewerProps) {
   const mainRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resumedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("react-pdf").then((module) => {
+      if (cancelled) return;
+      module.pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url,
+      ).toString();
+      setPdfModule(module);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const prev = useCallback(() => setCurrentPage((p) => Math.max(p - 1, 1)), []);
   const next = useCallback(() => setCurrentPage((p) => Math.min(p + 1, numPages)), [numPages]);
@@ -174,6 +186,8 @@ export function BookPdfViewer({ book, onClose }: BookPdfViewerProps) {
   const sidebarW = sidebarOpen ? 200 : 0;
   const mainPageWidth =
     containerWidth > 0 ? Math.min((containerWidth - sidebarW - 80) * scale, 1100) : undefined;
+  const PdfDocument = pdfModule?.Document;
+  const PdfPage = pdfModule?.Page;
 
   return (
     <div
@@ -397,128 +411,138 @@ export function BookPdfViewer({ book, onClose }: BookPdfViewerProps) {
 
       {/* ── Body ── */}
       <div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-          className="flex min-h-0 flex-1 overflow-hidden"
-          loading={null}
-          error={null}
-        >
-          {/* Left thumbnail sidebar */}
-          {sidebarOpen && (
-            <aside className="flex w-[200px] shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-sm">
-              {/* Sidebar header */}
-              <div className="sticky top-0 z-10 border-b border-slate-100 bg-white px-3 py-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Pages
-                </p>
-                <p className="text-sm font-semibold text-brand-navy tabular-nums">
-                  {currentPage}{" "}
-                  <span className="font-normal text-slate-400">/ {numPages || "…"}</span>
-                </p>
-              </div>
+        {PdfDocument && PdfPage ? (
+          <PdfDocument
+            file={pdfUrl}
+            onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+            className="flex min-h-0 flex-1 overflow-hidden"
+            loading={null}
+            error={null}
+          >
+            {/* Left thumbnail sidebar */}
+            {sidebarOpen && (
+              <aside className="flex w-[200px] shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-sm">
+                {/* Sidebar header */}
+                <div className="sticky top-0 z-10 border-b border-slate-100 bg-white px-3 py-2.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Pages
+                  </p>
+                  <p className="text-sm font-semibold text-brand-navy tabular-nums">
+                    {currentPage}{" "}
+                    <span className="font-normal text-slate-400">/ {numPages || "…"}</span>
+                  </p>
+                </div>
 
+                {numPages === 0 ? (
+                  <div className="flex flex-1 items-center justify-center py-8">
+                    <div className="size-6 animate-spin rounded-full border-2 border-slate-200 border-t-brand-gold" />
+                  </div>
+                ) : (
+                  <div className="pb-4 pt-1">
+                    {Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
+                      <ThumbEntry
+                        key={page}
+                        page={page}
+                        numPages={numPages}
+                        current={currentPage}
+                        bookmarked={position.bookmarks.includes(page)}
+                        onClick={() => setCurrentPage(page)}
+                        PageComponent={PdfPage}
+                      />
+                    ))}
+                  </div>
+                )}
+              </aside>
+            )}
+
+            {/* Main reading area */}
+            <main
+              ref={mainRef}
+              className={cn(
+                "relative flex flex-1 flex-col items-center overflow-auto px-6 py-8 transition-colors sm:px-12",
+                READER_THEMES[theme].mainBg,
+              )}
+              onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+              onTouchEnd={(e) => {
+                if (touchStartX === null) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                if (Math.abs(dx) > 55) {
+                  if (dx < 0) next();
+                  else prev();
+                }
+                setTouchStartX(null);
+              }}
+            >
+              {/* Resumed-position banner */}
+              {resumeBanner && (
+                <div className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-brand-navy px-4 py-1.5 text-xs font-semibold text-white shadow-lg">
+                  Resumed from page {currentPage}
+                </div>
+              )}
+
+              {/* Left nav arrow */}
+              <button
+                type="button"
+                onClick={prev}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+                className={cn(
+                  "fixed top-1/2 z-20 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 transition hover:bg-brand-navy hover:text-white hover:border-brand-navy disabled:opacity-20 disabled:pointer-events-none",
+                  sidebarOpen ? "left-[212px]" : "left-2.5",
+                )}
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+
+              {/* PDF page */}
               {numPages === 0 ? (
-                <div className="flex flex-1 items-center justify-center py-8">
-                  <div className="size-6 animate-spin rounded-full border-2 border-slate-200 border-t-brand-gold" />
+                <div className="flex flex-1 flex-col items-center justify-center gap-4">
+                  <div className="size-10 animate-spin rounded-full border-2 border-white/30 border-t-brand-gold" />
+                  <p className="text-sm text-slate-500">Loading document…</p>
                 </div>
               ) : (
-                <div className="pb-4 pt-1">
-                  {Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
-                    <ThumbEntry
-                      key={page}
-                      page={page}
-                      numPages={numPages}
-                      current={currentPage}
-                      bookmarked={position.bookmarks.includes(page)}
-                      onClick={() => setCurrentPage(page)}
-                    />
-                  ))}
+                <div
+                  className="rounded-sm shadow-2xl shadow-black/25 ring-1 ring-black/5 transition-[filter]"
+                  style={
+                    READER_THEMES[theme].pageFilter
+                      ? { filter: READER_THEMES[theme].pageFilter }
+                      : undefined
+                  }
+                >
+                  <PdfPage
+                    key={currentPage}
+                    pageNumber={currentPage}
+                    width={mainPageWidth}
+                    renderTextLayer
+                    renderAnnotationLayer
+                    className="rounded-sm"
+                    loading={
+                      <div className="aspect-[1/1.414] w-full max-w-4xl animate-pulse rounded-sm bg-slate-200" />
+                    }
+                  />
                 </div>
               )}
-            </aside>
-          )}
 
-          {/* Main reading area */}
-          <main
-            ref={mainRef}
-            className={cn(
-              "relative flex flex-1 flex-col items-center overflow-auto px-6 py-8 transition-colors sm:px-12",
-              READER_THEMES[theme].mainBg,
-            )}
-            onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
-            onTouchEnd={(e) => {
-              if (touchStartX === null) return;
-              const dx = e.changedTouches[0].clientX - touchStartX;
-              if (Math.abs(dx) > 55) {
-                if (dx < 0) next();
-                else prev();
-              }
-              setTouchStartX(null);
-            }}
-          >
-            {/* Resumed-position banner */}
-            {resumeBanner && (
-              <div className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-brand-navy px-4 py-1.5 text-xs font-semibold text-white shadow-lg">
-                Resumed from page {currentPage}
-              </div>
-            )}
-
-            {/* Left nav arrow */}
-            <button
-              type="button"
-              onClick={prev}
-              disabled={currentPage <= 1}
-              aria-label="Previous page"
-              className={cn(
-                "fixed top-1/2 z-20 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 transition hover:bg-brand-navy hover:text-white hover:border-brand-navy disabled:opacity-20 disabled:pointer-events-none",
-                sidebarOpen ? "left-[212px]" : "left-2.5",
-              )}
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-
-            {/* PDF page */}
-            {numPages === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-4">
-                <div className="size-10 animate-spin rounded-full border-2 border-white/30 border-t-brand-gold" />
-                <p className="text-sm text-slate-500">Loading document…</p>
-              </div>
-            ) : (
-              <div
-                className="rounded-sm shadow-2xl shadow-black/25 ring-1 ring-black/5 transition-[filter]"
-                style={
-                  READER_THEMES[theme].pageFilter
-                    ? { filter: READER_THEMES[theme].pageFilter }
-                    : undefined
-                }
+              {/* Right nav arrow */}
+              <button
+                type="button"
+                onClick={next}
+                disabled={currentPage >= numPages}
+                aria-label="Next page"
+                className="fixed right-4 top-1/2 z-20 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 transition hover:bg-brand-navy hover:text-white hover:border-brand-navy disabled:opacity-20 disabled:pointer-events-none"
               >
-                <Page
-                  key={currentPage}
-                  pageNumber={currentPage}
-                  width={mainPageWidth}
-                  renderTextLayer
-                  renderAnnotationLayer
-                  className="rounded-sm"
-                  loading={
-                    <div className="aspect-[1/1.414] w-full max-w-4xl animate-pulse rounded-sm bg-slate-200" />
-                  }
-                />
-              </div>
-            )}
-
-            {/* Right nav arrow */}
-            <button
-              type="button"
-              onClick={next}
-              disabled={currentPage >= numPages}
-              aria-label="Next page"
-              className="fixed right-4 top-1/2 z-20 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 transition hover:bg-brand-navy hover:text-white hover:border-brand-navy disabled:opacity-20 disabled:pointer-events-none"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-          </main>
-        </Document>
+                <ChevronRight className="size-5" />
+              </button>
+            </main>
+          </PdfDocument>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-col items-center gap-4 text-sm text-slate-500">
+              <div className="size-10 animate-spin rounded-full border-2 border-slate-300 border-t-brand-gold" />
+              Loading reader…
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Bottom bar ── */}
@@ -560,12 +584,14 @@ function ThumbEntry({
   current,
   bookmarked,
   onClick,
+  PageComponent,
 }: {
   page: number;
   numPages: number;
   current: number;
   bookmarked: boolean;
   onClick: () => void;
+  PageComponent: PdfModule["Page"];
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [render, setRender] = useState(Math.abs(page - current) <= 5);
@@ -638,7 +664,7 @@ function ThumbEntry({
           <BookmarkCheck className="absolute right-1 top-1 z-10 size-4 fill-brand-gold text-brand-gold drop-shadow" />
         )}
         {render ? (
-          <Page
+          <PageComponent
             pageNumber={page}
             width={172}
             renderTextLayer={false}

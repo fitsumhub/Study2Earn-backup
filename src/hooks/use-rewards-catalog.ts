@@ -10,12 +10,20 @@ export type CatalogReward = {
   xp: number;
   tag: string;
   imageUrl?: string;
+  description?: string;
 };
 
 function toCatalog(rewards: AdminReward[]): CatalogReward[] {
   return rewards
     .filter((r) => r.active)
-    .map((r) => ({ id: r.id, title: r.title, xp: r.xp, tag: r.tag, imageUrl: r.imageUrl }));
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      xp: r.xp,
+      tag: r.tag,
+      imageUrl: r.imageUrl,
+      description: r.description,
+    }));
 }
 
 function getFallbackCatalog(): CatalogReward[] {
@@ -24,6 +32,7 @@ function getFallbackCatalog(): CatalogReward[] {
     title: r.title,
     xp: r.xp,
     tag: r.tag,
+    description: (r as { description?: string }).description,
   }));
 }
 

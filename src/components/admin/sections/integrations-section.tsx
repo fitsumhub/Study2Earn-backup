@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Bot,
   CheckCircle2,
   Key,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,7 +65,7 @@ const AI_PROVIDERS: {
   },
 ];
 
-export function IntegrationsSection() {
+export function IntegrationsSection({ admin }: { admin?: AdminDashboardState } = {}) {
   const {
     config,
     setAdsense,
@@ -201,14 +203,34 @@ export function IntegrationsSection() {
 
       <Card className="max-w-2xl shadow-sm">
         <CardHeader>
-          <CardTitle className="font-serif text-brand-navy flex items-center gap-2">
-            <Sparkles className="size-5 text-brand-gold" />
-            AI Study — Generation Provider
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-serif text-brand-navy flex items-center gap-2">
+              <Sparkles className="size-5 text-brand-gold" />
+              AI Study — Generation Provider
+            </CardTitle>
+            {admin && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => admin.setSection("aiStudy")}
+                className="gap-1.5 text-xs font-semibold text-brand-navy border-brand-navy/30 hover:bg-brand-navy hover:text-white"
+              >
+                Open Full AI Console
+                <ArrowRight className="size-3.5" />
+              </Button>
+            )}
+          </div>
           <CardDescription>
-            Powers real question and study-note generation on the AI Study page. Pick a provider
-            below — its key is never entered here or stored in the browser, only set as a server
-            environment variable so it can't be read from the client.
+            Configure generation engine, models, and endpoints. To enter API keys directly with real-time connection verification and prompt tuning, visit the dedicated{" "}
+            <button
+              type="button"
+              onClick={() => admin?.setSection("aiStudy")}
+              className="text-brand-gold font-bold underline hover:text-amber-700 inline"
+            >
+              AI Study section
+            </button>
+            .
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">

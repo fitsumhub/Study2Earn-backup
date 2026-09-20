@@ -1,8 +1,9 @@
-import { Coins, Pencil, Trash2, UserCheck } from "lucide-react";
+import { Coins, Pencil, Trash2, UserCheck, MoreHorizontal } from "lucide-react";
 
 import { statusStyles } from "@/components/admin/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +21,12 @@ import {
 } from "@/components/ui/table";
 import type { AdminUser } from "@/lib/admin-types";
 import { cn } from "@/lib/utils";
-import { MoreHorizontal } from "lucide-react";
 
 export function StudentsTable({
   users,
+  selectedIds = [],
+  onSelectToggle,
+  onSelectAll,
   onView,
   onEdit,
   onMessage,
@@ -34,6 +37,9 @@ export function StudentsTable({
   onAdjustPoints,
 }: {
   users: AdminUser[];
+  selectedIds?: string[];
+  onSelectToggle?: (id: string) => void;
+  onSelectAll?: (select: boolean) => void;
   onView: (u: AdminUser) => void;
   onEdit?: (u: AdminUser) => void;
   onMessage: (u: AdminUser) => void;
@@ -47,11 +53,23 @@ export function StudentsTable({
     return <p className="py-8 text-center text-sm text-muted-foreground">No students found.</p>;
   }
 
+  const allSelected = users.length > 0 && selectedIds.length === users.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < users.length;
+
   return (
     <div className="overflow-x-auto">
       <Table className="min-w-[480px]">
         <TableHeader>
           <TableRow>
+            {onSelectToggle && (
+              <TableHead className="w-12 text-center">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(checked) => onSelectAll?.(checked === true)}
+                  aria-label="Select all"
+                />
+              </TableHead>
+            )}
             <TableHead>Student</TableHead>
             <TableHead className="hidden md:table-cell">University</TableHead>
             <TableHead className="hidden lg:table-cell">Program</TableHead>
@@ -61,8 +79,19 @@ export function StudentsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
+          {users.map((user) => {
+            const isSelected = selectedIds.includes(user.id);
+            return (
+            <TableRow key={user.id} data-state={isSelected ? "selected" : undefined}>
+              {onSelectToggle && (
+                <TableCell className="text-center">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onSelectToggle(user.id)}
+                    aria-label={`Select ${user.name}`}
+                  />
+                </TableCell>
+              )}
               <TableCell>
                 <button
                   type="button"
@@ -148,7 +177,8 @@ export function StudentsTable({
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

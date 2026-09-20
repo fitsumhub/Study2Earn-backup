@@ -5,6 +5,7 @@ export type AdminSection =
   | "categories"
   | "siteContent"
   | "exams"
+  | "aiStudy"
   | "rewards"
   | "ads"
   | "integrations"
@@ -77,6 +78,7 @@ export type AdminReward = {
   active: boolean;
   /** Optional photo shown on the reward card — a `local:<id>` pointer into the media store, or a direct URL. */
   imageUrl?: string;
+  description?: string;
 };
 
 export type AdminContent = {
@@ -162,6 +164,10 @@ export const sectionMeta: Record<AdminSection, { title: string; description: str
   exams: {
     title: "Mock Exam Management",
     description: "Create chapter exams, edit question banks, and publish to students",
+  },
+  aiStudy: {
+    title: "AI Study & AI API Engine",
+    description: "Configure AI providers, API keys, models, system prompts, test live generation, and manage study packs",
   },
   rewards: {
     title: "Rewards Catalog",

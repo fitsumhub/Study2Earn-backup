@@ -67,6 +67,50 @@ export function useIntegrations() {
     [persist],
   );
 
+  const setAiStudyProviderSettings = useCallback(
+    (
+      provider: IntegrationsConfig["aiStudy"]["provider"],
+      settings: Partial<{ apiKey: string; model: string; baseUrl: string }>,
+    ) => {
+      const current = readIntegrations();
+      const existing = current.aiStudy.providers?.[provider] || {
+        apiKey: "",
+        model: "",
+        baseUrl: "",
+      };
+      const updatedProvider = { ...existing, ...settings };
+      const updatedProviders = {
+        ...(current.aiStudy.providers || {}),
+        [provider]: updatedProvider,
+      };
+
+      persist({
+        ...current,
+        aiStudy: {
+          ...current.aiStudy,
+          // If configuring the active provider, sync top-level apiKey and model
+          ...(current.aiStudy.provider === provider
+            ? {
+                apiKey: updatedProvider.apiKey,
+                ...(provider === "deepseek" ? { deepseekModel: updatedProvider.model } : {}),
+                ...(provider === "custom"
+                  ? {
+                      custom: {
+                        ...current.aiStudy.custom,
+                        model: updatedProvider.model,
+                        baseUrl: updatedProvider.baseUrl || "",
+                      },
+                    }
+                  : {}),
+              }
+            : {}),
+          providers: updatedProviders as any,
+        },
+      });
+    },
+    [persist],
+  );
+
   const addCustomKey = useCallback(
     (label: string, value: string) => {
       if (!label.trim()) return { ok: false as const, error: "Label is required" };
@@ -102,6 +146,7 @@ export function useIntegrations() {
     setAdsense,
     setAiStudy,
     setAiStudyCustom,
+    setAiStudyProviderSettings,
     addCustomKey,
     updateCustomKey,
     removeCustomKey,

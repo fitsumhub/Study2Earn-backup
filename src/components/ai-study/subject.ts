@@ -13,7 +13,9 @@ export function detectSubject(filename: string): string {
     f.includes("cell") ||
     f.includes("gene") ||
     f.includes("dna") ||
-    f.includes("organ")
+    f.includes("organism") ||
+    f.includes("organelle") ||
+    (f.includes("organ") && !f.includes("organic"))
   )
     return "biology";
   if (
@@ -48,6 +50,18 @@ export function detectSubject(filename: string): string {
     f.includes("write")
   )
     return "english";
+  if (
+    f.includes("forex") ||
+    f.includes("trading") ||
+    f.includes("currency") ||
+    f.includes("finance") ||
+    f.includes("invest")
+  )
+    return "finance";
+  if (f.includes("web") || f.includes("javascript") || f.includes("html") || f.includes("css"))
+    return "technology";
+  if (f.includes("marketing") || f.includes("seo") || f.includes("social media"))
+    return "marketing";
   return "general";
 }
 
@@ -59,6 +73,9 @@ export function subjectLabel(subject: string): string {
     math: "Mathematics",
     history: "History & Civics",
     english: "English Language",
+    finance: "Finance & Forex",
+    technology: "Technology",
+    marketing: "Digital Marketing",
     general: "General Studies",
   };
   return labels[subject] ?? "General Studies";
@@ -75,6 +92,10 @@ const BOOK_ID_SUBJECT: Record<string, string> = {
   "bk-civics": "history",
   "bk-geo": "history",
   "bk-global": "history",
+  "bk-forex": "finance",
+  "bk-personal-finance": "finance",
+  "bk-web-development": "technology",
+  "bk-digital-marketing": "marketing",
 };
 
 /** Broader fallback when a book has no exact subject match (e.g. no dedicated chemistry title yet). */
@@ -198,6 +219,45 @@ const subjectKeywords: Record<string, string[]> = {
     "verb",
     "syntax",
   ],
+  finance: [
+    "forex",
+    "trading",
+    "currency",
+    "exchange rate",
+    "leverage",
+    "pip",
+    "lot size",
+    "risk management",
+    "stop loss",
+    "portfolio",
+    "investment",
+    "diversification",
+    "budget",
+  ],
+  technology: [
+    "html",
+    "css",
+    "javascript",
+    "web development",
+    "browser",
+    "dom",
+    "frontend",
+    "accessibility",
+    "responsive",
+    "deployment",
+  ],
+  marketing: [
+    "marketing",
+    "audience",
+    "content strategy",
+    "social media",
+    "seo",
+    "search engine",
+    "email campaign",
+    "conversion",
+    "analytics",
+    "brand",
+  ],
 };
 
 const SUBJECT_MATCH_MIN_SCORE = 3;
@@ -256,6 +316,24 @@ export const subjectTheme: Record<
     badge: "bg-pink-100 text-pink-800",
     accent: "border-pink-400",
     dot: "bg-pink-400",
+  },
+  finance: {
+    banner: "from-cyan-700 via-teal-600 to-emerald-700",
+    badge: "bg-cyan-100 text-cyan-800",
+    accent: "border-cyan-400",
+    dot: "bg-cyan-400",
+  },
+  technology: {
+    banner: "from-indigo-700 via-blue-600 to-sky-700",
+    badge: "bg-indigo-100 text-indigo-800",
+    accent: "border-indigo-400",
+    dot: "bg-indigo-400",
+  },
+  marketing: {
+    banner: "from-orange-700 via-amber-600 to-rose-700",
+    badge: "bg-orange-100 text-orange-800",
+    accent: "border-orange-400",
+    dot: "bg-orange-400",
   },
   general: {
     banner: "from-slate-700 via-slate-600 to-brand-navy",

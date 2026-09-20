@@ -25,6 +25,9 @@ import { getReadingActiveDays } from "@/lib/reading-time-store";
 import { useAuth } from "@/hooks/use-auth";
 import { useExamProgress } from "@/hooks/use-exam-progress";
 import { useWallet } from "@/hooks/use-wallet";
+import { useFrames } from "@/hooks/use-frames";
+import { ProfileFrameAvatar } from "@/components/frames/ProfileFrameAvatar";
+import { resolveMediaUrl } from "@/lib/media-store";
 import { leaderboard } from "@/lib/mock-data";
 import { xpToEtb } from "@/lib/withdrawal-data";
 import { cn } from "@/lib/utils";
@@ -87,6 +90,7 @@ function calcStreak(activeDates: string[]): { current: number; studiedToday: boo
 function DashboardContent() {
   const { user } = useAuth();
   const wallet = useWallet();
+  const { equipped: equippedFrame } = useFrames();
   const reading = useReadingTime();
   const { books } = useLibraryProgress();
   const firstName = user?.name.split(" ")[0] ?? "Student";
@@ -167,32 +171,50 @@ function DashboardContent() {
     <main className="flex-1">
       <div className="mx-auto max-w-7xl px-6 py-12">
         <header className="mb-10 section-enter">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-brand-gold uppercase tracking-wider">
-                {new Date().getHours() < 12
-                  ? "Good morning"
-                  : new Date().getHours() < 17
-                    ? "Good afternoon"
-                    : "Good evening"}
-              </p>
-              <h1 className="font-serif text-4xl md:text-5xl font-bold text-brand-navy mt-1">
-                {firstName} 👋
-              </h1>
-              <p className="mt-2 text-slate-500 text-sm">
-                {user?.university ?? "Your university"}
-                {examStats.total > 0 ? (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-brand-navy">
-                      {examStats.completed}/{examStats.total} chapters
-                    </span>{" "}
-                    done ({examStats.percent}%)
-                  </>
-                ) : (
-                  <> · Start your first mock exam to begin</>
-                )}
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <ProfileFrameAvatar
+                initials={
+                  user?.name
+                    ? user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()
+                    : "ST"
+                }
+                avatarUrl={resolveMediaUrl(user?.avatarUrl)}
+                frameId={equippedFrame}
+                size="md"
+                equipped={!!equippedFrame}
+              />
+              <div>
+                <p className="text-sm font-medium text-brand-gold uppercase tracking-wider">
+                  {new Date().getHours() < 12
+                    ? "Good morning"
+                    : new Date().getHours() < 17
+                      ? "Good afternoon"
+                      : "Good evening"}
+                </p>
+                <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-navy mt-0.5">
+                  {firstName} 👋
+                </h1>
+                <p className="mt-1 text-slate-500 text-sm">
+                  {user?.university ?? "Your university"}
+                  {examStats.total > 0 ? (
+                    <>
+                      {" · "}
+                      <span className="font-semibold text-brand-navy">
+                        {examStats.completed}/{examStats.total} chapters
+                      </span>{" "}
+                      done ({examStats.percent}%)
+                    </>
+                  ) : (
+                    <> · Start your first mock exam to begin</>
+                  )}
+                </p>
+              </div>
             </div>
             <div className="hidden sm:flex flex-col items-end gap-1">
               <span className="text-xs text-slate-500">

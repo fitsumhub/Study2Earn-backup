@@ -9,6 +9,8 @@
     "build:dev": "node ./node_modules/vite/bin/vite.js build --mode development",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "lint": "node ./node_modules/eslint/bin/eslint.js .",
+    "test": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/test-website-logic.mjs",
+    "test:logic": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/test-website-logic.mjs",
     "test:e2e": "node scripts/e2e-smoke.mjs",
     "format": "node ./node_modules/prettier/bin/prettier.cjs --write ."
   },

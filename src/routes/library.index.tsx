@@ -11,6 +11,7 @@ import {
   List,
   Loader2,
   Search,
+  Share2,
   Sparkles,
   Timer,
   X,
@@ -156,6 +157,29 @@ function LibraryPage() {
 
   const openBookPdf = (book: LibraryBook) => {
     selectBook(book, "pdf");
+  };
+
+  const shareBook = async (book: LibraryBook) => {
+    const url = `${window.location.origin}/library/read/${encodeURIComponent(book.id)}`;
+    const shareData = {
+      title: `${book.name} — Study2Earn`,
+      text: `Study ${book.name} on Study2Earn.`,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success("Book link copied", { description: "Share it with a classmate." });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("Could not share this book", {
+        description: "Please try again or copy the page URL from your browser.",
+      });
+    }
   };
 
   const { download: downloadBook, progressOf, isSaved } = useBookDownloads();
@@ -470,6 +494,7 @@ function LibraryPage() {
                       book={book}
                       featured={book.id === "bk-demo"}
                       onRead={() => selectBook(book, "pdf")}
+                      onDetails={() => selectBook(book, "details")}
                       onDownload={() => downloadBook(book)}
                       downloading={progressOf(book.id)}
                       downloaded={isSaved(book.id)}
@@ -586,6 +611,7 @@ function LibraryPage() {
                   onChapterComplete={(index) => markChapterDone(selectedBook.id, index)}
                   favorite={isFavorite(selectedBook.id)}
                   onToggleFavorite={() => toggleFavorite(selectedBook.id)}
+                  onShare={() => void shareBook(selectedBook)}
                 />
               </div>
             </aside>
@@ -671,6 +697,7 @@ function DownloadButton({
 function BookCard({
   book,
   onRead,
+  onDetails,
   onDownload,
   downloading,
   downloaded,
@@ -680,6 +707,7 @@ function BookCard({
 }: {
   book: LibraryBook;
   onRead: () => void;
+  onDetails: () => void;
   onDownload: () => void;
   downloading: DownloadProgress | null;
   downloaded: boolean;
@@ -779,6 +807,17 @@ function BookCard({
               ? "Continue →"
               : "Start reading"}
         </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDetails();
+          }}
+          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-brand-navy/30 hover:text-brand-navy"
+          title={`View details for ${book.name}`}
+        >
+          Details
+        </button>
         <DownloadButton
           downloading={downloading}
           downloaded={downloaded}
@@ -799,6 +838,7 @@ function BookDetailPanel({
   onChapterComplete,
   favorite,
   onToggleFavorite,
+  onShare,
 }: {
   book: LibraryBook;
   onOpenPdf: () => void;
@@ -808,6 +848,7 @@ function BookDetailPanel({
   onChapterComplete: (index: number) => void;
   favorite: boolean;
   onToggleFavorite: () => void;
+  onShare: () => void;
 }) {
   const nextChapter = book.chapterList.findIndex((c) => !c.done);
   const busy = downloading !== null;
@@ -913,6 +954,15 @@ function BookDetailPanel({
                 Download
               </>
             )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onShare}
+            aria-label={`Share ${book.name}`}
+            title="Share this book"
+          >
+            <Share2 className="size-4" />
           </Button>
         </div>
 

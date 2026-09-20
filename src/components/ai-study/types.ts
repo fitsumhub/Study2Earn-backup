@@ -15,6 +15,39 @@ export interface AINote {
   studyTips: string[];
 }
 
+export type FlashcardMastery = "unfamiliar" | "learning" | "mastered";
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  topic?: string;
+  mastery?: FlashcardMastery;
+  starred?: boolean;
+}
+
+export interface WrittenQuestion {
+  id: string;
+  prompt: string;
+  answer: string;
+  hint?: string;
+  acceptableKeywords?: string[];
+}
+
+export interface PodcastDialogueItem {
+  id: string;
+  speaker: "Alex" | "Jordan";
+  text: string;
+  role: string;
+}
+
+export interface PodcastEpisode {
+  title: string;
+  hosts: [string, string];
+  durationEstimate: string;
+  dialogue: PodcastDialogueItem[];
+}
+
 /** Whether the subject was inferred from real file content, the filename, corrected by the student, or matched from a library book. */
 export type DetectionSource = "content" | "filename" | "manual" | "library";
 
@@ -31,4 +64,8 @@ export interface AIResult {
    * call failed). Always show this honestly to the student — never let a demo
    * pack look like it was generated from their file. */
   source: "ai" | "demo";
+  /** Enriched Studley-style study tools */
+  flashcards?: Flashcard[];
+  writtenQuestions?: WrittenQuestion[];
+  podcast?: PodcastEpisode;
 }

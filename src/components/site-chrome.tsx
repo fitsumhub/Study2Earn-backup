@@ -37,6 +37,8 @@ import { xpToEtb } from "@/lib/withdrawal-data";
 import { cn, safeHref } from "@/lib/utils";
 import { UserNotificationBell } from "@/components/user-notification-bell";
 import { PwaInstallButton } from "@/components/pwa-install-button";
+import { useFrames } from "@/hooks/use-frames";
+import { ProfileFrameAvatar } from "@/components/frames/ProfileFrameAvatar";
 
 const DISMISSED_KEY = "study2earn-announcement-dismissed";
 
@@ -146,6 +148,7 @@ export function SiteHeader() {
   const { loggedIn, user } = useAuth();
   const wallet = useWallet();
   const { active: activeGlow } = useCosmetics();
+  const { equipped: equippedFrame } = useFrames();
   const [mobileOpen, setMobileOpen] = useState(false);
   const displayXp = loggedIn ? wallet.balance : 0;
   const displayEtb = xpToEtb(displayXp);
@@ -260,27 +263,44 @@ export function SiteHeader() {
                   {displayXp.toLocaleString()}
                 </span>
               </div>
-              <div
-                className={cn(
-                  "size-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-2 ring-offset-1 transition-transform group-hover:scale-105 grid place-items-center text-white font-serif font-bold text-sm overflow-hidden",
-                  glow ? cn(glow.ring, glow.shadow) : DEFAULT_AVATAR_RING,
-                )}
-              >
-                {resolveMediaUrl(user.avatarUrl) ? (
-                  <img
-                    src={resolveMediaUrl(user.avatarUrl)}
-                    alt={user.name}
-                    className="size-full object-cover"
+              {equippedFrame ? (
+                <div className="transition-transform group-hover:scale-105">
+                  <ProfileFrameAvatar
+                    initials={user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                    avatarUrl={resolveMediaUrl(user.avatarUrl)}
+                    frameId={equippedFrame}
+                    size="xs"
+                    equipped
                   />
-                ) : (
-                  user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()
-                )}
-              </div>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "size-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-2 ring-offset-1 transition-transform group-hover:scale-105 grid place-items-center text-white font-serif font-bold text-sm overflow-hidden",
+                    glow ? cn(glow.ring, glow.shadow) : DEFAULT_AVATAR_RING,
+                  )}
+                >
+                  {resolveMediaUrl(user.avatarUrl) ? (
+                    <img
+                      src={resolveMediaUrl(user.avatarUrl)}
+                      alt={user.name}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()
+                  )}
+                </div>
+              )}
             </Link>
           ) : (
             <>

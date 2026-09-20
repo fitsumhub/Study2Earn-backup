@@ -93,6 +93,11 @@ function isArray<T>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 
+function mergeById<T extends { id: string }>(stored: T[], defaults: T[]): T[] {
+  const storedIds = new Set(stored.map((item) => item.id));
+  return [...stored, ...defaults.filter((item) => !storedIds.has(item.id))];
+}
+
 function sanitizeAdminData(partial: unknown): AdminStoreData {
   const defaults = buildDefaultAdminData();
   if (!partial || typeof partial !== "object") return defaults;
@@ -115,7 +120,7 @@ function sanitizeAdminData(partial: unknown): AdminStoreData {
       ? data.referrals.filter((r) => r?.id && r?.referrerName)
       : defaults.referrals,
     content: isArray<AdminContent>(data.content)
-      ? data.content
+      ? mergeById(data.content, defaults.content)
           .filter((c) => c?.id && c?.name)
           .map((c) => ({
             ...c,

@@ -22,8 +22,11 @@ export function getServerConfig() {
     // Add server-only values here, e.g.:
     //   databaseUrl: process.env.DATABASE_URL,
     //   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    openaiApiKey: process.env.OPENAI_API_KEY,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     deepseekApiKey: process.env.DEEPSEEK_API_KEY,
+    groqApiKey: process.env.GROQ_API_KEY,
+    geminiApiKey: process.env.GEMINI_API_KEY,
     customAiApiKey: process.env.CUSTOM_AI_API_KEY,
   };
 }

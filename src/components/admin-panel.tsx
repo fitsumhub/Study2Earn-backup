@@ -56,6 +56,7 @@ import { ContentSection } from "@/components/admin/sections/content-section";
 import { IntegrationsSection } from "@/components/admin/sections/integrations-section";
 import { SiteContentSection } from "@/components/admin/sections/site-content-section";
 import { ExamsSection } from "@/components/admin/sections/exams-section";
+import { AiStudySection } from "@/components/admin/sections/ai-study-section";
 import { ReferralsSection } from "@/components/admin/sections/referrals-section";
 import { RewardsSection } from "@/components/admin/sections/rewards-section";
 import { StudentsSection } from "@/components/admin/sections/students-section";
@@ -102,12 +103,14 @@ export function AdminPanel({ admin }: { admin: AdminDashboardState }) {
       return <SiteContentSection />;
     case "exams":
       return <ExamsSection admin={admin} />;
+    case "aiStudy":
+      return <AiStudySection admin={admin} />;
     case "rewards":
       return <RewardsSection admin={admin} />;
     case "ads":
       return <AdsSection />;
     case "integrations":
-      return <IntegrationsSection />;
+      return <IntegrationsSection admin={admin} />;
     case "withdrawals":
       return <WithdrawalsSection admin={admin} />;
     case "referrals":

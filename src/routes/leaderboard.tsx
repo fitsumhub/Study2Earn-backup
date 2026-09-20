@@ -34,6 +34,8 @@ import {
   leaderboardByUniversity,
   universityStudents,
 } from "@/lib/mock-data";
+import { useFrames } from "@/hooks/use-frames";
+import { ProfileFrameAvatar } from "@/components/frames/ProfileFrameAvatar";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/leaderboard")({
@@ -157,6 +159,7 @@ function LeaderboardPage() {
 function LeaderboardContent() {
   const { user } = useAuth();
   const wallet = useWallet();
+  const { equipped: equippedFrame } = useFrames();
   const { config: prizesConfig } = useLeaderboardPrizes();
   const [activeTab, setActiveTab] = useState<Tab>("weekly");
 
@@ -322,9 +325,18 @@ function LeaderboardContent() {
         {!isUniversity && user && (
           <div className="rounded-2xl border-2 border-brand-gold/40 bg-white p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="size-12 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold text-white flex items-center justify-center font-serif font-bold ring-2 ring-brand-gold/40 ring-offset-2">
-                {initials(user.name)}
-              </div>
+              {equippedFrame ? (
+                <ProfileFrameAvatar
+                  initials={initials(user.name)}
+                  frameId={equippedFrame}
+                  size="sm"
+                  equipped
+                />
+              ) : (
+                <div className="size-12 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold text-white flex items-center justify-center font-serif font-bold ring-2 ring-brand-gold/40 ring-offset-2">
+                  {initials(user.name)}
+                </div>
+              )}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-brand-gold">
                   Your stats
