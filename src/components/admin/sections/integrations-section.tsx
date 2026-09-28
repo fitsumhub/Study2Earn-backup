@@ -33,7 +33,7 @@ import { getAiStudyStatus } from "@/lib/api/ai-study.functions";
 import type { AiStudyProvider } from "@/lib/integrations-store";
 import { cn } from "@/lib/utils";
 
-type AiStatus = { anthropic: boolean; deepseek: boolean; custom: boolean };
+type AiStatus = Record<AiStudyProvider, boolean>;
 
 const AI_PROVIDERS: {
   id: AiStudyProvider;
@@ -90,7 +90,15 @@ export function IntegrationsSection({ admin }: { admin?: AdminDashboardState } =
         if (!cancelled) setAiStatus(status);
       })
       .catch(() => {
-        if (!cancelled) setAiStatus({ anthropic: false, deepseek: false, custom: false });
+        if (!cancelled)
+          setAiStatus({
+            openai: false,
+            anthropic: false,
+            deepseek: false,
+            groq: false,
+            gemini: false,
+            custom: false,
+          });
       });
     return () => {
       cancelled = true;
