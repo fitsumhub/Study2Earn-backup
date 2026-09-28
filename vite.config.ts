@@ -10,16 +10,37 @@ export default defineConfig({
   vite: {
     server: { port: 3001, strictPort: true },
     build: {
+      // Target modern browsers — smaller, faster output
+      target: "es2020",
+      // Inline small assets directly in CSS/JS to save requests
+      assetsInlineLimit: 4096,
       rollupOptions: {
         output: {
-          // Keep the heaviest, least-often-loaded libraries out of the main
-          // entry chunk (recharts is admin-only; pdfjs is only needed while
-          // actually reading a book).
+          // Split large vendor bundles so the browser can cache them
+          // independently and download them in parallel.
           manualChunks(id: string) {
+            // Admin-only heavy chart library
             if (id.includes("node_modules/recharts")) return "vendor-recharts";
+            // PDF reader — only needed in library reading view
             if (id.includes("node_modules/pdfjs-dist") || id.includes("node_modules/react-pdf")) {
               return "vendor-pdf";
             }
+            // Core React runtime — tiny, cached forever once loaded
+            if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) {
+              return "vendor-react";
+            }
+            // TanStack Router + Query — shared navigation infrastructure
+            if (
+              id.includes("node_modules/@tanstack/react-router") ||
+              id.includes("node_modules/@tanstack/router-core") ||
+              id.includes("node_modules/@tanstack/react-query")
+            ) {
+              return "vendor-tanstack";
+            }
+            // Radix UI primitives — design system, loaded on all pages
+            if (id.includes("node_modules/@radix-ui/")) return "vendor-radix";
+            // Lucide icons — tree-shaken but still sizeable
+            if (id.includes("node_modules/lucide-react")) return "vendor-icons";
           },
         },
       },

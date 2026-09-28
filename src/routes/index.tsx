@@ -122,6 +122,10 @@ function HomePage() {
               alt="Ethiopian university student studying with a digital tablet in a campus library"
               width={1280}
               height={1024}
+              // Hero image is the LCP element — fetch it at the highest priority
+              // so the browser doesn't wait for JS to discover it.
+              fetchPriority="high"
+              decoding="async"
               className="aspect-[6/5] w-full rounded-2xl object-cover ring-1 ring-black/5 shadow-2xl shadow-slate-900/15"
             />
           </div>
@@ -175,7 +179,7 @@ function HomePage() {
       </div>
 
       {/* How it works */}
-      <section className="mx-auto max-w-7xl px-6 py-24">
+      <section className="mx-auto max-w-7xl px-6 py-24 cv-auto">
         <div className="text-center mb-16">
           <h2 className="font-serif text-3xl font-bold text-brand-navy">How Study2Earn works</h2>
           <p className="mt-2 text-slate-500">Three steps from open book to earned reward.</p>
@@ -297,7 +301,7 @@ function HomePage() {
       </section>
 
       {/* ── Features grid ── */}
-      <section className="mx-auto max-w-7xl px-6 pb-24">
+      <section className="mx-auto max-w-7xl px-6 pb-24 cv-auto">
         <div className="text-center mb-12">
           <h2 className="font-serif text-3xl font-bold text-brand-navy">
             Everything you need to succeed

@@ -530,3 +530,14 @@ html.dark textarea::placeholder {
     animation: none !important;
   }
 }
+
+/* ── Performance Utilities ────────────────────────────────────────────────── */
+
+/* content-visibility: auto defers rendering of off-screen sections,
+ * cutting paint time on long pages.
+ * Apply to sections that are below the fold (not the hero). */
+.cv-auto {
+  content-visibility: auto;
+  /* Hint to browser about expected section height to prevent layout shift */
+  contain-intrinsic-size: 0 500px;
+}

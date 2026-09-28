@@ -1,0 +1,17 @@
+Generating public/private ed25519 key pair.
+Your identification has been saved in C:\Users\APLUS\.ssh\id_ed25519
+Your public key has been saved in C:\Users\APLUS\.ssh\id_ed25519.pub
+The key fingerprint is:
+SHA256:IIwkfN0/LJuuIdI6pzs2erRPBNGhRNzgL0ArZLgLlR0 FitsumEnunu21@gmail.com
+The key's randomart image is:
++--[ED25519 256]--+
+|+***Eo.          |
+|=*=*+. .         |
+|o+* o . o        |
+|+. o . o +       |
+|... o   S .      |
+|. oo   o         |
+| o +...          |
+| ==o. ..         |
+|+=B....          |
++----[SHA256]-----+
