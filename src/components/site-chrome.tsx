@@ -114,9 +114,9 @@ function NavLink({
   const Icon = item.icon;
 
   const className = cn(
-    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+    "flex items-center gap-3 rounded-xl px-3 py-2.5 min-h-[44px] text-sm font-medium transition-all",
     active
-      ? "bg-brand-navy text-white font-semibold shadow-sm shadow-brand-navy/20"
+      ? "bg-brand-navy text-white font-semibold shadow-xs shadow-brand-navy/20"
       : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
   );
 
@@ -161,22 +161,22 @@ export function SiteHeader() {
   return (
     <>
       <AnnouncementBanner />
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md shadow-xs">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 md:hidden transition-colors"
+              className="inline-flex size-9 sm:size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 md:hidden transition-colors"
               aria-label="Open menu"
               onClick={() => setMobileOpen(true)}
             >
-              <Menu className="size-5" />
+              <Menu className="size-4 sm:size-5" />
             </button>
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="size-8 rounded bg-brand-navy grid place-items-center text-white font-serif font-bold text-xl transition-transform group-hover:scale-105">
+              <div className="size-7 sm:size-8 rounded bg-brand-navy grid place-items-center text-white font-serif font-bold text-lg sm:text-xl transition-transform group-hover:scale-105 shrink-0">
                 S
               </div>
-              <span className="font-serif text-xl font-bold tracking-tight text-brand-navy">
+              <span className="font-serif text-base sm:text-xl font-bold tracking-tight text-brand-navy truncate max-w-[130px] xs:max-w-none">
                 Study2Earn
               </span>
             </Link>
@@ -189,9 +189,9 @@ export function SiteHeader() {
               const locked = item.protected && !loggedIn;
               const Icon = item.icon;
               const cls = cn(
-                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
+                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-gold",
                 active
-                  ? "bg-brand-navy text-white font-semibold shadow-sm shadow-brand-navy/20"
+                  ? "bg-brand-navy text-white font-semibold shadow-xs shadow-brand-navy/20"
                   : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
               );
               if (locked) {
@@ -219,9 +219,9 @@ export function SiteHeader() {
               <Link
                 to="/admin"
                 className={cn(
-                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold",
+                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-gold",
                   pathname.startsWith("/admin")
-                    ? "bg-brand-navy text-white font-semibold shadow-sm shadow-brand-navy/20"
+                    ? "bg-brand-navy text-white font-semibold shadow-xs shadow-brand-navy/20"
                     : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
                 )}
               >
@@ -231,105 +231,98 @@ export function SiteHeader() {
             )}
           </div>
 
-          {/* Notifications */}
-          {loggedIn && <UserNotificationBell />}
+          {/* Right: Actions, Theme, Notifications & Profile */}
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+            {/* Notifications */}
+            {loggedIn && <UserNotificationBell />}
 
-          {/* Theme toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-          >
-            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </button>
+            {/* Theme toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              className="rounded-lg p-1.5 sm:p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            >
+              {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
 
-          {/* Right: wallet / auth */}
-          {loggedIn && user ? (
-            <Link to="/profile" className="flex items-center gap-3 group">
-              <div className="hidden sm:flex flex-col items-end leading-tight">
-                {/* XP pill */}
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand-gold/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-gold uppercase tracking-wide">
-                  <Coins className="size-3" />
-                  {displayXp.toLocaleString()} XP
-                </span>
-                <span className="mt-0.5 text-[10px] text-slate-500">
-                  ≈ {displayEtb} ETB · {user.name}
-                </span>
-              </div>
-              <div className="flex sm:hidden flex-col items-end leading-tight">
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand-gold/10 px-2 py-0.5 text-[10px] font-bold text-brand-gold">
-                  <Coins className="size-3" />
-                  {displayXp.toLocaleString()}
-                </span>
-              </div>
-              {equippedFrame ? (
-                <div className="transition-transform group-hover:scale-105">
-                  <ProfileFrameAvatar
-                    initials={user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                    avatarUrl={resolveMediaUrl(user.avatarUrl)}
-                    frameId={equippedFrame}
-                    size="xs"
-                    equipped
-                  />
+            {/* Right: wallet / auth */}
+            {loggedIn && user ? (
+              <Link to="/profile" className="flex items-center gap-1.5 sm:gap-3 group">
+                <div className="hidden sm:flex flex-col items-end leading-tight">
+                  {/* XP pill */}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-gold/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-gold uppercase tracking-wide">
+                    <Coins className="size-3" />
+                    {displayXp.toLocaleString()} XP
+                  </span>
+                  <span className="mt-0.5 text-[10px] text-slate-500">
+                    ≈ {displayEtb} ETB · {user.name}
+                  </span>
                 </div>
-              ) : (
-                <div
-                  className={cn(
-                    "size-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-2 ring-offset-1 transition-transform group-hover:scale-105 grid place-items-center text-white font-serif font-bold text-sm overflow-hidden",
-                    glow ? cn(glow.ring, glow.shadow) : DEFAULT_AVATAR_RING,
-                  )}
-                >
-                  {resolveMediaUrl(user.avatarUrl) ? (
-                    <img
-                      src={resolveMediaUrl(user.avatarUrl)}
-                      alt={user.name}
-                      className="size-full object-cover"
+                <div className="flex sm:hidden flex-col items-end leading-tight">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-gold/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-gold">
+                    <Coins className="size-2.5" />
+                    {displayXp >= 1000 ? `${(displayXp / 1000).toFixed(1)}k` : displayXp}
+                  </span>
+                </div>
+                {equippedFrame ? (
+                  <div className="transition-transform group-hover:scale-105">
+                    <ProfileFrameAvatar
+                      initials={user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                      avatarUrl={resolveMediaUrl(user.avatarUrl)}
+                      frameId={equippedFrame}
+                      size="xs"
+                      equipped
                     />
-                  ) : (
-                    user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()
-                  )}
-                </div>
-              )}
-            </Link>
-          ) : (
-            <>
-              <div className="hidden items-center gap-2 sm:gap-3 md:flex">
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      "size-8 sm:size-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-gold ring-2 ring-offset-1 transition-transform group-hover:scale-105 grid place-items-center text-white font-serif font-bold text-xs sm:text-sm overflow-hidden",
+                      glow ? cn(glow.ring, glow.shadow) : DEFAULT_AVATAR_RING,
+                    )}
+                  >
+                    {resolveMediaUrl(user.avatarUrl) ? (
+                      <img
+                        src={resolveMediaUrl(user.avatarUrl)}
+                        alt={user.name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()
+                    )}
+                  </div>
+                )}
+              </Link>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   to="/login"
                   search={{ redirect: undefined, ref: undefined }}
-                  className="text-sm font-medium text-slate-600 hover:text-brand-navy transition-colors"
+                  className="hidden xs:inline-flex text-xs sm:text-sm font-medium text-slate-600 hover:text-brand-navy transition-colors px-2 py-1"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
                   search={{ ref: undefined, redirect: undefined }}
-                  className="rounded-lg bg-brand-navy px-3 py-2 sm:px-4 text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-sm shadow-brand-navy/20"
+                  className="rounded-lg bg-brand-navy px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-xs shadow-brand-navy/20 shrink-0"
                 >
                   Get started
                 </Link>
               </div>
-              {/* Mobile: the top-left hamburger opens the drawer, which already has Sign in / Get started */}
-              <Link
-                to="/register"
-                search={{ ref: undefined, redirect: undefined }}
-                className="rounded-lg bg-brand-navy px-3 py-2 text-sm font-semibold text-white hover:bg-brand-navy/90 transition shadow-sm shadow-brand-navy/20 md:hidden"
-              >
-                Get started
-              </Link>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </nav>
 

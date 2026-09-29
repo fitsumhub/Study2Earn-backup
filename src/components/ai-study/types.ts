@@ -15,7 +15,7 @@ export interface AINote {
   studyTips: string[];
 }
 
-export type FlashcardMastery = "unfamiliar" | "learning" | "mastered";
+export type FlashcardMastery = "unfamiliar" | "learning" | "familiar" | "mastered";
 
 export interface Flashcard {
   id: string;

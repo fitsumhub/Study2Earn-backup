@@ -28,9 +28,13 @@ import type { Flashcard, FlashcardMastery } from "./types";
 export function FlashcardsMode({
   initialFlashcards,
   subjectTitle,
+  onMasteryChange,
+  onCardAdd,
 }: {
   initialFlashcards: Flashcard[];
   subjectTitle: string;
+  onMasteryChange?: (cardId: string, mastery: FlashcardMastery) => void;
+  onCardAdd?: (card: { front: string; back: string; topic: string }) => void;
 }) {
   const [flashcards, setFlashcards] = useState<Flashcard[]>(initialFlashcards);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -132,6 +136,7 @@ export function FlashcardsMode({
     setFlashcards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, mastery } : c)),
     );
+    onMasteryChange?.(id, mastery);
     // Auto advance on rating in slideshow mode
     if (viewMode === "slideshow" && currentIndex < activeCards.length - 1) {
       setTimeout(() => handleNext(), 150);
@@ -164,6 +169,11 @@ export function FlashcardsMode({
       mastery: "unfamiliar",
     };
     setFlashcards((prev) => [newCard, ...prev]);
+    onCardAdd?.({
+      front: newCard.front,
+      back: newCard.back,
+      topic: newCard.topic || "Custom Card",
+    });
     setNewFront("");
     setNewBack("");
     setNewTopic("");

@@ -159,18 +159,203 @@ export const generateStudyPack = createServerFn({ method: "POST" })
       else model = "gpt-4o-mini";
     }
 
-    return runOpenAiCompatibleGeneration(
-      {
-        apiKey,
-        baseUrl,
-        model,
-      },
-      {
-        text: data.text,
-        questionCount: data.questionCount,
-        subjectHint: data.subjectHint,
-        systemPrompt: data.systemPrompt,
-        temperature: data.temperature,
-      },
-    );
+      return runOpenAiCompatibleGeneration(
+        {
+          apiKey,
+          baseUrl,
+          model,
+        },
+        {
+          text: data.text,
+          questionCount: data.questionCount,
+          subjectHint: data.subjectHint,
+          systemPrompt: data.systemPrompt,
+          temperature: data.temperature,
+        },
+      );
+    });
+
+export const chatWithAiStudy = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      messages: z.array(
+        z.object({
+          role: z.enum(["user", "assistant", "system"]),
+          content: z.string().max(8000),
+        }),
+      ),
+      course: z.string().optional(),
+      tool: z.string().optional(),
+      language: z.enum(["en", "am"]).optional(),
+      provider: z.string().optional(),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().optional(),
+      model: z.string().optional(),
+      systemPrompt: z.string().optional(),
+      temperature: z.number().min(0).max(1).optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const config = getServerConfig();
+    const { runAiChatCompletion } = await import("../ai-study-generation.server");
+
+    const provider = data.provider || "openai";
+    let apiKey = data.apiKey?.trim();
+    if (!apiKey) {
+      if (provider === "openai") apiKey = config.openaiApiKey;
+      else if (provider === "anthropic") apiKey = config.anthropicApiKey;
+      else if (provider === "deepseek") apiKey = config.deepseekApiKey;
+      else if (provider === "groq") apiKey = config.groqApiKey;
+      else if (provider === "gemini") apiKey = config.geminiApiKey;
+      else if (provider === "custom") apiKey = config.customAiApiKey;
+    }
+
+    let baseUrl = data.baseUrl?.trim();
+    if (!baseUrl) {
+      if (provider === "openai") baseUrl = "https://api.openai.com/v1";
+      else if (provider === "deepseek") baseUrl = "https://api.deepseek.com";
+      else if (provider === "groq") baseUrl = "https://api.groq.com/openai/v1";
+      else if (provider === "gemini")
+        baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+    }
+
+    let model = data.model?.trim();
+    if (!model) {
+      if (provider === "openai") model = "gpt-4o-mini";
+      else if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
+      else if (provider === "deepseek") model = "deepseek-chat";
+      else if (provider === "groq") model = "llama-3.3-70b-versatile";
+      else if (provider === "gemini") model = "gemini-1.5-flash";
+      else model = "gpt-4o-mini";
+    }
+
+    return runAiChatCompletion({
+      provider,
+      apiKey,
+      baseUrl,
+      model,
+      systemPrompt: data.systemPrompt,
+      temperature: data.temperature,
+      course: data.course,
+      tool: data.tool,
+      language: data.language,
+      messages: data.messages,
+    });
   });
+
+export const generateCompleteStudySetFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      text: z.string().min(1).max(30000),
+      titleHint: z.string().optional(),
+      subjectHint: z.string().optional(),
+      provider: z.string().optional(),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().optional(),
+      model: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const config = getServerConfig();
+    const { runCompleteStudySetGeneration } = await import("../ai-study-generation.server");
+
+    const provider = data.provider || "openai";
+    let apiKey = data.apiKey?.trim();
+    if (!apiKey) {
+      if (provider === "openai") apiKey = config.openaiApiKey;
+      else if (provider === "anthropic") apiKey = config.anthropicApiKey;
+      else if (provider === "deepseek") apiKey = config.deepseekApiKey;
+      else if (provider === "groq") apiKey = config.groqApiKey;
+      else if (provider === "gemini") apiKey = config.geminiApiKey;
+      else if (provider === "custom") apiKey = config.customAiApiKey;
+    }
+
+    let baseUrl = data.baseUrl?.trim();
+    if (!baseUrl) {
+      if (provider === "openai") baseUrl = "https://api.openai.com/v1";
+      else if (provider === "deepseek") baseUrl = "https://api.deepseek.com";
+      else if (provider === "groq") baseUrl = "https://api.groq.com/openai/v1";
+      else if (provider === "gemini")
+        baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+    }
+
+    let model = data.model?.trim();
+    if (!model) {
+      if (provider === "openai") model = "gpt-4o-mini";
+      else if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
+      else if (provider === "deepseek") model = "deepseek-chat";
+      else if (provider === "groq") model = "llama-3.3-70b-versatile";
+      else if (provider === "gemini") model = "gemini-1.5-flash";
+      else model = "gpt-4o-mini";
+    }
+
+    return runCompleteStudySetGeneration({
+      text: data.text,
+      titleHint: data.titleHint,
+      subjectHint: data.subjectHint,
+      provider,
+      apiKey,
+      baseUrl,
+      model,
+    });
+  });
+
+export const evaluateWrittenAnswerFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      prompt: z.string().min(1),
+      modelAnswer: z.string().min(1),
+      keyRubricPoints: z.array(z.string()),
+      userAnswer: z.string().min(1),
+      provider: z.string().optional(),
+      apiKey: z.string().optional(),
+      baseUrl: z.string().optional(),
+      model: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const config = getServerConfig();
+    const { runWrittenAnswerEvaluation } = await import("../ai-study-generation.server");
+
+    const provider = data.provider || "openai";
+    let apiKey = data.apiKey?.trim();
+    if (!apiKey) {
+      if (provider === "openai") apiKey = config.openaiApiKey;
+      else if (provider === "anthropic") apiKey = config.anthropicApiKey;
+      else if (provider === "deepseek") apiKey = config.deepseekApiKey;
+      else if (provider === "groq") apiKey = config.groqApiKey;
+      else if (provider === "gemini") apiKey = config.geminiApiKey;
+      else if (provider === "custom") apiKey = config.customAiApiKey;
+    }
+
+    let baseUrl = data.baseUrl?.trim();
+    if (!baseUrl) {
+      if (provider === "openai") baseUrl = "https://api.openai.com/v1";
+      else if (provider === "deepseek") baseUrl = "https://api.deepseek.com";
+      else if (provider === "groq") baseUrl = "https://api.groq.com/openai/v1";
+      else if (provider === "gemini")
+        baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+    }
+
+    let model = data.model?.trim();
+    if (!model) {
+      if (provider === "openai") model = "gpt-4o-mini";
+      else if (provider === "anthropic") model = "claude-3-5-haiku-20241022";
+      else if (provider === "deepseek") model = "deepseek-chat";
+      else if (provider === "groq") model = "llama-3.3-70b-versatile";
+      else if (provider === "gemini") model = "gemini-1.5-flash";
+      else model = "gpt-4o-mini";
+    }
+
+    return runWrittenAnswerEvaluation({
+      prompt: data.prompt,
+      modelAnswer: data.modelAnswer,
+      keyRubricPoints: data.keyRubricPoints,
+      userAnswer: data.userAnswer,
+      provider,
+      apiKey,
+      baseUrl,
+      model,
+    });
+  });
+

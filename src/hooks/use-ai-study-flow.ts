@@ -386,34 +386,78 @@ export function useAiStudyFlow() {
       const subject = subjectForBook(book);
 
       setPhase("processing");
-      setProcessingStep(PROCESSING_STEPS.length);
-      setProcessingPct(100);
+      setProcessingStep(0);
+      setProcessingPct(10);
       setProcessingFilename(book.name);
 
-      setTimeout(() => {
+      const bookText = `Ethiopian University Textbook: ${book.name}
+Category: ${book.category}
+Overview: ${book.description}
+Curriculum Units and Topics:
+${book.chapterList.map((ch, idx) => `Chapter ${idx + 1}: ${ch.title} (${ch.pages} pages)`).join("\n")}
+Focus on key exam objectives, derivations, and Exit Exam multiple-choice questions for ${book.name}.`;
+
+      void (async () => {
+        setProcessingStep(1);
+        setProcessingPct(30);
+
+        let aiResult: { subject: string; questions: AIQuestion[]; notes: AINote } | null = null;
+        const wantsRealAi = integrations.aiStudy.enabled && (Boolean(adminApiKey) || hasServerEnv);
+
+        if (wantsRealAi) {
+          setProcessingStep(2);
+          setProcessingPct(60);
+          try {
+            aiResult = await requestAiGeneration(bookText, questionCount, subject);
+          } catch {
+            aiResult = null;
+          }
+          if (!isCurrent()) return;
+
+          setProcessingStep(3);
+          setProcessingPct(85);
+          await wait(300);
+          if (!isCurrent()) return;
+          setProcessingStep(4);
+          setProcessingPct(100);
+        } else {
+          for (let step = 2; step <= PROCESSING_STEPS.length; step += 1) {
+            await wait(400);
+            if (!isCurrent()) return;
+            setProcessingStep(step);
+            setProcessingPct(Math.round((step / PROCESSING_STEPS.length) * 100));
+          }
+        }
+        await wait(250);
         if (!isCurrent()) return;
-        lastGenerationRef.current = null;
-        const pool = questionPools[subject] ?? questionPools.general;
+
+        const finalSubject = aiResult?.subject ?? subject;
+        const pool = questionPools[finalSubject] ?? questionPools.general;
+        const source: "ai" | "demo" = aiResult ? "ai" : "demo";
+
+        lastGenerationRef.current =
+          source === "ai" ? { text: bookText, subjectHint: finalSubject } : null;
+
         setResult({
-          subject,
+          subject: finalSubject,
           filename: book.name,
-          questions: shuffleAndTake(pool, questionCount),
-          notes: notePools[subject] ?? notePools.general,
-          excerpt: "",
+          questions: aiResult ? aiResult.questions : shuffleAndTake(pool, questionCount),
+          notes: aiResult ? aiResult.notes : (notePools[finalSubject] ?? notePools.general),
+          excerpt: cleanExcerpt(bookText, 320),
           detectionSource: "library",
-          source: "demo",
+          source,
         });
         setPhase("results");
         activeHistoryIdRef.current = addEntry({
-          subject,
+          subject: finalSubject,
           filename: book.name,
           questionCount,
           detectionSource: "library",
-          source: "demo",
+          source,
         });
-      }, 500);
+      })();
     },
-    [addEntry, questionCount],
+    [addEntry, adminApiKey, hasServerEnv, integrations.aiStudy.enabled, questionCount, requestAiGeneration],
   );
 
   const handlePackComplete = useCallback(

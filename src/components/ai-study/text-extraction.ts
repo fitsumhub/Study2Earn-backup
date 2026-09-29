@@ -54,21 +54,29 @@ async function loadPdfjs() {
   return pdfjs;
 }
 
-async function extractPdfText(file: File, maxPages = 8): Promise<string> {
-  if (!pdfjsModulePromise) pdfjsModulePromise = loadPdfjs();
-  const { getDocument } = await pdfjsModulePromise;
+async function extractPdfText(file: File, maxPages = 15): Promise<string> {
+  try {
+    if (!pdfjsModulePromise) pdfjsModulePromise = loadPdfjs();
+    const { getDocument } = await pdfjsModulePromise;
 
-  const buffer = await file.arrayBuffer();
-  const pdf = await getDocument({ data: buffer }).promise;
-  const pageCount = Math.min(pdf.numPages, maxPages);
-  const pageTexts: string[] = [];
-  for (let i = 1; i <= pageCount; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
-    pageTexts.push(pageText);
+    const buffer = await file.arrayBuffer();
+    const pdf = await getDocument({ data: buffer }).promise;
+    const pageCount = Math.min(pdf.numPages, maxPages);
+    const pageTexts: string[] = [];
+    for (let i = 1; i <= pageCount; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
+      if (pageText.trim()) pageTexts.push(pageText);
+    }
+    const combined = pageTexts.join("\n").trim();
+    if (combined.length > 50) return combined;
+  } catch (err) {
+    console.warn("pdfjs extraction failed, attempting stream scan fallback:", err);
   }
-  return pageTexts.join("\n");
+
+  // Fallback: binary printable string scanner across the PDF buffer
+  return extractLegacyOfficeText(file, 600_000);
 }
 
 function decodeXmlEntities(text: string): string {
@@ -97,24 +105,39 @@ async function extractDocxText(file: File): Promise<string> {
     .trim();
 }
 
-/** PPTX is a zip of one XML file per slide — pull the visible text runs from each. */
-async function extractPptxText(file: File, maxSlides = 40): Promise<string> {
+/** PPTX is a zip of one XML file per slide — pull visible text runs from slides and speaker notes. */
+async function extractPptxText(file: File, maxSlides = 50): Promise<string> {
   const buffer = await file.arrayBuffer();
   const entries = unzipSync(new Uint8Array(buffer), {
-    filter: (entry) => /^ppt\/slides\/slide\d+\.xml$/.test(entry.name),
+    filter: (entry) =>
+      /^ppt\/slides\/slide\d+\.xml$/.test(entry.name) ||
+      /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(entry.name),
   });
-  const slideNames = Object.keys(entries).sort((a, b) => {
-    const na = Number(a.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
-    const nb = Number(b.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
-    return na - nb;
-  });
+  const slideNames = Object.keys(entries)
+    .filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a, b) => {
+      const na = Number(a.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+      const nb = Number(b.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+      return na - nb;
+    });
 
   const slideTexts = slideNames.slice(0, maxSlides).map((name) => {
     const xml = strFromU8(entries[name]);
     const runs = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => decodeXmlEntities(m[1]));
     return runs.join(" ");
   });
-  return slideTexts.join("\n").trim();
+
+  const notesNames = Object.keys(entries).filter((n) =>
+    /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(n),
+  );
+  const noteTexts = notesNames.slice(0, maxSlides).map((name) => {
+    const xml = strFromU8(entries[name]);
+    const runs = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => decodeXmlEntities(m[1]));
+    return runs.join(" ");
+  });
+
+  const combined = [...slideTexts, ...noteTexts].join("\n").trim();
+  return combined || extractLegacyOfficeText(file, 400_000);
 }
 
 /**
@@ -178,6 +201,9 @@ export async function extractFileText(file: File): Promise<string> {
   }
   return "";
 }
+
+export const extractTextFromFile = extractFileText;
+
 
 /** Trims extracted text down to a short, presentable excerpt for the "what we read" panel. */
 export function cleanExcerpt(text: string, maxLength = 480): string {

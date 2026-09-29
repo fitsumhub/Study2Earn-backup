@@ -74,33 +74,33 @@ function HomePage() {
                 {hero.eyebrowFlash}
               </span>
             </div>
-            <h1 className="font-serif text-[clamp(2.8rem,6vw,4.5rem)] font-bold leading-[1.08] text-brand-navy">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.15] text-brand-navy">
               {hero.headline}
               <span className="block text-brand-gold italic">{hero.headlineAccent}</span>
             </h1>
-            <p className="mt-4 text-base text-slate-500">{hero.amharic}</p>
-            <p className="mt-6 text-lg leading-relaxed text-slate-600 max-w-lg">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-slate-500">{hero.amharic}</p>
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-relaxed text-slate-600 max-w-lg">
               {hero.description}
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Link
                 to="/register"
                 search={{ ref: undefined, redirect: undefined }}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-8 py-4 font-semibold text-white transition hover:bg-brand-navy/90 hover:scale-105 shadow-lg shadow-brand-navy/20"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-brand-navy px-6 py-3.5 sm:px-8 sm:py-4 font-semibold text-white transition hover:bg-brand-navy/90 hover:scale-102 shadow-lg shadow-brand-navy/20 min-h-[48px]"
               >
                 {hero.primaryCta}
                 <ArrowRight className="size-4" />
               </Link>
               <Link
                 to="/library"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-8 py-4 font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 sm:px-8 sm:py-4 font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 min-h-[48px]"
               >
                 <BookOpen className="size-4" />
                 {hero.secondaryCta}
               </Link>
             </div>
             {/* Social proof trust strip */}
-            <div className="mt-8 flex flex-wrap gap-2">
+            <div className="mt-6 sm:mt-8 flex flex-wrap gap-2">
               {[
                 { icon: Users, label: trustStrip[0] },
                 { icon: Trophy, label: trustStrip[1] },
@@ -108,10 +108,10 @@ function HomePage() {
               ].map((s) => (
                 <span
                   key={s.label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 shadow-xs"
                 >
-                  <s.icon className="size-3.5 text-brand-gold" />
-                  {s.label}
+                  <s.icon className="size-3.5 text-brand-gold shrink-0" />
+                  <span>{s.label}</span>
                 </span>
               ))}
             </div>
@@ -133,8 +133,8 @@ function HomePage() {
       </header>
 
       {/* Stats strip */}
-      <section className="mx-auto -mt-12 max-w-7xl px-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <section className="mx-auto -mt-6 sm:-mt-12 max-w-7xl px-4 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
           {[
             {
               icon: BookOpen,
@@ -157,16 +157,16 @@ function HomePage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="flex items-center gap-6 rounded-2xl bg-white p-6 shadow-xl shadow-slate-200/60 border border-slate-100 card-lift"
+              className="flex items-center gap-4 sm:gap-6 rounded-2xl bg-white p-4.5 sm:p-6 shadow-xl shadow-slate-200/60 border border-slate-100 card-lift"
             >
               <div
-                className={`size-14 rounded-full grid place-items-center text-xl ${s.color} shrink-0 shadow-md`}
+                className={`size-12 sm:size-14 rounded-full grid place-items-center text-lg sm:text-xl ${s.color} shrink-0 shadow-md`}
               >
-                <s.icon className="size-6" />
+                <s.icon className="size-5 sm:size-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">{s.label}</p>
-                <p className="text-2xl font-bold text-brand-navy">{s.value}</p>
+                <p className="text-xs sm:text-sm font-medium text-slate-500">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-bold text-brand-navy">{s.value}</p>
               </div>
             </div>
           ))}
@@ -174,17 +174,17 @@ function HomePage() {
       </section>
 
       {/* Sponsored */}
-      <div className="mx-auto max-w-5xl px-6">
-        <SponsorAd placement="home" className="mt-16" />
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <SponsorAd placement="home" className="mt-12 sm:mt-16" />
       </div>
 
       {/* How it works */}
-      <section className="mx-auto max-w-7xl px-6 py-24 cv-auto">
-        <div className="text-center mb-16">
-          <h2 className="font-serif text-3xl font-bold text-brand-navy">How Study2Earn works</h2>
-          <p className="mt-2 text-slate-500">Three steps from open book to earned reward.</p>
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-24 cv-auto">
+        <div className="text-center mb-10 sm:mb-16">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-brand-navy">How Study2Earn works</h2>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500">Three steps from open book to earned reward.</p>
         </div>
-        <div className="relative grid md:grid-cols-3 gap-8">
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {/* Connector line */}
           <div className="hidden md:block absolute top-14 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-brand-gold/30 via-brand-gold/60 to-brand-gold/30" />
           {[
@@ -206,33 +206,33 @@ function HomePage() {
           ].map((step) => (
             <div
               key={step.n}
-              className="rounded-2xl bg-white border border-slate-100 p-8 hover:border-brand-gold/30 hover:shadow-md transition-all relative"
+              className="rounded-2xl bg-white border border-slate-100 p-6 sm:p-8 hover:border-brand-gold/30 hover:shadow-md transition-all relative"
             >
-              <div className="size-16 rounded-full bg-brand-gold/10 border-2 border-brand-gold/25 grid place-items-center font-serif text-3xl font-bold text-brand-gold mb-6">
+              <div className="size-12 sm:size-16 rounded-full bg-brand-gold/10 border-2 border-brand-gold/25 grid place-items-center font-serif text-2xl sm:text-3xl font-bold text-brand-gold mb-4 sm:mb-6">
                 {step.n}
               </div>
-              <h3 className="font-serif text-xl font-bold text-brand-navy">{step.t}</h3>
-              <p className="mt-2 text-slate-600 leading-relaxed">{step.d}</p>
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-brand-navy">{step.t}</h3>
+              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">{step.d}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Library */}
-      <section className="mx-auto max-w-7xl px-6 pb-24">
-        <div className="flex items-end justify-between mb-12">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 pb-16 sm:pb-24">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8 sm:mb-12">
           <div>
-            <h2 className="font-serif text-3xl font-bold text-brand-navy">Subject Library</h2>
-            <p className="mt-2 text-slate-500">Core courses and elective materials.</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-brand-navy">Subject Library</h2>
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">Core courses and elective materials.</p>
           </div>
           <Link
             to="/library"
-            className="text-sm font-bold text-brand-navy underline decoration-brand-gold underline-offset-4 hover:text-brand-gold transition-colors"
+            className="text-xs sm:text-sm font-bold text-brand-navy underline decoration-brand-gold underline-offset-4 hover:text-brand-gold transition-colors"
           >
-            View All Books
+            View All Books →
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-6">
           {featuredBooks.map((b) => {
             const bookId = getBookIdByShort(b.short);
             const coverUrl = books.find((lb) => lb.id === bookId)?.coverUrl;

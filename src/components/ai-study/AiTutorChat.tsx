@@ -1,5 +1,7 @@
 import {
   Bot,
+  Check,
+  Copy,
   HelpCircle,
   Lightbulb,
   MessageSquare,
@@ -35,6 +37,7 @@ export function AiTutorChat({ result }: { result: AIResult }) {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const quickPrompts = [
@@ -145,20 +148,40 @@ export function AiTutorChat({ result }: { result: AIResult }) {
               {m.sender === "user" ? <User className="size-4" /> : <Bot className="size-4" />}
             </div>
 
-            <div className="space-y-1">
-              <div
-                className={cn(
-                  "rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line shadow-sm",
-                  m.sender === "user"
-                    ? "bg-brand-navy text-white rounded-tr-none"
-                    : "bg-slate-100/90 text-slate-800 rounded-tl-none border border-slate-200/60",
+            <div className="group space-y-1">
+              <div className="relative">
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line shadow-sm",
+                    m.sender === "user"
+                      ? "bg-brand-navy text-white rounded-tr-none"
+                      : "bg-slate-100/90 text-slate-800 rounded-tl-none border border-slate-200/60",
+                  )}
+                >
+                  {m.text}
+                </div>
+                {m.sender === "tutor" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(m.text);
+                      setCopiedId(m.id);
+                      setTimeout(() => setCopiedId(null), 2000);
+                    }}
+                    className="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition p-1 rounded-lg hover:bg-slate-100"
+                    title="Copy response"
+                  >
+                    {copiedId === m.id ? (
+                      <Check className="size-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3.5 text-slate-400" />
+                    )}
+                  </button>
                 )}
-              >
-                {m.text}
               </div>
               <p
                 className={cn(
-                  "text-[10px] text-slate-400 px-1",
+                  "text-[10px] text-slate-400 px-1 opacity-0 group-hover:opacity-100 transition",
                   m.sender === "user" ? "text-right" : "text-left",
                 )}
               >
@@ -177,6 +200,7 @@ export function AiTutorChat({ result }: { result: AIResult }) {
               <span className="size-2 rounded-full bg-slate-400 animate-bounce" />
               <span className="size-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]" />
               <span className="size-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]" />
+              <span className="text-xs text-slate-400 ml-1">Thinking...</span>
             </div>
           </div>
         )}
@@ -213,14 +237,27 @@ export function AiTutorChat({ result }: { result: AIResult }) {
           }}
           className="flex items-center gap-2"
         >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isTyping}
-            placeholder={`Ask anything about this ${subject} material...`}
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-sm outline-none transition focus:border-brand-navy focus:bg-white focus:ring-2 focus:ring-brand-navy/10"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isTyping}
+              placeholder={`Ask anything about this ${subject} material...`}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-sm outline-none transition focus:border-brand-navy focus:bg-white focus:ring-2 focus:ring-brand-navy/10"
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            {input.length > 100 && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                {input.length}/500
+              </span>
+            )}
+          </div>
           <Button
             type="submit"
             disabled={!input.trim() || isTyping}

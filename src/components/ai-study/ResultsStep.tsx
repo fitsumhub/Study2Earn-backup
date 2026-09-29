@@ -155,6 +155,14 @@ export function ResultsStep({
       >
         <div className="pointer-events-none absolute -right-10 -top-10 size-56 rounded-full bg-white/5 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/4 size-40 rounded-full bg-black/10 blur-2xl" />
+        {/* Subtle noise overlay for premium texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+          }}
+        />
 
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -264,10 +272,11 @@ export function ResultsStep({
               <button
                 type="button"
                 onClick={onReset}
+                title="Return to AI Study Hub dashboard"
                 className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/20"
               >
                 <RotateCcw className="size-4" />
-                New file
+                Back to AI Study Hub
               </button>
             </div>
           </div>
@@ -276,39 +285,57 @@ export function ResultsStep({
 
       {/* ── Studley Study Modes Tab Bar ── */}
       <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-6 py-2.5 no-scrollbar">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
-                  isActive
-                    ? "bg-brand-navy text-white shadow-md shadow-brand-navy/20"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
-                )}
-              >
-                <Icon className={cn("size-4", isActive ? "text-brand-gold" : "text-slate-400")} />
-                <span>{tab.label}</span>
-                {tab.badge && (
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
-                      isActive
-                        ? "bg-white/20 text-brand-gold"
-                        : "bg-slate-100 text-slate-500",
-                    )}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="relative mx-auto max-w-6xl">
+          {/* Left fade edge for mobile scroll */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10" />
+          {/* Right fade edge for mobile scroll */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10" />
+          <div className="flex items-center gap-1 overflow-x-auto px-6 py-2.5 no-scrollbar">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(e) => {
+                    const idx = tabs.findIndex((t) => t.id === tab.id);
+                    if (e.key === "ArrowRight") {
+                      e.preventDefault();
+                      const next = tabs[(idx + 1) % tabs.length];
+                      setActiveTab(next.id);
+                    } else if (e.key === "ArrowLeft") {
+                      e.preventDefault();
+                      const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+                      setActiveTab(prev.id);
+                    }
+                  }}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
+                    isActive
+                      ? "bg-brand-navy text-white shadow-md shadow-brand-navy/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-brand-navy",
+                  )}
+                >
+                  <Icon className={cn("size-4", isActive ? "text-brand-gold" : "text-slate-400")} />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                        isActive
+                          ? "bg-white/20 text-brand-gold"
+                          : "bg-slate-100 text-slate-500",
+                      )}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

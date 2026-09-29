@@ -36,6 +36,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/hooks/use-auth";
+import { useWallet } from "@/hooks/use-wallet";
 import type { AiStudyHistoryEntry } from "@/lib/ai-study-store";
 import { libraryBooks, type LibraryBook } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -84,6 +86,8 @@ export function UploadStep({
   lastReadPage: number;
   onGenerateFromBook: (book: LibraryBook) => void;
 }) {
+  const { loggedIn, user } = useAuth();
+  const { balance: xpBalance } = useWallet();
   const [inputMode, setInputMode] = useState<UploadInputMode>("file");
   const [pastedText, setPastedText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -158,16 +162,31 @@ export function UploadStep({
   return (
     <div className="animate-in fade-in-0 duration-500">
       {/* ── Hero banner ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy via-[#1e2d5a] to-[#0f1a38] px-6 py-16 text-white shadow-lg">
-        <div className="pointer-events-none absolute -right-16 -top-16 size-72 rounded-full bg-brand-gold/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-12 left-1/3 size-64 rounded-full bg-brand-gold/5 blur-3xl" />
-
+      <div
+        className="relative overflow-hidden px-6 py-14 text-white shadow-lg"
+        style={{
+          backgroundColor: "#0e1420",
+          backgroundImage:
+            "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      >
         <div className="relative mx-auto max-w-5xl">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand-gold backdrop-blur-sm">
-              <Sparkles className="size-3.5" />
-              All-In-One AI Study Platform
+          {/* Personalization row */}
+          {loggedIn && user && (
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <span className="rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs font-semibold text-white/70">
+                👋 Welcome back, <span className="text-white font-bold">{user.name}</span>
+                {user.university ? ` · ${user.university}` : ""}
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full border border-brand-gold/30 bg-brand-gold/10 px-3 py-1 text-xs font-bold text-brand-gold">
+                <Sparkles className="size-3" />
+                {xpBalance.toLocaleString()} XP
+              </span>
             </div>
+          )}
+
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <div
               title={
                 aiReady
@@ -177,7 +196,7 @@ export function UploadStep({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold backdrop-blur-sm",
                 aiReady
-                  ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+                  ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-300"
                   : "border-white/15 bg-white/5 text-white/60",
               )}
             >
@@ -185,32 +204,14 @@ export function UploadStep({
               {aiReady ? "AI generation live" : "Demo mode ready"}
             </div>
           </div>
-          <h1 className="font-serif text-4xl font-bold leading-tight md:text-6xl text-white">
-            Upload anything. <span className="text-brand-gold">Ace any exam.</span>
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-white/70 md:text-lg">
-            Convert lecture slides, PDFs, notes, YouTube videos or recordings into 3D flashcards,
-            practice quizzes, written tests, an AI tutor chat, and an AI podcast.
-          </p>
 
-          {/* Stat pills */}
-          <div className="mt-8 flex flex-wrap gap-3">
-            {[
-              { icon: Layers, label: "Interactive 3D Flashcards" },
-              { icon: ClipboardList, label: "Exam-Style Quizzes" },
-              { icon: BookOpen, label: "Structured Notes" },
-              { icon: Radio, label: "AI Podcast Player" },
-              { icon: Zap, label: "Instant Generation" },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-medium text-white/80 backdrop-blur-sm"
-              >
-                <s.icon className="size-4 text-brand-gold" />
-                {s.label}
-              </div>
-            ))}
-          </div>
+          <h1 className="font-serif text-4xl font-bold leading-tight md:text-5xl text-white">
+            Turn any material into a{" "}
+            <span className="text-brand-gold">full study set.</span>
+          </h1>
+          <p className="mt-4 max-w-2xl text-base text-white/65 md:text-lg">
+            Upload, paste, or pick a book — get flashcards, quizzes, notes and an AI tutor in seconds.
+          </p>
         </div>
       </div>
 
@@ -319,14 +320,15 @@ export function UploadStep({
                   type="button"
                   onClick={() => setInputMode(tab.id as UploadInputMode)}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 border-b-2 px-6 py-4 text-sm font-bold transition-all duration-150",
+                    "flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-3 text-xs sm:text-sm font-bold transition-all duration-150",
                     isActive
                       ? "border-brand-navy bg-white text-brand-navy shadow-xs"
                       : "border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-800",
                   )}
                 >
                   <Icon className={cn("size-4", isActive ? "text-brand-gold" : "text-slate-400")} />
-                  {tab.label}
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
                 </button>
               );
             })}
@@ -604,6 +606,32 @@ export function UploadStep({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── Suggested prompts ── */}
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Quick study prompts</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Explain Newton's laws step by step",
+              "Summarize Chapter 3 key concepts",
+              "Create 20 multiple-choice questions",
+              "What will be on the Exit Exam?",
+              "Define all terms in my notes",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => {
+                  setPastedText(prompt);
+                  setInputMode("paste");
+                }}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-navy/40 hover:bg-brand-navy/5 hover:text-brand-navy"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
         </div>
 
