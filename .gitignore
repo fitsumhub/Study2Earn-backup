@@ -38,5 +38,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Admin API config (contains API keys — never commit)
+# Admin API config (contains API keys ï¿½ never commit)
 .admin-api-config.json
+.vercel

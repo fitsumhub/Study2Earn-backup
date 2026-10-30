@@ -28,3 +28,4 @@ jobs:
 
       - name: Build production bundles
         run: npm run build
+
