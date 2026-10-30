@@ -51,7 +51,7 @@ export const DEFAULT_PROVIDER_SETTINGS: Record<AiStudyProvider, ProviderConnecti
   },
   gemini: {
     apiKey: "",
-    model: "gemini-1.5-flash",
+    model: "gemini-flash-lite-latest",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
   },
   custom: {
@@ -79,10 +79,23 @@ export type IntegrationsConfig = {
     systemPrompt?: string;
     temperature?: number;
     defaultQuestionCount?: number;
+    maxQuestionLimit?: number;
+    tutorPersona?: "socratic" | "strict_exam" | "friendly_tutor";
+    tutorTone?: "academic" | "simplified" | "exam_prep";
+    fallbackMode?: "question_bank" | "strict_error";
+    enableAmharicSupport?: boolean;
+    suggestedPrompts?: string[];
     providers?: Record<AiStudyProvider, ProviderConnectionSettings>;
   };
   customKeys: CustomApiKey[];
 };
+
+export const DEFAULT_SUGGESTED_PROMPTS = [
+  "Explain with an Ethiopian real-world example",
+  "Give me a 5-question pop quiz on this topic",
+  "What are the most common exam traps for this concept?",
+  "Summarize the key formulas and when they apply",
+];
 
 export const DEFAULT_INTEGRATIONS: IntegrationsConfig = {
   googleAdsense: {
@@ -91,7 +104,7 @@ export const DEFAULT_INTEGRATIONS: IntegrationsConfig = {
   },
   aiStudy: {
     enabled: true,
-    provider: "anthropic",
+    provider: "gemini",
     deepseekModel: "deepseek-chat",
     custom: {
       label: "",
@@ -102,6 +115,12 @@ export const DEFAULT_INTEGRATIONS: IntegrationsConfig = {
     systemPrompt: DEFAULT_AI_SYSTEM_PROMPT,
     temperature: 0.3,
     defaultQuestionCount: 5,
+    maxQuestionLimit: 20,
+    tutorPersona: "socratic",
+    tutorTone: "academic",
+    fallbackMode: "question_bank",
+    enableAmharicSupport: true,
+    suggestedPrompts: DEFAULT_SUGGESTED_PROMPTS,
     providers: DEFAULT_PROVIDER_SETTINGS,
   },
   customKeys: [],
@@ -125,13 +144,18 @@ function normalize(raw: unknown): IntegrationsConfig {
   const adsense = value.googleAdsense;
   const aiStudy = value.aiStudy;
 
-  const currentProvider = AI_STUDY_PROVIDERS.includes(aiStudy?.provider as AiStudyProvider)
+  let currentProvider = AI_STUDY_PROVIDERS.includes(aiStudy?.provider as AiStudyProvider)
     ? (aiStudy!.provider as AiStudyProvider)
-    : "anthropic";
+    : "gemini";
 
   const rawProviders = (aiStudy?.providers || {}) as Partial<
     Record<AiStudyProvider, ProviderConnectionSettings>
   >;
+
+  // If user currently had anthropic selected without an API key, switch to gemini since a valid key is provided
+  if (currentProvider === "anthropic" && !rawProviders.anthropic?.apiKey) {
+    currentProvider = "gemini";
+  }
 
   const mergedProviders: Record<AiStudyProvider, ProviderConnectionSettings> = {
     openai: {
@@ -157,6 +181,19 @@ function normalize(raw: unknown): IntegrationsConfig {
     gemini: {
       ...DEFAULT_PROVIDER_SETTINGS.gemini,
       ...(rawProviders.gemini || {}),
+      apiKey:
+        rawProviders.gemini?.apiKey?.trim() &&
+        (rawProviders.gemini.apiKey.startsWith("AQ.") || rawProviders.gemini.apiKey.startsWith("AIza"))
+          ? rawProviders.gemini.apiKey.trim()
+          : DEFAULT_PROVIDER_SETTINGS.gemini.apiKey,
+      model:
+        rawProviders.gemini?.model?.trim() &&
+        !rawProviders.gemini.model.includes("1.5-flash") &&
+        !rawProviders.gemini.model.includes("2.5-flash-lite") &&
+        !rawProviders.gemini.model.includes("llama") &&
+        !rawProviders.gemini.model.includes("gpt")
+          ? rawProviders.gemini.model.trim()
+          : DEFAULT_PROVIDER_SETTINGS.gemini.model,
     },
     custom: {
       ...DEFAULT_PROVIDER_SETTINGS.custom,
@@ -196,9 +233,13 @@ function normalize(raw: unknown): IntegrationsConfig {
             : mergedProviders.custom.model,
       },
       apiKey:
-        typeof aiStudy?.apiKey === "string"
-          ? aiStudy.apiKey
-          : mergedProviders[currentProvider]?.apiKey || "",
+        typeof aiStudy?.apiKey === "string" && aiStudy.apiKey.trim().length > 0
+          ? (currentProvider === "gemini" &&
+             !aiStudy.apiKey.startsWith("AQ.") &&
+             !aiStudy.apiKey.startsWith("AIza")
+              ? DEFAULT_PROVIDER_SETTINGS.gemini.apiKey
+              : aiStudy.apiKey.trim())
+          : mergedProviders[currentProvider]?.apiKey || DEFAULT_PROVIDER_SETTINGS.gemini.apiKey,
       systemPrompt:
         typeof aiStudy?.systemPrompt === "string" && aiStudy.systemPrompt.trim()
           ? aiStudy.systemPrompt
@@ -211,6 +252,24 @@ function normalize(raw: unknown): IntegrationsConfig {
         typeof aiStudy?.defaultQuestionCount === "number" && !Number.isNaN(aiStudy.defaultQuestionCount)
           ? Math.max(1, Math.min(20, aiStudy.defaultQuestionCount))
           : 5,
+      maxQuestionLimit:
+        typeof aiStudy?.maxQuestionLimit === "number" && !Number.isNaN(aiStudy.maxQuestionLimit)
+          ? Math.max(3, Math.min(50, aiStudy.maxQuestionLimit))
+          : 20,
+      tutorPersona:
+        aiStudy?.tutorPersona && ["socratic", "strict_exam", "friendly_tutor"].includes(aiStudy.tutorPersona)
+          ? aiStudy.tutorPersona
+          : "socratic",
+      tutorTone:
+        aiStudy?.tutorTone && ["academic", "simplified", "exam_prep"].includes(aiStudy.tutorTone)
+          ? aiStudy.tutorTone
+          : "academic",
+      fallbackMode: aiStudy?.fallbackMode === "strict_error" ? "strict_error" : "question_bank",
+      enableAmharicSupport: aiStudy?.enableAmharicSupport !== false,
+      suggestedPrompts:
+        Array.isArray(aiStudy?.suggestedPrompts) && aiStudy.suggestedPrompts.length > 0
+          ? aiStudy.suggestedPrompts
+          : DEFAULT_SUGGESTED_PROMPTS,
       providers: mergedProviders,
     },
     customKeys: Array.isArray(value.customKeys)

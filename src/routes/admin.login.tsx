@@ -44,7 +44,7 @@ export const Route = createFileRoute("/admin/login")({
   component: AdminLoginPage,
 });
 
-export function AdminLoginPage() {
+function AdminLoginPage() {
   const { loggedIn, user, signIn } = useAuth();
   const navigate = useNavigate();
 

@@ -6,12 +6,12 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import os from "node:os";
 
 const CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const BASE_URL = "http://localhost:3001";
-const CDP_PORT = 9222;
+const BASE_URL = process.env.BASE_URL || "http://localhost:3002";
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -84,10 +84,31 @@ class CdpClient {
   }
 }
 
-async function getWsUrl() {
+async function getAvailablePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!address || typeof address === "string") {
+          reject(new Error("Could not reserve a Chrome debugging port"));
+          return;
+        }
+        resolve(address.port);
+      });
+    });
+  });
+}
+
+async function getWsUrl(port) {
   for (let i = 0; i < 30; i++) {
     try {
-      const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`);
+      const res = await fetch(`http://127.0.0.1:${port}/json/list`);
       const tabs = await res.json();
       const pageTarget = tabs.find(
         (t) =>
@@ -112,12 +133,13 @@ async function runTester() {
   console.log("============================================================\n");
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "s2e-chrome-test-"));
-  console.log(`[Chrome] Launching Chrome in headless mode with CDP on port ${CDP_PORT}...`);
+  const cdpPort = await getAvailablePort();
+  console.log(`[Chrome] Launching Chrome in headless mode with CDP on port ${cdpPort}...`);
 
   const chromeProc = spawn(
     CHROME_PATH,
     [
-      `--remote-debugging-port=${CDP_PORT}`,
+      `--remote-debugging-port=${cdpPort}`,
       "--headless=new",
       "--disable-extensions",
       "--disable-gpu",
@@ -135,7 +157,7 @@ async function runTester() {
   const uncaughtExceptions = [];
 
   try {
-    const wsUrl = await getWsUrl();
+    const wsUrl = await getWsUrl(cdpPort);
     console.log(`[CDP] Connected to Chrome DevTools endpoint.`);
 
     cdp = new CdpClient(wsUrl);
@@ -385,6 +407,14 @@ async function runTester() {
       console.warn("  Warnings / Exceptions caught:", uncaughtExceptions);
     }
     console.log(`  ✓ Total console.error logs: ${consoleErrors.length}`);
+    if (consoleErrors.length > 0) {
+      console.warn("  Console error details:", consoleErrors);
+    }
+    if (uncaughtExceptions.length > 0 || consoleErrors.length > 0) {
+      throw new Error(
+        `Admin browser reported ${uncaughtExceptions.length} uncaught exception(s) and ${consoleErrors.length} console error(s).`,
+      );
+    }
 
     console.log("\n============================================================");
     console.log("   ALL ADMIN TESTS COMPLETED SUCCESSFULLY! 🎉");

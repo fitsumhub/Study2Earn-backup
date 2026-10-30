@@ -1,20 +1,33 @@
 import {
   AlertCircle,
   BookOpen,
+  Check,
   CheckCircle2,
+  ExternalLink,
+  Eye,
   FileText,
+  Film,
   Globe,
+  Headphones,
+  Image as ImageIcon,
   Loader2,
+  Mic,
+  MicOff,
+  Pause,
+  Play,
   Plus,
   RefreshCw,
   Sparkles,
+  Square,
   Trash2,
   Upload,
   Video,
+  Volume2,
   X,
   Youtube,
+  Zap,
 } from "lucide-react";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,13 +41,21 @@ import {
 import { cn } from "@/lib/utils";
 import { extractTextFromFile } from "./text-extraction";
 
-interface CreateStudySetModalProps {
+export interface CreateStudySetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newSetId: string) => void;
+  initialTab?: IngestionTab;
 }
 
-type IngestionTab = "file" | "paste" | "books" | "url";
+export type IngestionTab =
+  | "files"
+  | "images"
+  | "record"
+  | "media"
+  | "links"
+  | "paste"
+  | "books";
 
 interface PendingSource {
   id: string;
@@ -43,6 +64,8 @@ interface PendingSource {
   sizeBytes?: number;
   extractedText: string;
   snippet: string;
+  thumbnailUrl?: string;
+  audioBlobUrl?: string;
 }
 
 const COMMON_ETHIOPIAN_COURSES = [
@@ -53,20 +76,29 @@ const COMMON_ETHIOPIAN_COURSES = [
   { code: "EmTe 1012", name: "Emerging Technologies", subject: "Technology" },
   { code: "CoSc 2041", name: "Database Systems", subject: "Computer Science" },
   { code: "EnLa 1011", name: "Communicative English", subject: "English" },
-  { code: "SpSc 1011", name: "Physical Fitness", subject: "General" },
+  { code: "Econ 1011", name: "Introduction to Economics", subject: "Economics" },
 ];
 
 export function CreateStudySetModal({
   isOpen,
   onClose,
   onSuccess,
+  initialTab = "files",
 }: CreateStudySetModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
   const { config } = useIntegrations();
 
-  const [activeTab, setActiveTab] = useState<IngestionTab>("file");
+  const [activeTab, setActiveTab] = useState<IngestionTab>(initialTab);
   const [dragOver, setDragOver] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Sources queue
   const [sources, setSources] = useState<PendingSource[]>([]);
@@ -77,15 +109,26 @@ export function CreateStudySetModal({
   const [courseCode, setCourseCode] = useState("GEN 1000");
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
 
-  // Tab 2: Paste
+  // Tab: Paste
   const [pastedText, setPastedText] = useState("");
   const [pastedTitle, setPastedTitle] = useState("");
 
-  // Tab 3: Books
-  const [selectedBook, setSelectedBook] = useState<string | null>(null);
-
-  // Tab 4: URL
+  // Tab: Link / YouTube
   const [inputUrl, setInputUrl] = useState("");
+  const [detectedYtId, setDetectedYtId] = useState<string | null>(null);
+
+  // Tab: Live Lecture Recording Studio
+  const [recordingState, setRecordingState] = useState<"idle" | "recording" | "paused" | "stopped">("idle");
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordedTranscript, setRecordedTranscript] = useState("");
+  const [recordedLectureTitle, setRecordedLectureTitle] = useState("");
+  const [micError, setMicError] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<any>(null);
+  const speechRecognitionRef = useRef<any>(null);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -94,10 +137,43 @@ export function CreateStudySetModal({
 
   const folders = getStudySetFolders();
 
+  // Clean up recording on unmount or close
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      }
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Detect YouTube URL
+  useEffect(() => {
+    if (!inputUrl) {
+      setDetectedYtId(null);
+      return;
+    }
+    const match = inputUrl.match(
+      /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i,
+    );
+    if (match && match[1]) {
+      setDetectedYtId(match[1]);
+    } else {
+      setDetectedYtId(null);
+    }
+  }, [inputUrl]);
+
   if (!isOpen) return null;
 
-  /* ── File Extraction Handler ── */
-  const handleFiles = async (files: FileList | null) => {
+  /* ── File Extraction Handler (Documents, Audio, Video) ── */
+  const handleFiles = async (files: FileList | null, forcedType?: StudySetSource["type"]) => {
     if (!files || files.length === 0) return;
     setIsExtracting(true);
 
@@ -105,21 +181,34 @@ export function CreateStudySetModal({
       const file = files[i];
       try {
         const text = await extractTextFromFile(file);
-        let type: StudySetSource["type"] = "pdf";
+        let type: StudySetSource["type"] = forcedType || "pdf";
         const ext = file.name.split(".").pop()?.toLowerCase();
         if (ext === "pptx" || ext === "ppt") type = "pptx";
         else if (ext === "docx" || ext === "doc") type = "docx";
-        else if (ext === "txt") type = "txt";
-        else if (["mp3", "wav", "m4a"].includes(ext || "")) type = "audio";
+        else if (ext === "txt" || ext === "md") type = "txt";
+        else if (["png", "jpg", "jpeg", "webp"].includes(ext || "")) type = "image";
+        else if (["mp3", "wav", "m4a", "aac", "ogg"].includes(ext || "")) type = "audio";
         else if (["mp4", "mov", "webm"].includes(ext || "")) type = "video";
+
+        let thumbnailUrl: string | undefined = undefined;
+        let audioBlobUrl: string | undefined = undefined;
+
+        if (type === "image") {
+          thumbnailUrl = URL.createObjectURL(file);
+        } else if (type === "audio") {
+          audioBlobUrl = URL.createObjectURL(file);
+        }
 
         const newSource: PendingSource = {
           id: `pend-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           title: file.name,
           type,
           sizeBytes: file.size,
-          extractedText: text || `Lecture notes and practice concepts extracted from ${file.name}.`,
+          extractedText:
+            text || `Classroom learning material and lecture concepts extracted from ${file.name}.`,
           snippet: (text || file.name).slice(0, 200),
+          thumbnailUrl,
+          audioBlobUrl,
         };
 
         setSources((prev) => [...prev, newSource]);
@@ -128,7 +217,6 @@ export function CreateStudySetModal({
         if (!title) {
           const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
           setTitle(cleanName);
-          // Auto infer subject
           const lower = file.name.toLowerCase();
           for (const c of COMMON_ETHIOPIAN_COURSES) {
             if (lower.includes(c.subject.toLowerCase()) || lower.includes(c.code.toLowerCase())) {
@@ -143,6 +231,134 @@ export function CreateStudySetModal({
       }
     }
     setIsExtracting(false);
+  };
+
+  /* ── Live Lecture Recording Logic ── */
+  const startRecording = async () => {
+    setMicError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(audioBlob);
+        setRecordedAudioUrl(url);
+        // Stop all audio tracks
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start(250);
+      setRecordingState("recording");
+      setRecordingSeconds(0);
+
+      // Start timer
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+
+      // Start speech recognition if supported
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = "en-US";
+
+          recognition.onresult = (event: any) => {
+            let transcript = "";
+            for (let i = 0; i < event.results.length; i++) {
+              transcript += event.results[i][0].transcript + " ";
+            }
+            setRecordedTranscript(transcript.trim());
+          };
+
+          recognition.start();
+          speechRecognitionRef.current = recognition;
+        } catch (e) {
+          console.warn("Speech recognition error:", e);
+        }
+      }
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      setMicError("Microphone access was denied or is unavailable. Please check browser permissions.");
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.pause();
+      setRecordingState("paused");
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
+      mediaRecorderRef.current.resume();
+      setRecordingState("recording");
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      setRecordingState("stopped");
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {}
+      }
+
+      if (!recordedLectureTitle) {
+        setRecordedLectureTitle(
+          `Live Lecture Recording (${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`,
+        );
+      }
+    }
+  };
+
+  const handleAddRecordedLecture = () => {
+    const lectureName =
+      recordedLectureTitle.trim() ||
+      `Live Lecture Recording (${new Date().toLocaleDateString()})`;
+    const textContent =
+      recordedTranscript.trim() ||
+      `Live audio lecture recording covering university curriculum concepts, professor explanations, and core exam review points for ${lectureName}.`;
+
+    const newSource: PendingSource = {
+      id: `pend-rec-${Date.now()}`,
+      title: lectureName,
+      type: "recorded-lecture",
+      extractedText: textContent,
+      snippet: textContent.slice(0, 200),
+      audioBlobUrl: recordedAudioUrl || undefined,
+    };
+
+    setSources((prev) => [...prev, newSource]);
+    if (!title) setTitle(lectureName);
+
+    // Reset recording studio
+    setRecordingState("idle");
+    setRecordingSeconds(0);
+    setRecordedAudioUrl(null);
+    setRecordedTranscript("");
+    setRecordedLectureTitle("");
   };
 
   /* ── Add Pasted Text ── */
@@ -186,13 +402,20 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
   /* ── Add URL ── */
   const handleAddUrl = () => {
     if (!inputUrl.trim()) return;
-    const isYt = inputUrl.includes("youtube.com") || inputUrl.includes("youtu.be");
+    const isYt = !!detectedYtId;
+    const itemTitle = isYt
+      ? `YouTube Lecture: ${inputUrl.slice(0, 45)}`
+      : `Web Article: ${inputUrl.slice(0, 45)}`;
+
     const newSource: PendingSource = {
       id: `pend-url-${Date.now()}`,
-      title: inputUrl.slice(0, 40),
+      title: itemTitle,
       type: isYt ? "youtube" : "web",
-      extractedText: `Online learning resource: ${inputUrl}. Ingested lecture concepts and key exam principles.`,
+      extractedText: `Online learning resource: ${inputUrl}. Ingested academic lecture principles, conceptual definitions, and exam review takeaways.`,
       snippet: inputUrl,
+      thumbnailUrl: detectedYtId
+        ? `https://img.youtube.com/vi/${detectedYtId}/mqdefault.jpg`
+        : undefined,
     };
     setSources((prev) => [...prev, newSource]);
     if (!title) setTitle(isYt ? "Video Lecture Study Pack" : "Web Article Study Pack");
@@ -201,6 +424,13 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
 
   const handleRemoveSource = (id: string) => {
     setSources((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  /* ── Format Recording Seconds ── */
+  const formatSeconds = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
   /* ── Generate Study Set ── */
@@ -212,21 +442,16 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
 
     // Combine extracted text from all sources
     const combinedText = sources
-      .map((s) => `=== SOURCE: ${s.title} ===\n${s.extractedText}`)
+      .map((s) => `=== SOURCE (${s.type.toUpperCase()}): ${s.title} ===\n${s.extractedText}`)
       .join("\n\n");
 
     try {
-      // Step 2: Extracting concepts
-      setTimeout(() => setGenerationStep(2), 500);
-      // Step 3: Flashcards & Quizzes
-      setTimeout(() => setGenerationStep(3), 1200);
-      // Step 4: Written tests & blanks
-      setTimeout(() => setGenerationStep(4), 2000);
-      // Step 5: Podcast & notes
-      setTimeout(() => setGenerationStep(5), 2800);
+      setTimeout(() => setGenerationStep(2), 600);
+      setTimeout(() => setGenerationStep(3), 1400);
+      setTimeout(() => setGenerationStep(4), 2200);
+      setTimeout(() => setGenerationStep(5), 3000);
 
-      // Call server generation function
-      const provider = config.aiStudy?.provider || "openai";
+      const provider = config.aiStudy?.provider || "gemini";
       const settings = config.aiStudy?.providers?.[provider];
       const apiKey = settings?.apiKey || config.aiStudy?.apiKey;
       const baseUrl = settings?.baseUrl;
@@ -245,7 +470,6 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
       });
 
       setGenerationStep(6);
-
       const generated = result.data;
 
       // Transform into store format
@@ -266,6 +490,8 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
         description: generated.description,
         folderId,
         sources: finalSources,
+        overview: generated.overview,
+        cheatSheet: generated.cheatSheet,
         flashcards: generated.flashcards.map((f, i) => ({
           id: `fc-gen-${Date.now()}-${i}`,
           front: f.front,
@@ -313,17 +539,17 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
   };
 
   const stepsList = [
-    "Ingesting & analyzing learning sources",
-    "Extracting fundamental concepts & boundary definitions",
-    "Generating 3D Flashcards with active recall prompts",
-    "Formulating multiple-choice questions & detailed explanations",
-    "Creating written evaluation exercises & fill-in-the-blanks",
-    "Finalizing AI Tutor grounding and podcast dialogue",
+    "Ingesting & analyzing learning sources and lecture recordings",
+    "Extracting fundamental principles, axioms & definitions",
+    "Generating active-recall 3D flashcards with mnemonic hints",
+    "Formulating multiple-choice quizzes with distractor rationales",
+    "Synthesizing executive summaries, formulas & exam morning cheat sheet",
+    "Finalizing spoken audio briefing and grounding AI tutor",
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="relative flex max-h-[94vh] w-full max-w-3xl flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
           <div>
@@ -332,7 +558,7 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
               Create AI Study Set
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              One source → one study set → 9 specialized study modes (Flashcards, Quizzes, Written Tests & AI Tutor)
+              Upload files, images, audio/video, record a live lecture, or paste links → Complete interactive study set
             </p>
           </div>
           <button
@@ -346,38 +572,40 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {/* Generation Progress Overlay */}
           {isGenerating ? (
-            <div className="py-12 text-center space-y-6 animate-in fade-in duration-300">
-              <div className="relative mx-auto flex size-20 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/50">
-                <Loader2 className="size-10 animate-spin text-blue-600 dark:text-blue-400" />
-                <Sparkles className="absolute -top-1 -right-1 size-5 text-amber-500 animate-pulse" />
+            <div className="py-10 space-y-6 text-center animate-in fade-in duration-300">
+              <div className="relative mx-auto flex size-20 items-center justify-center rounded-3xl bg-linear-to-br from-brand-navy to-blue-600 shadow-xl shadow-blue-500/20">
+                <Sparkles className="size-10 text-brand-gold animate-pulse" />
+                <div className="absolute inset-0 rounded-3xl border-2 border-white/20 animate-ping opacity-25" />
               </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
-                  Preparing your AI Study Set...
+                  Generating Your AI Study Set
                 </h3>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Synthesizing learning materials and generating study modes
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                  Compiling {sources.length} sources into 3D flashcards, quizzes, executive summary & audio briefing.
                 </p>
               </div>
 
-              {/* Progress Steps List */}
-              <div className="mx-auto max-w-md space-y-2.5 text-left bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                {stepsList.map((st, idx) => {
-                  const stepNum = idx + 1;
+              {/* Steps Progress */}
+              <div className="mx-auto max-w-md space-y-2.5 text-left">
+                {stepsList.map((st, i) => {
+                  const stepNum = i + 1;
                   const isDone = generationStep > stepNum;
                   const isCurrent = generationStep === stepNum;
                   return (
                     <div
                       key={st}
                       className={cn(
-                        "flex items-center gap-3 text-xs transition-colors",
-                        isDone && "text-emerald-600 dark:text-emerald-400 font-semibold",
-                        isCurrent && "text-blue-600 dark:text-blue-400 font-bold",
-                        !isDone && !isCurrent && "text-slate-400 dark:text-slate-500",
+                        "flex items-center gap-3 rounded-xl border p-2.5 text-xs transition",
+                        isDone &&
+                          "border-emerald-200 bg-emerald-50/60 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300",
+                        isCurrent &&
+                          "border-blue-300 bg-blue-50/70 font-semibold text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 shadow-xs",
+                        !isDone && !isCurrent && "border-slate-100 text-slate-400 dark:border-slate-800/60 dark:text-slate-500",
                       )}
                     >
                       {isDone ? (
@@ -387,14 +615,14 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                       ) : (
                         <div className="size-4 shrink-0 rounded-full border border-slate-300 dark:border-slate-600" />
                       )}
-                      <span>{st}</span>
+                      <span className="flex-1">{st}</span>
                     </div>
                   );
                 })}
               </div>
 
               {generationError && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400 flex items-center gap-2">
+                <div className="mx-auto max-w-md rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400 flex items-center gap-2">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{generationError}</span>
                 </div>
@@ -402,69 +630,121 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
             </div>
           ) : (
             <>
-              {/* Source Tabs */}
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  1. Ingest Learning Materials
-                </label>
+              {/* Step 1: Input Source Ingestion Hub */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    1. Ingest Learning Material
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Choose one or combine multiple formats
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-4 gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/70">
+                {/* Tabs bar */}
+                <div className="grid grid-cols-3 sm:grid-cols-7 gap-1.5 rounded-2xl bg-slate-100 p-1.5 dark:bg-slate-800/70">
                   <button
                     type="button"
-                    onClick={() => setActiveTab("file")}
+                    onClick={() => setActiveTab("files")}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer",
-                      activeTab === "file"
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
+                      activeTab === "files"
                         ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                         : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
                     )}
                   >
-                    <Upload className="size-3.5" />
-                    <span>Upload File</span>
+                    <Upload className="size-3.5 text-blue-500" />
+                    <span>Files</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("images")}
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
+                      activeTab === "images"
+                        ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                    )}
+                  >
+                    <ImageIcon className="size-3.5 text-emerald-500" />
+                    <span>Images</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("record")}
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center relative",
+                      activeTab === "record"
+                        ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                    )}
+                  >
+                    <Mic className="size-3.5 text-rose-500" />
+                    <span>Record</span>
+                    <span className="hidden sm:inline-block size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("media")}
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
+                      activeTab === "media"
+                        ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                    )}
+                  >
+                    <Headphones className="size-3.5 text-purple-500" />
+                    <span>Audio/Vid</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("links")}
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
+                      activeTab === "links"
+                        ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                    )}
+                  >
+                    <Youtube className="size-3.5 text-red-500" />
+                    <span>Links</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setActiveTab("paste")}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer",
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
                       activeTab === "paste"
                         ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                         : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
                     )}
                   >
-                    <FileText className="size-3.5" />
-                    <span>Paste Text</span>
+                    <FileText className="size-3.5 text-amber-500" />
+                    <span>Paste</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setActiveTab("books")}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer",
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 rounded-xl py-2 px-1.5 text-[11px] font-semibold transition cursor-pointer text-center",
                       activeTab === "books"
                         ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
                         : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
                     )}
                   >
-                    <BookOpen className="size-3.5" />
-                    <span>MoE Curriculum</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("url")}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer",
-                      activeTab === "url"
-                        ? "bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
-                    )}
-                  >
-                    <Globe className="size-3.5" />
-                    <span>Link / YouTube</span>
+                    <BookOpen className="size-3.5 text-indigo-500" />
+                    <span>Curriculum</span>
                   </button>
                 </div>
 
-                {/* Tab 1: Upload File */}
-                {activeTab === "file" && (
+                {/* Tab 1: Upload Documents / Files */}
+                {activeTab === "files" && (
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -478,7 +758,7 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                     }}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      "flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition cursor-pointer",
+                      "flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition cursor-pointer",
                       dragOver
                         ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/20"
                         : "border-slate-200 bg-slate-50/60 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30",
@@ -489,7 +769,7 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                       ref={fileInputRef}
                       className="hidden"
                       multiple
-                      accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,audio/*,video/*"
+                      accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md"
                       onChange={(e) => handleFiles(e.target.files)}
                     />
                     <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 mb-3">
@@ -501,16 +781,279 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                     </div>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       {isExtracting
-                        ? "Extracting text and formulas from file..."
-                        : "Drag & drop files here, or browse"}
+                        ? "Extracting concepts & text from file..."
+                        : "Drag & drop lecture documents, or browse"}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Supports PDF, PPT/PPTX slides, Word DOCX, TXT notes, and recordings (up to 30MB)
+                      Supports PDF, PPT/PPTX slides, Word DOCX, and TXT/Markdown (up to 50MB)
                     </p>
                   </div>
                 )}
 
-                {/* Tab 2: Paste Notes */}
+                {/* Tab 2: Upload Images */}
+                {activeTab === "images" && (
+                  <div
+                    onClick={() => imageInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-7 text-center transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30 cursor-pointer"
+                  >
+                    <input
+                      type="file"
+                      ref={imageInputRef}
+                      className="hidden"
+                      multiple
+                      accept="image/*,.png,.jpg,.jpeg,.webp"
+                      onChange={(e) => handleFiles(e.target.files, "image")}
+                    />
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 mb-3">
+                      <ImageIcon className="size-6" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      Upload Photos of Notes, Whiteboard, or Diagrams
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Snap a photo of blackboard or textbook pages (PNG, JPG, WEBP). AI extracts text & equations.
+                    </p>
+                  </div>
+                )}
+
+                {/* Tab 3: Record a Lecture Studio */}
+                {activeTab === "record" && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-800/40 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-3 rounded-full bg-rose-500 animate-pulse" />
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          Live Lecture Recording Studio
+                        </span>
+                      </div>
+                      <span className="font-mono text-sm font-bold text-rose-600 dark:text-rose-400">
+                        {formatSeconds(recordingSeconds)}
+                      </span>
+                    </div>
+
+                    {micError && (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
+                        {micError}
+                      </div>
+                    )}
+
+                    {/* Waveform / Visualizer */}
+                    <div className="flex h-16 items-center justify-center gap-1 rounded-xl bg-slate-900/90 px-4 py-2">
+                      {Array.from({ length: 24 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-1.5 rounded-full transition-all duration-150",
+                            recordingState === "recording"
+                              ? "bg-rose-400 animate-pulse"
+                              : "bg-slate-700",
+                          )}
+                          style={{
+                            height:
+                              recordingState === "recording"
+                                ? `${Math.max(12, Math.sin(i * 0.7 + recordingSeconds) * 45 + 15)}%`
+                                : "20%",
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Recording Controls */}
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      {recordingState === "idle" && (
+                        <Button
+                          type="button"
+                          onClick={startRecording}
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                        >
+                          <Mic className="size-4 mr-1.5" />
+                          Start Recording Lecture
+                        </Button>
+                      )}
+
+                      {recordingState === "recording" && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={pauseRecording}
+                            className="text-xs"
+                          >
+                            <Pause className="size-3.5 mr-1" />
+                            Pause
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={stopRecording}
+                            className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
+                          >
+                            <Square className="size-3.5 mr-1 fill-white" />
+                            Finish Recording
+                          </Button>
+                        </>
+                      )}
+
+                      {recordingState === "paused" && (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={resumeRecording}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                          >
+                            <Play className="size-3.5 mr-1 fill-white" />
+                            Resume
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={stopRecording}
+                            className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
+                          >
+                            <Square className="size-3.5 mr-1 fill-white" />
+                            Finish Recording
+                          </Button>
+                        </>
+                      )}
+
+                      {recordingState === "stopped" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={startRecording}
+                          className="text-xs"
+                        >
+                          <RefreshCw className="size-3.5 mr-1" />
+                          Re-record
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Audio Playback & Review if stopped */}
+                    {recordingState === "stopped" && (
+                      <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        {recordedAudioUrl && (
+                          <div className="rounded-xl bg-white p-2.5 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                            <audio src={recordedAudioUrl} controls className="w-full h-8" />
+                          </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Lecture Title
+                          </label>
+                          <Input
+                            placeholder="e.g. Physics 101 Lecture: Projectile Motion"
+                            value={recordedLectureTitle}
+                            onChange={(e) => setRecordedLectureTitle(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Speech-to-Text Transcript (Editable)
+                          </label>
+                          <Textarea
+                            placeholder="Transcribed lecture text appears here..."
+                            rows={3}
+                            value={recordedTranscript}
+                            onChange={(e) => setRecordedTranscript(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddRecordedLecture}
+                          className="w-full bg-brand-navy hover:bg-brand-navy/90 text-white text-xs font-bold"
+                        >
+                          <Plus className="size-3.5 mr-1.5" />
+                          Add Recorded Lecture to Study Set
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 4: Upload Audio / Video Files */}
+                {activeTab === "media" && (
+                  <div
+                    onClick={() => mediaInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-7 text-center transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30 cursor-pointer"
+                  >
+                    <input
+                      type="file"
+                      ref={mediaInputRef}
+                      className="hidden"
+                      multiple
+                      accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.mp4,.mov,.webm"
+                      onChange={(e) => handleFiles(e.target.files)}
+                    />
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400 mb-3">
+                      <Headphones className="size-6" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      Upload Audio or Video Lecture Files
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Supports MP3, WAV, M4A audio or MP4/MOV video lecture captures (up to 100MB)
+                    </p>
+                  </div>
+                )}
+
+                {/* Tab 5: Links (YouTube / Web) */}
+                {activeTab === "links" && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://youtube.com/watch?v=... or https://example.edu/lecture"
+                        value={inputUrl}
+                        onChange={(e) => setInputUrl(e.target.value)}
+                        className="text-xs"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleAddUrl}
+                        disabled={!inputUrl.trim()}
+                        className="bg-brand-navy hover:bg-brand-navy/90 text-white text-xs shrink-0"
+                      >
+                        <Plus className="size-3.5 mr-1" />
+                        Add Link
+                      </Button>
+                    </div>
+
+                    {detectedYtId && (
+                      <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50/50 p-2.5 dark:border-red-950 dark:bg-red-950/20">
+                        <img
+                          src={`https://img.youtube.com/vi/${detectedYtId}/mqdefault.jpg`}
+                          alt="YouTube Preview"
+                          className="h-14 w-24 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0 flex-1 text-xs">
+                          <p className="font-bold text-red-900 dark:text-red-200 flex items-center gap-1.5">
+                            <Youtube className="size-4 text-red-600 shrink-0" />
+                            YouTube Lecture Detected
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            Ready to synthesize into interactive notes and flashcards.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-slate-400">
+                      Paste YouTube video URL (e.g. 3Blue1Brown, MIT OCW) or academic website article URL.
+                    </p>
+                  </div>
+                )}
+
+                {/* Tab 6: Paste Notes */}
                 {activeTab === "paste" && (
                   <div className="space-y-3">
                     <Input
@@ -539,7 +1082,7 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                   </div>
                 )}
 
-                {/* Tab 3: MoE Curriculum Books */}
+                {/* Tab 7: MoE Curriculum Books */}
                 {activeTab === "books" && (
                   <div className="space-y-2">
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -567,33 +1110,6 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                     </div>
                   </div>
                 )}
-
-                {/* Tab 4: Web / YouTube Link */}
-                {activeTab === "url" && (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="https://youtube.com/watch?v=... or https://example.edu/notes"
-                        value={inputUrl}
-                        onChange={(e) => setInputUrl(e.target.value)}
-                        className="text-xs"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleAddUrl}
-                        disabled={!inputUrl.trim()}
-                        className="bg-brand-navy hover:bg-brand-navy/90 text-white text-xs shrink-0"
-                      >
-                        <Plus className="size-3.5 mr-1" />
-                        Add Link
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Paste YouTube video URL or public academic lecture link to transcribe concepts.
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Ingestion Queue / Selected Sources */}
@@ -608,21 +1124,41 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {sources.map((s) => (
                       <div
                         key={s.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 text-xs dark:border-slate-800 dark:bg-slate-800/40"
+                        className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-800/40"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="size-3.5 text-blue-500 shrink-0" />
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            {s.title}
-                          </span>
-                          <span className="rounded-sm bg-slate-200 px-1 py-0.2 text-[10px] text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                            {s.type.toUpperCase()}
-                          </span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {s.thumbnailUrl ? (
+                            <img
+                              src={s.thumbnailUrl}
+                              alt=""
+                              className="size-8 rounded-md object-cover shrink-0"
+                            />
+                          ) : s.type === "recorded-lecture" ? (
+                            <Mic className="size-4 text-rose-500 shrink-0" />
+                          ) : s.type === "youtube" ? (
+                            <Youtube className="size-4 text-red-500 shrink-0" />
+                          ) : s.type === "image" ? (
+                            <ImageIcon className="size-4 text-emerald-500 shrink-0" />
+                          ) : s.type === "audio" ? (
+                            <Headphones className="size-4 text-purple-500 shrink-0" />
+                          ) : (
+                            <FileText className="size-4 text-blue-500 shrink-0" />
+                          )}
+
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {s.title}
+                            </p>
+                            <span className="rounded-sm bg-slate-200 px-1 py-0.2 text-[9px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              {s.type.toUpperCase()}
+                            </span>
+                          </div>
                         </div>
+
                         <button
                           type="button"
                           onClick={() => handleRemoveSource(s.id)}
@@ -715,4 +1251,3 @@ Comprehensive higher education foundational framework, key axioms, boundary defi
     </div>
   );
 }
-

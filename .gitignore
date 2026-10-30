@@ -37,3 +37,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Admin API config (contains API keys — never commit)
+.admin-api-config.json

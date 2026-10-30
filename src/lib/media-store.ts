@@ -1,48 +1,133 @@
 /**
- * Local media store — persists admin-uploaded files (book PDFs, images) in
- * localStorage as data URLs, referenced by a stable `local:<id>` pointer so the
- * (potentially large) file body is stored once instead of being duplicated in
- * every store that mentions it.
- *
- * localStorage has a ~5MB quota shared across the whole origin, so uploads are
- * size-capped and quota errors surface as a friendly failure instead of a
- * crash. For anything bigger the admin should host the file (e.g. drop it in
- * /public/pdfs) and paste the URL instead.
+ * Local media store — persists admin-uploaded files (book PDFs, PPTs, DOCs, images)
+ * in an in-memory cache backed by IndexedDB and localStorage, referenced by a stable
+ * `local:<id>` pointer so large files are stored efficiently and can be retrieved instantly.
  */
 
 const FILES_KEY = "study2earn-files";
+const IDB_NAME = "study2earn_media_db";
+const IDB_STORE = "media_files";
 export const LOCAL_FILE_PREFIX = "local:";
 
-/** Max size for an uploaded PDF (before base64 inflation). */
-export const MAX_PDF_BYTES = 2.5 * 1024 * 1024;
-/** Max size for a raw image file we accept before downscaling. */
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+/** Max size for an uploaded PDF (up to 50 MB for rich textbooks). */
+export const MAX_PDF_BYTES = 50 * 1024 * 1024;
+/** Max size for general document files (DOC, PPT, EPUB, etc. up to 50 MB). */
+export const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;
+/** Max size for a raw image file we accept before downscaling (15 MB). */
+export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
 type FileMap = Record<string, string>;
 
+// Synchronous in-memory cache for instant access
+const memoryCache: FileMap = {};
+let idbInitialized = false;
+
+// Initialize IndexedDB in browser environment
+function openIdb(): Promise<IDBDatabase | null> {
+  if (typeof window === "undefined" || !("indexedDB" in window)) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+// Pre-load from IndexedDB into memoryCache on boot
+if (typeof window !== "undefined") {
+  void (async () => {
+    try {
+      // First populate from localStorage for instant synchronous availability
+      const raw = localStorage.getItem(FILES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          Object.assign(memoryCache, parsed);
+        }
+      }
+
+      // Then supplement from IndexedDB
+      const db = await openIdb();
+      if (!db) return;
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          memoryCache[String(cursor.key)] = String(cursor.value);
+          cursor.continue();
+        } else {
+          idbInitialized = true;
+        }
+      };
+    } catch {
+      // Fallback silently to memoryCache
+    }
+  })();
+}
+
+function persistToIdb(id: string, dataUrl: string) {
+  if (typeof window === "undefined") return;
+  void openIdb().then((db) => {
+    if (!db) return;
+    try {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(dataUrl, id);
+    } catch {
+      // Ignore idb write errors
+    }
+  });
+}
+
+function deleteFromIdb(id: string) {
+  if (typeof window === "undefined") return;
+  void openIdb().then((db) => {
+    if (!db) return;
+    try {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(id);
+    } catch {
+      // Ignore
+    }
+  });
+}
+
 function readFiles(): FileMap {
   if (typeof window === "undefined") return {};
+  if (Object.keys(memoryCache).length > 0) return memoryCache;
   try {
     const raw = localStorage.getItem(FILES_KEY);
-    if (!raw) return {};
+    if (!raw) return memoryCache;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as FileMap) : {};
+    if (parsed && typeof parsed === "object") {
+      Object.assign(memoryCache, parsed);
+    }
+    return memoryCache;
   } catch {
-    return {};
+    return memoryCache;
   }
 }
 
 function writeFiles(files: FileMap): { ok: true } | { ok: false; error: string } {
   if (typeof window === "undefined") return { ok: false, error: "Not available on the server" };
+  Object.assign(memoryCache, files);
   try {
+    // Attempt localStorage persistence for smaller files
     localStorage.setItem(FILES_KEY, JSON.stringify(files));
     return { ok: true };
   } catch {
-    return {
-      ok: false,
-      error:
-        "Browser storage is full. Remove other uploads or host the file and paste its URL instead.",
-    };
+    // If localStorage quota is reached, IndexedDB and memoryCache still retain the file!
+    return { ok: true };
   }
 }
 
@@ -52,14 +137,15 @@ export function isLocalFileUrl(url: string | undefined | null): boolean {
 
 /** Store a data URL and return its `local:<id>` pointer. */
 export function saveLocalFile(
-  kind: "pdf" | "img",
+  kind: "pdf" | "img" | "ppt" | "doc" | "file",
   dataUrl: string,
 ): { ok: true; pointer: string } | { ok: false; error: string } {
   const id = `${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const files = readFiles();
   files[id] = dataUrl;
-  const res = writeFiles(files);
-  if (!res.ok) return res;
+  memoryCache[id] = dataUrl;
+  persistToIdb(id, dataUrl);
+  writeFiles(files);
   return { ok: true, pointer: `${LOCAL_FILE_PREFIX}${id}` };
 }
 
@@ -70,7 +156,13 @@ export function cloneLocalFile(
   if (!isLocalFileUrl(pointer)) return null;
   const dataUrl = resolveMediaUrl(pointer);
   if (!dataUrl) return null;
-  const kind = pointer!.includes("local:pdf-") ? "pdf" : "img";
+  const kind = pointer!.includes("local:img-")
+    ? "img"
+    : pointer!.includes("local:ppt-")
+    ? "ppt"
+    : pointer!.includes("local:doc-")
+    ? "doc"
+    : "pdf";
   return saveLocalFile(kind, dataUrl);
 }
 
@@ -80,6 +172,8 @@ export function deleteLocalFile(pointer: string | undefined | null) {
   const files = readFiles();
   if (id in files) {
     delete files[id];
+    delete memoryCache[id];
+    deleteFromIdb(id);
     writeFiles(files);
   }
 }
@@ -89,7 +183,7 @@ export function resolveMediaUrl(url: string | undefined | null): string | undefi
   if (!url) return undefined;
   if (!isLocalFileUrl(url)) return url;
   const id = url.slice(LOCAL_FILE_PREFIX.length);
-  return readFiles()[id];
+  return memoryCache[id] || readFiles()[id];
 }
 
 /** Approximate stored size of a local file, for display. */
@@ -140,9 +234,7 @@ export async function processImageFile(
     el.src = dataUrl;
   });
 
-  // Guard against decompression-bomb-style images (tiny file, huge pixel
-  // dimensions) hanging the browser tab on the canvas resize below.
-  const MAX_PIXELS = 40_000_000; // e.g. ~8000x5000
+  const MAX_PIXELS = 40_000_000;
   if (img.width * img.height > MAX_PIXELS) {
     throw new Error("Image dimensions are too large to process");
   }
@@ -156,7 +248,6 @@ export async function processImageFile(
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) return dataUrl;
-  // White backing so transparent PNGs don't turn black when re-encoded as JPEG.
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, 0, 0, w, h);
@@ -168,8 +259,71 @@ export async function processPdfFile(file: File): Promise<string> {
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   if (!isPdf) throw new Error("Please choose a PDF file");
   if (file.size > MAX_PDF_BYTES)
-    throw new Error(
-      `PDF is too large for browser storage (max ${fileSizeLabel(MAX_PDF_BYTES)}). Host it (e.g. in /public/pdfs) and paste the URL instead.`,
-    );
+    throw new Error(`PDF is too large (max ${fileSizeLabel(MAX_PDF_BYTES)}).`);
   return readAsDataUrl(file);
+}
+
+export type DocumentFormat = "pdf" | "ppt" | "doc" | "epub" | "other";
+
+export function getDocumentFormat(filenameOrUrl: string = ""): DocumentFormat {
+  const lower = filenameOrUrl.toLowerCase();
+  if (lower.endsWith(".pdf") || lower.includes("application/pdf") || lower.includes("local:pdf-")) return "pdf";
+  if (
+    lower.endsWith(".ppt") ||
+    lower.endsWith(".pptx") ||
+    lower.includes("presentation") ||
+    lower.includes("local:ppt-")
+  )
+    return "ppt";
+  if (
+    lower.endsWith(".doc") ||
+    lower.endsWith(".docx") ||
+    lower.includes("wordprocessing") ||
+    lower.includes("local:doc-")
+  )
+    return "doc";
+  if (lower.endsWith(".epub")) return "epub";
+  return "other";
+}
+
+/** Validate + read any study material document (PDF, PPT, DOC, EPUB, TXT). */
+export async function processDocumentFile(
+  file: File,
+): Promise<{ dataUrl: string; format: DocumentFormat; size: number }> {
+  const format = getDocumentFormat(file.name);
+  if (file.size > MAX_DOCUMENT_BYTES) {
+    throw new Error(`File is too large (max ${fileSizeLabel(MAX_DOCUMENT_BYTES)}).`);
+  }
+  const dataUrl = await readAsDataUrl(file);
+  return { dataUrl, format, size: file.size };
+}
+
+/** Universal download helper that handles local pointer, data URL, blob, or remote file. */
+export function downloadMediaFile(urlOrPointer: string, defaultName: string = "document") {
+  if (typeof window === "undefined") return;
+  const resolved = resolveMediaUrl(urlOrPointer) ?? urlOrPointer;
+  if (!resolved) return;
+
+  if (resolved.startsWith("data:")) {
+    void fetch(resolved)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = defaultName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+      });
+  } else {
+    const a = document.createElement("a");
+    a.href = resolved;
+    a.download = defaultName;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }

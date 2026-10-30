@@ -10,6 +10,7 @@ import { useState } from "react";
 
 import { ChapterDetailSheet } from "@/components/chapter-detail-sheet";
 import { ChapterPresentation } from "@/components/chapter-presentation";
+import { CourseCover } from "@/components/course-cover";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
@@ -73,60 +74,67 @@ function CourseChaptersPage() {
             </Link>
           </Button>
 
-          {/* Course Hero Banner */}
-          <header className="mb-8 section-enter rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/70 to-amber-50/30 p-6 sm:p-8 shadow-xs relative overflow-hidden">
-            <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-brand-gold/10 blur-3xl pointer-events-none" />
+          {/* Course Hero Banner with enhanced thumbnail */}
+          <header className="mb-8 section-enter rounded-3xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+            <CourseCover
+              courseId={course.id}
+              name={course.name}
+              coverUrl={course.coverUrl}
+              className="h-44 sm:h-52"
+            />
             
-            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-brand-navy px-3 py-1 text-[11px] font-bold text-white shadow-xs">
-                    {course.category}
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                    {course.durationMinutes} min / exam
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                    {course.questionsPerExam} Qs / chapter
-                  </span>
-                </div>
-                <h1 className="font-serif text-3xl font-bold text-brand-navy md:text-4xl">
-                  {course.name}
-                </h1>
-                <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
-                  Choose a chapter to practice timed MCQs, review core lecture concepts, and earn up to{" "}
-                  <span className="font-bold text-brand-gold">{course.chapters.length * 75} XP</span>.
-                </p>
-              </div>
-
-              {/* Radial gauge */}
-              <div className="flex shrink-0 items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-xs">
-                <div className="relative size-16 shrink-0">
-                  <svg viewBox="0 0 64 64" className="size-16 -rotate-90">
-                    <circle cx="32" cy="32" r="26" fill="none" stroke="#f1f5f9" strokeWidth="6" />
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="26"
-                      fill="none"
-                      stroke={stats.percent >= 80 ? "#10b981" : stats.percent >= 40 ? "#d97706" : "#3b82f6"}
-                      strokeWidth="6"
-                      strokeLinecap="round"
-                      strokeDasharray={String(2 * Math.PI * 26)}
-                      strokeDashoffset={String(2 * Math.PI * 26 * (1 - (stats.total > 0 ? stats.percent / 100 : 0)))}
-                      className="transition-all duration-500"
-                    />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center font-serif text-sm font-bold text-brand-navy">
-                    {stats.percent}%
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mastery</p>
-                  <p className="font-bold text-slate-900 text-sm">{stats.completed}/{stats.total} Complete</p>
-                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-                    +{stats.completed * 75} XP Earned
+            <div className="p-6 sm:p-8 bg-gradient-to-br from-white via-slate-50/70 to-amber-50/20 relative">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-brand-navy px-3 py-1 text-[11px] font-bold text-white shadow-xs">
+                      {course.category}
+                    </span>
+                    <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                      {course.durationMinutes} min / exam
+                    </span>
+                    <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                      {course.questionsPerExam} Qs / chapter
+                    </span>
+                  </div>
+                  <h1 className="font-serif text-3xl font-bold text-brand-navy md:text-4xl">
+                    {course.name}
+                  </h1>
+                  <p className="text-sm text-slate-600 max-w-xl leading-relaxed">
+                    Choose a chapter to practice timed MCQs, review core lecture concepts, and earn up to{" "}
+                    <span className="font-bold text-brand-gold">{course.chapters.length * 75} XP</span>.
                   </p>
+                </div>
+
+                {/* Radial gauge */}
+                <div className="flex shrink-0 items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-xs">
+                  <div className="relative size-16 shrink-0">
+                    <svg viewBox="0 0 64 64" className="size-16 -rotate-90">
+                      <circle cx="32" cy="32" r="26" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="26"
+                        fill="none"
+                        stroke={stats.percent >= 80 ? "#10b981" : stats.percent >= 40 ? "#d97706" : "#3b82f6"}
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={String(2 * Math.PI * 26)}
+                        strokeDashoffset={String(2 * Math.PI * 26 * (1 - (stats.total > 0 ? stats.percent / 100 : 0)))}
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center font-serif text-sm font-bold text-brand-navy">
+                      {stats.percent}%
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mastery</p>
+                    <p className="font-bold text-slate-900 text-sm">{stats.completed}/{stats.total} Complete</p>
+                    <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                      +{stats.completed * 75} XP Earned
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

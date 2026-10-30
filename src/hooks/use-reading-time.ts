@@ -63,6 +63,7 @@ export function useReadingTime() {
     totalSeconds,
     rewardClaimed,
     canClaim,
+    streakDays: record.activeDays?.length ?? 0,
     progressPercent: readingProgressPercent(totalSeconds),
     hoursRemaining: readingHoursRemaining(totalSeconds),
     formatted: formatReadingDuration(totalSeconds),

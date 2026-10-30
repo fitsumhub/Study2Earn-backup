@@ -7,14 +7,13 @@ import {
   Copy,
   Edit2,
   FileText,
-  GraduationCap,
-  Headphones,
   HelpCircle,
   Pencil,
   Share2,
   Sparkles,
   Star,
   X,
+  Zap,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,21 +27,21 @@ import {
   type StudySet,
 } from "@/lib/study-set-store";
 import { cn } from "@/lib/utils";
-import { AIChat } from "./AIChat";
-import { AiPodcastPlayer } from "./AiPodcastPlayer";
 import { FlashcardsMode } from "./FlashcardsMode";
 import { StudySetFillBlanksTab } from "./StudySetFillBlanksTab";
 import { StudySetNotesTab } from "./StudySetNotesTab";
 import { StudySetOverviewTab } from "./StudySetOverviewTab";
 import { StudySetQuizTab } from "./StudySetQuizTab";
-import { StudySetSourcesTab } from "./StudySetSourcesTab";
+import { StudySetSummaryTab } from "./StudySetSummaryTab";
 import { StudySetWrittenTab } from "./StudySetWrittenTab";
+import { StudySetDeepLearningCopilot } from "./StudySetDeepLearningCopilot";
 
 export type StudySetTabKey =
   | "overview"
   | "tutor"
   | "flashcards"
   | "quiz"
+  | "summary"
   | "written"
   | "fillblanks"
   | "notes"
@@ -102,47 +101,75 @@ export function StudySetDetailWorkspace({
     label: string;
     icon: React.ElementType;
     badge?: number | string;
+    accent: string;
+    activeClass: string;
   }> = [
-    { key: "overview", label: "Overview", icon: BookOpen },
-    { key: "tutor", label: "AI Tutor", icon: GraduationCap },
+    {
+      key: "overview",
+      label: "Overview",
+      icon: BookOpen,
+      accent: "text-blue-600 dark:text-blue-400",
+      activeClass: "bg-slate-900 text-white shadow-md dark:bg-blue-600 dark:text-white",
+    },
+    {
+      key: "notes",
+      label: "Summarize Notes",
+      icon: FileText,
+      accent: "text-indigo-600 dark:text-indigo-400",
+      activeClass: "bg-indigo-950 text-white shadow-md dark:bg-indigo-600 dark:text-white",
+    },
     {
       key: "flashcards",
       label: "Flashcards",
       icon: Brain,
       badge: studySet.flashcards.length,
+      accent: "text-amber-600 dark:text-amber-400",
+      activeClass: "bg-amber-950 text-white shadow-md dark:bg-amber-600 dark:text-white",
     },
     {
       key: "quiz",
       label: "Quiz",
       icon: HelpCircle,
       badge: studySet.quizzes.length,
+      accent: "text-purple-600 dark:text-purple-400",
+      activeClass: "bg-purple-950 text-white shadow-md dark:bg-purple-600 dark:text-white",
+    },
+    {
+      key: "summary",
+      label: "Cheat Sheet",
+      icon: Zap,
+      accent: "text-orange-600 dark:text-orange-400",
+      activeClass: "bg-orange-950 text-white shadow-md dark:bg-orange-600 dark:text-white",
     },
     {
       key: "written",
       label: "Written Test",
       icon: Pencil,
       badge: studySet.writtenTests.length,
+      accent: "text-emerald-600 dark:text-emerald-400",
+      activeClass: "bg-emerald-950 text-white shadow-md dark:bg-emerald-600 dark:text-white",
     },
     {
       key: "fillblanks",
       label: "Fill Blanks",
       icon: CheckCircle2,
       badge: studySet.fillBlanks.length,
+      accent: "text-cyan-600 dark:text-cyan-400",
+      activeClass: "bg-cyan-950 text-white shadow-md dark:bg-cyan-600 dark:text-white",
     },
-    { key: "notes", label: "Notes", icon: FileText },
-    { key: "podcast", label: "Podcast", icon: Headphones },
     {
-      key: "sources",
-      label: "Sources",
-      icon: FileText,
-      badge: studySet.sources.length,
+      key: "tutor",
+      label: "AI Tutor",
+      icon: Sparkles,
+      accent: "text-rose-600 dark:text-rose-400",
+      activeClass: "bg-rose-950 text-white shadow-md dark:bg-rose-600 dark:text-white",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 pb-20">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 pb-20">
       {/* ── Top Sticky Workspace Navigation Bar ── */}
-      <div className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 px-4 py-3 backdrop-blur-md dark:border-slate-800/90 dark:bg-slate-900/95 shadow-xs">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/95 shadow-xs">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           {/* Back & Study Set Title */}
           <div className="flex items-center gap-3 min-w-0">
@@ -151,16 +178,20 @@ export function StudySetDetailWorkspace({
               variant="ghost"
               size="sm"
               onClick={onBackToLibrary}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white shrink-0 -ml-2"
+              className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shrink-0 rounded-xl"
             >
-              <ArrowLeft className="size-4 mr-1" />
-              <span className="hidden sm:inline">Back to</span> Sets
+              <ArrowLeft className="size-4 mr-1.5" />
+              <span>Library</span>
             </Button>
 
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
 
-            <div className="flex items-center gap-2 min-w-0">
-              <h1 className="truncate font-serif text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-[11px] font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60 shrink-0">
+                {studySet.courseCode || studySet.subject}
+              </span>
+
+              <h1 className="truncate font-serif text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 {studySet.title}
               </h1>
 
@@ -170,35 +201,33 @@ export function StudySetDetailWorkspace({
                   setRenameTitle(studySet.title);
                   setIsRenameOpen(true);
                 }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 title="Rename study set"
+                aria-label="Rename study set"
               >
                 <Edit2 className="size-3.5" />
               </button>
-
-              <span className="hidden sm:inline-flex rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                {studySet.courseCode || studySet.subject}
-              </span>
             </div>
           </div>
 
           {/* Action buttons on right */}
           <div className="flex items-center gap-2">
-            <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <Sparkles className="size-3 text-brand-gold" />
-              {studySet.progress.overallPct}% Mastered
-            </span>
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-100/80 px-3 py-1 text-xs font-bold text-slate-700 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-200 shadow-2xs">
+              <Sparkles className="size-3 text-amber-500 fill-amber-500/20" />
+              <span>{studySet.progress.overallPct}% Mastered</span>
+            </div>
 
             <button
               type="button"
               onClick={handleToggleFavorite}
               className={cn(
-                "rounded-full p-2 transition hover:bg-slate-100 dark:hover:bg-slate-800",
+                "rounded-xl p-2 transition cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800",
                 isFav
-                  ? "text-amber-400 hover:text-amber-500"
-                  : "text-slate-400 hover:text-slate-600",
+                  ? "text-amber-500 hover:text-amber-600"
+                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200",
               )}
               title={isFav ? "Favorited" : "Add to favorites"}
+              aria-label={isFav ? "Favorited" : "Add to favorites"}
             >
               <Star className={cn("size-4", isFav && "fill-amber-400")} />
             </button>
@@ -208,19 +237,19 @@ export function StudySetDetailWorkspace({
               size="sm"
               variant="outline"
               onClick={() => setIsShareOpen(true)}
-              className="text-xs font-semibold"
+              className="text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <Share2 className="size-3.5 mr-1" />
+              <Share2 className="size-3.5 mr-1.5" />
               Share
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* ── Tab Bar Navigation (Studley 9 Tabs) ── */}
-      <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+      {/* ── Premium Academic Tab Bar ── */}
+      <nav aria-label="Study modes" className="border-b border-slate-200/90 bg-white/80 dark:border-slate-800 dark:bg-slate-900/80 backdrop-blur-xs sticky top-[57px] z-20">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2.5">
             {tabsConfig.map((t) => {
               const Icon = t.icon;
               const isActive = activeTab === t.key;
@@ -233,21 +262,26 @@ export function StudySetDetailWorkspace({
                     if (t.key !== "quiz") setFocusWeakInQuiz(false);
                   }}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer",
+                    "group relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
                     isActive
-                      ? "bg-brand-navy text-white shadow-xs dark:bg-blue-600"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/80",
+                      ? t.activeClass
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/60",
                   )}
                 >
-                  <Icon className="size-4" />
-                  <span>{t.label}</span>
+                  <Icon
+                    className={cn(
+                      "size-4 transition-transform group-hover:scale-110",
+                      isActive ? "text-white" : t.accent,
+                    )}
+                  />
+                  <span className={cn(isActive && "font-bold")}>{t.label}</span>
                   {t.badge !== undefined && (
                     <span
                       className={cn(
-                        "rounded-full px-1.5 py-0.2 text-[10px]",
+                        "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none",
                         isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                          ? "bg-white/25 text-white"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 group-hover:bg-slate-200/80 dark:group-hover:bg-slate-700",
                       )}
                     >
                       {t.badge}
@@ -258,7 +292,7 @@ export function StudySetDetailWorkspace({
             })}
           </div>
         </div>
-      </div>
+      </nav>
 
       {/* ── Active Tab Workspace Area ── */}
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
@@ -268,35 +302,11 @@ export function StudySetDetailWorkspace({
             studySet={studySet}
             onNavigateTab={(tab) => setActiveTab(tab as StudySetTabKey)}
             onPracticeWeakAreas={handlePracticeWeakAreas}
+            onStudySetUpdated={onStudySetUpdated}
           />
         )}
 
-        {/* 2. AI TUTOR (Grounded on this study set) */}
-        {activeTab === "tutor" && (
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-blue-200/60 bg-blue-50/50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <GraduationCap className="size-6 text-blue-600 dark:text-blue-400 shrink-0" />
-                <div>
-                  <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
-                    Grounded AI Tutor: {studySet.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    This tutor is grounded strictly on your {studySet.sources.length} ingested sources. Ask anything!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <AIChat
-              initialCourse={`${studySet.title} (${studySet.courseCode || studySet.subject})`}
-              initialTool="tutor"
-              initialPrompt={`I am studying "${studySet.title}". Please quiz me or explain the hardest concept from our source material!`}
-            />
-          </div>
-        )}
-
-        {/* 3. FLASHCARDS */}
+        {/* 2. FLASHCARDS */}
         {activeTab === "flashcards" && (
           <FlashcardsMode
             initialFlashcards={studySet.flashcards}
@@ -318,40 +328,67 @@ export function StudySetDetailWorkspace({
             studySet={studySet}
             initialFocusWeak={focusWeakInQuiz}
             onNavigateTab={(tab) => setActiveTab(tab as StudySetTabKey)}
+            onStudySetUpdated={onStudySetUpdated}
           />
         )}
 
         {/* 5. WRITTEN TEST */}
-        {activeTab === "written" && <StudySetWrittenTab studySet={studySet} />}
-
-        {/* 6. FILL IN THE BLANKS */}
-        {activeTab === "fillblanks" && <StudySetFillBlanksTab studySet={studySet} />}
-
-        {/* 7. AI NOTES & FORMULAS */}
-        {activeTab === "notes" && <StudySetNotesTab studySet={studySet} />}
-
-        {/* 8. AI PODCAST */}
-        {activeTab === "podcast" && (
-          <div className="space-y-6">
-            <AiPodcastPlayer
-              podcast={{
-                title: studySet.podcast.title,
-                hosts: studySet.podcast.hosts,
-                durationEstimate: studySet.podcast.durationEstimate,
-                dialogue: studySet.podcast.dialogue.map((d) => ({
-                  id: d.id,
-                  speaker: d.speaker.includes("Jordan") ? "Jordan" : "Alex",
-                  text: d.text,
-                  role: d.role,
-                })),
-              }}
-            />
-          </div>
+        {activeTab === "written" && (
+          <StudySetWrittenTab
+            studySet={studySet}
+            onStudySetUpdated={onStudySetUpdated}
+          />
         )}
 
-        {/* 9. SOURCES */}
-        {activeTab === "sources" && <StudySetSourcesTab studySet={studySet} />}
+        {/* 6. FILL IN THE BLANKS */}
+        {activeTab === "fillblanks" && (
+          <StudySetFillBlanksTab
+            studySet={studySet}
+            onStudySetUpdated={onStudySetUpdated}
+          />
+        )}
+
+        {/* 7. AI NOTES & FORMULAS */}
+        {activeTab === "notes" && (
+          <StudySetNotesTab
+            studySet={studySet}
+            onStudySetUpdated={onStudySetUpdated}
+          />
+        )}
+
+        {/* SUMMARY & CHEAT SHEET */}
+        {activeTab === "summary" && (
+          <StudySetSummaryTab
+            studySet={studySet}
+            onStudySetUpdated={onStudySetUpdated}
+          />
+        )}
+
+        {/* 8. AI TUTOR & DEEP LEARNING COPILOT */}
+        {activeTab === "tutor" && (
+          <StudySetDeepLearningCopilot
+            studySet={studySet}
+            onNavigateTab={(tab) => setActiveTab(tab as StudySetTabKey)}
+          />
+        )}
       </div>
+
+      {/* ── Floating Ask AI Tutor Button ── */}
+      {activeTab !== "tutor" && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("tutor");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 via-indigo-600 to-brand-navy px-4 py-2.5 text-xs font-bold text-white shadow-xl shadow-rose-500/25 hover:scale-105 transition-all cursor-pointer border border-white/20"
+          >
+            <Sparkles className="size-4 animate-pulse text-amber-300" />
+            Ask AI Tutor
+          </button>
+        </div>
+      )}
 
       {/* ── Rename Modal ── */}
       {isRenameOpen && (

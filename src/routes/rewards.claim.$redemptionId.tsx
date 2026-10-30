@@ -80,7 +80,7 @@ function RewardClaimPage() {
                       Category
                     </p>
                     <p className="mt-1 font-medium text-brand-navy">
-                      {kindMeta[kindOf(record.tag)].label}
+                      {kindMeta[kindOf(record.tag, record.title)].label}
                     </p>
                   </div>
                   <div>

@@ -82,6 +82,7 @@ export function buildDefaultAdminData(): AdminStoreData {
       pdfUrl: b.pdfUrl ?? "/pdfs/sample-textbook.pdf",
       pages: b.pages,
       coverUrl: b.coverUrl,
+      chapterList: b.chapterList.map((c) => ({ title: c.title, pages: c.pages })),
     })),
     flags: defaultFlags,
     settings: defaultSettings,
@@ -130,6 +131,7 @@ function sanitizeAdminData(partial: unknown): AdminStoreData {
             description: c.description ?? "",
             pdfUrl: c.pdfUrl ?? "/pdfs/sample-textbook.pdf",
             published: c.published ?? true,
+            chapterList: c.chapterList ?? defaults.content.find((d) => d.id === c.id)?.chapterList,
           }))
       : defaults.content,
     flags: isArray<ModerationFlag>(data.flags) ? data.flags.filter((f) => f?.id) : defaults.flags,

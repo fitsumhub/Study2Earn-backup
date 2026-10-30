@@ -60,8 +60,12 @@ export type DownloadProgress = {
   percent: number | null;
 };
 
-function downloadFilename(book: Pick<LibraryBook, "short">) {
-  return `${book.short.toLowerCase().replace(/\s+/g, "-")}.pdf`;
+import { getDocumentFormat } from "@/lib/media-store";
+
+function downloadFilename(book: Pick<LibraryBook, "short" | "pdfUrl">) {
+  const fmt = getDocumentFormat(book.pdfUrl || "");
+  const ext = fmt === "ppt" ? "pptx" : fmt === "doc" ? "docx" : fmt === "epub" ? "epub" : "pdf";
+  return `${book.short.toLowerCase().replace(/\s+/g, "-")}.${ext}`;
 }
 
 export function useBookDownloads() {

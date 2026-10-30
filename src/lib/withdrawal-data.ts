@@ -23,6 +23,8 @@ export type WithdrawalRequest = {
   requestedAt: string;
   processedAt?: string;
   adminNote?: string;
+  transactionReference?: string;
+  payoutProof?: string;
 };
 
 export const XP_PER_ETB = 8;

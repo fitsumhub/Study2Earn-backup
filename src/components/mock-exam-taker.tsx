@@ -105,6 +105,7 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "missed">("all");
   const [secondsLeft, setSecondsLeft] = useState(course.durationMinutes * 60);
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [savedSession, setSavedSession] = useState<ActiveExamSession | null>(null);
@@ -225,6 +226,7 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
   const startExam = () => {
     setAttemptSeed(Date.now());
     setAnswers({});
+    setReviewFilter("all");
     setFlagged(new Set());
     setSecondsLeft(totalSeconds);
     setEndsAt(Date.now() + totalSeconds * 1000);
@@ -235,6 +237,7 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
   const retakeExam = () => {
     setAttemptSeed(Date.now() + Math.random() * 1000);
     setAnswers({});
+    setReviewFilter("all");
     setFlagged(new Set());
     setSecondsLeft(totalSeconds);
     setEndsAt(Date.now() + totalSeconds * 1000);
@@ -488,6 +491,12 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
       chapterIndex >= 0 && chapterIndex < course.chapters.length - 1
         ? course.chapters[chapterIndex + 1]
         : null;
+    const reviewedQuestions = questions
+      .map((question, index) => ({ question, index }))
+      .filter(
+        ({ question }) =>
+          reviewFilter === "all" || answers[question.id] !== question.correctIndex,
+      );
 
     return (
       <div className="space-y-6">
@@ -647,19 +656,40 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
         <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <h3 className="font-serif text-xl font-bold text-brand-navy">Answer review</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Every question with the correct answer highlighted.
+            Review explanations and focus on questions you missed.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter answer review">
+            {([
+              { id: "all", label: `All questions (${questions.length})` },
+              { id: "missed", label: `Missed (${wrongCount})` },
+            ] as const).map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                aria-pressed={reviewFilter === filter.id}
+                disabled={filter.id === "missed" && wrongCount === 0}
+                onClick={() => setReviewFilter(filter.id)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  reviewFilter === filter.id
+                    ? "border-brand-navy bg-brand-navy text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                )}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
           <div className="mt-6 space-y-5">
-            {questions.map((q, idx) => {
-              const selected = answers[q.id];
-              const isCorrect = selected === q.correctIndex;
+            {reviewedQuestions.map(({ question, index }) => {
+              const selected = answers[question.id];
               return (
                 <QuestionReview
-                  key={q.id}
-                  index={idx + 1}
-                  question={q}
+                  key={question.id}
+                  index={index + 1}
+                  question={question}
                   selected={selected}
-                  isCorrect={isCorrect}
+                  isCorrect={selected === question.correctIndex}
                 />
               );
             })}

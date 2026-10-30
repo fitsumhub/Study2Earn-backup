@@ -9,6 +9,7 @@ import { RARITY_META, type ProfileFrame } from "@/lib/frame-data";
 interface RewardFrameUnlockProps {
   frame: ProfileFrame;
   initials: string;
+  avatarUrl?: string;
   onEquip: () => void;
   onSkip: () => void;
 }
@@ -26,7 +27,7 @@ const STAGE_DELAYS: Record<Stage, number> = {
   done: 2400,
 };
 
-export function RewardFrameUnlock({ frame, initials, onEquip, onSkip }: RewardFrameUnlockProps) {
+export function RewardFrameUnlock({ frame, initials, avatarUrl, onEquip, onSkip }: RewardFrameUnlockProps) {
   const [stage, setStage] = useState<Stage>("appear");
   const meta = RARITY_META[frame.rarity];
 
@@ -76,6 +77,7 @@ export function RewardFrameUnlock({ frame, initials, onEquip, onSkip }: RewardFr
 
         <ProfileFrameAvatar
           initials={initials}
+          avatarUrl={avatarUrl}
           frameId={stageReached("aura") ? frame.id : undefined}
           size="xl"
           equipped

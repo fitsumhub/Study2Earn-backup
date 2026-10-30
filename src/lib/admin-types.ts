@@ -81,6 +81,11 @@ export type AdminReward = {
   description?: string;
 };
 
+export type AdminContentChapter = {
+  title: string;
+  pages: number;
+};
+
 export type AdminContent = {
   id: string;
   name: string;
@@ -95,6 +100,8 @@ export type AdminContent = {
   pages: number;
   /** Optional cover image (URL or local: pointer). */
   coverUrl?: string;
+  /** Optional custom chapter breakdown */
+  chapterList?: AdminContentChapter[];
 };
 
 export type ModerationFlag = {
@@ -151,7 +158,7 @@ export const sectionMeta: Record<AdminSection, { title: string; description: str
   },
   content: {
     title: "Content Library",
-    description: "MoE curriculum books and chapter sync status",
+    description: "Course study materials, textbooks, slides, and chapter notes",
   },
   categories: {
     title: "Book Categories",

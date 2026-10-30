@@ -16,6 +16,7 @@ export interface AINote {
 }
 
 export type FlashcardMastery = "unfamiliar" | "learning" | "familiar" | "mastered";
+export type SpacedRepetitionRating = "again" | "hard" | "good" | "easy";
 
 export interface Flashcard {
   id: string;
@@ -24,6 +25,10 @@ export interface Flashcard {
   topic?: string;
   mastery?: FlashcardMastery;
   starred?: boolean;
+  dueDate?: string;
+  intervalDays?: number;
+  repetitions?: number;
+  lastRating?: SpacedRepetitionRating;
 }
 
 export interface WrittenQuestion {

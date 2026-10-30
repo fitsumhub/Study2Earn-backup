@@ -35,7 +35,7 @@ const createMeta: Record<QuickAction, { title: string; description: string }> = 
     description: "Register a new student account (pending approval).",
   },
   publishExam: { title: "Publish exam", description: "Create and publish a new mock exam." },
-  uploadContent: { title: "Upload content", description: "Add a new book to the MoE library." },
+  uploadContent: { title: "Upload content", description: "Add a new book or study material (PDF, PPT, DOC)." },
   createReward: { title: "Create reward", description: "Add a new XP redemption item." },
 };
 
@@ -117,7 +117,7 @@ function CreateDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className={action === "uploadContent" ? "sm:max-w-2xl max-h-[90vh] overflow-y-auto" : undefined}>
         <DialogHeader>
           <DialogTitle>{meta.title}</DialogTitle>
           <DialogDescription>{meta.description}</DialogDescription>

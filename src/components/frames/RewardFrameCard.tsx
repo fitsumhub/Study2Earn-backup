@@ -14,6 +14,7 @@ interface RewardFrameCardProps {
   owned: boolean;
   equipped: boolean;
   initials: string;
+  avatarUrl?: string;
   onPreview: () => void;
 }
 
@@ -23,6 +24,7 @@ export function RewardFrameCard({
   owned,
   equipped,
   initials,
+  avatarUrl,
   onPreview,
 }: RewardFrameCardProps) {
   const meta = RARITY_META[frame.rarity];
@@ -133,6 +135,7 @@ export function RewardFrameCard({
           >
             <ProfileFrameAvatar
               initials={initials}
+              avatarUrl={avatarUrl}
               frameId={frame.id}
               size="md"
               equipped={equipped}

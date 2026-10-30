@@ -1,25 +1,20 @@
 import {
-  ArrowRight,
-  BookOpen,
-  Bot,
   Brain,
-  CheckCircle2,
-  FileCheck2,
-  GraduationCap,
   Layers,
-  MessageSquare,
-  Radio,
+  Link2,
+  Mic,
   Settings,
   Sparkles,
+  Upload,
   Zap,
 } from "lucide-react";
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWallet } from "@/hooks/use-wallet";
-import { STUDY_TRACK_LABELS } from "@/lib/auth-data";
 import { cn } from "@/lib/utils";
 import { AiProviderSettingsModal } from "./AiProviderSettingsModal";
+import type { IngestionTab } from "./CreateStudySetModal";
+import { ACCEPT_TYPES } from "./text-extraction";
 
 export type AIStudyActiveView = "sets" | "chat" | "tools" | "upload" | "progress";
 
@@ -28,6 +23,8 @@ interface AIStudyHeaderProps {
   onViewChange: (view: AIStudyActiveView) => void;
   onStartStudyingWithAi: () => void;
   aiReady: boolean;
+  onOpenCreateWithTab?: (tab: IngestionTab) => void;
+  onDirectUpload?: (files: FileList) => void;
   className?: string;
 }
 
@@ -36,166 +33,150 @@ export function AIStudyHeader({
   onViewChange,
   onStartStudyingWithAi,
   aiReady,
+  onOpenCreateWithTab,
+  onDirectUpload,
   className,
 }: AIStudyHeaderProps) {
   const { loggedIn, user } = useAuth();
   const { balance: xpBalance } = useWallet();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const trackLabel = user?.studyTrack ? STUDY_TRACK_LABELS[user.studyTrack] : null;
+  // Derive student's display name logically: prioritize user's actual first name, strip any role suffixes, fallback to "Scholar"
+  const displayName = (() => {
+    if (!user?.name) return "Scholar";
+    // Strip parenthetical suffixes like "(Admin)", "(Lead Developer)", etc.
+    const cleanName = user.name.replace(/\(.*?\)/g, "").trim();
+    const firstName = cleanName.split(/\s+/)[0];
+    return firstName || "Scholar";
+  })();
 
   return (
-    <div className={cn("w-full", className)}>
-      {/* ── 2026/2030 Hero Banner ── */}
-      <div
-        className="relative overflow-hidden border-b border-slate-800 px-6 py-12 text-white shadow-xl"
-        style={{
-          backgroundColor: "#0b101b",
-          backgroundImage:
-            "radial-gradient(circle at 10% 20%, rgba(217, 119, 6, 0.12) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(30, 58, 138, 0.25) 0%, transparent 50%), radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)",
-          backgroundSize: "100% 100%, 100% 100%, 24px 24px",
-        }}
-      >
-        <div className="relative mx-auto max-w-6xl">
-          {/* Top personalization bar */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {loggedIn && user ? (
-                <>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-white/80 backdrop-blur-xs">
-                    👋 Welcome back, <strong className="text-white">{user.name}</strong>
-                    {user.university ? ` · ${user.university}` : ""}
-                  </span>
-                  {trackLabel && (
-                    <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-300">
-                      {trackLabel}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1.5 rounded-full border border-brand-gold/40 bg-brand-gold/15 px-3 py-1 text-xs font-bold text-brand-gold">
-                    <Sparkles className="size-3" />
-                    {xpBalance ? xpBalance.toLocaleString() : (user.xp?.toLocaleString() || "1,240")} XP
-                  </span>
-                </>
-              ) : (
-                <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-white/70">
-                  🇪🇹 Ethiopian University Study Suite · Freshman & Exit Exam Edition
-                </span>
-              )}
-            </div>
+    <div className={cn("w-full bg-white dark:bg-slate-950 transition-colors", className)}>
+      {/* ── Sub-Navigation / Mode Indicator Rail ── */}
+      <div className="border-b border-slate-100 bg-white/90 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/90 sticky top-16 z-20">
+        <div className="mx-auto flex max-w-6xl items-center justify-between overflow-x-auto no-scrollbar px-4 sm:px-6 py-2.5 gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs sm:text-sm font-bold text-white shadow-xs dark:bg-white dark:text-slate-950">
+              <Layers className="size-4 text-amber-400 dark:text-amber-600" />
+              <span>Study Sets</span>
+            </span>
+          </div>
 
-            {/* Clickable AI Provider Status Pill */}
+          {/* AI Provider Status Pill */}
+          <div className="flex items-center gap-2 shrink-0">
+            {loggedIn && user && (
+              <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                <Sparkles className="size-3 text-amber-500" />
+                <span>{xpBalance ? xpBalance.toLocaleString() : (user.xp?.toLocaleString() || "1,240")} XP</span>
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
               className={cn(
-                "group inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold backdrop-blur-xs transition hover:scale-105 active:scale-95 cursor-pointer",
+                "group inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-xs transition hover:scale-102 active:scale-98 cursor-pointer",
                 aiReady
-                  ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-300 hover:border-emerald-400/60"
-                  : "border-brand-gold/30 bg-brand-gold/15 text-amber-300 hover:border-brand-gold/60",
+                  ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300",
               )}
               title="Click to configure AI provider & API key"
             >
-              {aiReady ? <Zap className="size-3.5 text-emerald-400" /> : <Brain className="size-3.5 text-brand-gold" />}
-              <span>{aiReady ? "Real AI Provider Active" : "Curriculum Engine (Connect API)"}</span>
+              {aiReady ? <Zap className="size-3.5 text-emerald-500" /> : <Brain className="size-3.5 text-amber-500" />}
+              <span className="hidden sm:inline">{aiReady ? "AI Model Active" : "Curriculum Engine"}</span>
               <Settings className="size-3 opacity-60 group-hover:opacity-100 transition-opacity" />
             </button>
           </div>
-
-          {/* Hero Headline & CTA */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mt-6">
-            <div className="max-w-2xl space-y-3">
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white tracking-tight">
-                Master any topic with your{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand-gold to-yellow-200">
-                  AI Study Copilot.
-                </span>
-              </h1>
-              <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-xl">
-                Chat with an intelligent tutor, generate 3D flashcards, take Exit Exam mocks, or distill
-                PDF lecture notes in seconds.
-              </p>
-            </div>
-
-            {/* PRIMARY HERO ACTION */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Button
-                type="button"
-                size="lg"
-                onClick={onStartStudyingWithAi}
-                className="group relative h-14 rounded-2xl bg-gradient-to-r from-amber-500 via-brand-gold to-amber-600 px-8 font-serif text-base font-bold text-slate-950 shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] hover:shadow-amber-500/30 active:scale-[0.98]"
-              >
-                <Sparkles className="mr-2 size-5 fill-slate-950 animate-pulse" />
-                <span>Start Studying with AI</span>
-                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── Sub-Navigation / Mode Switcher Rail ── */}
-      <div className="border-b border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 sticky top-16 z-20">
-        <div className="mx-auto flex max-w-6xl items-center justify-between overflow-x-auto no-scrollbar px-6">
-          <div className="flex items-center gap-1 sm:gap-2 py-2">
-            {[
-              {
-                id: "sets",
-                label: "Study Sets",
-                icon: Layers,
-                badge: "Studley AI",
-              },
-              {
-                id: "chat",
-                label: "AI Study Assistant",
-                icon: MessageSquare,
-                badge: "Live Chat",
-              },
-              {
-                id: "tools",
-                label: "Study Tools",
-                icon: Brain,
-                badge: "8 Tools",
-              },
-              {
-                id: "progress",
-                label: "Progress & Saved",
-                icon: FileCheck2,
-              },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeView === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => onViewChange(tab.id as AIStudyActiveView)}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all",
-                    isActive
-                      ? "bg-brand-navy text-white shadow-xs dark:bg-brand-gold dark:text-slate-950"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
-                  )}
-                >
-                  <Icon className={cn("size-4", isActive ? "text-brand-gold dark:text-slate-950" : "text-slate-400")} />
-                  <span>{tab.label}</span>
-                  {tab.badge && (
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.2 text-[10px] font-bold",
-                        isActive
-                          ? "bg-white/20 text-white dark:bg-slate-900/30 dark:text-slate-950"
-                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-                      )}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+      {/* ── Hero Master Header (Active on "sets" view) ── */}
+      {activeView === "sets" && (
+        <div className="relative px-4 pt-12 pb-8 sm:pt-16 sm:pb-12 text-center">
+          <div className="mx-auto max-w-4xl space-y-2">
+            <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Hey {displayName}, what do you wanna master?
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-2xl mx-auto font-normal">
+              Upload anything and get interactive notes, flashcards, quizzes, and more
+            </p>
+          </div>
+
+          {/* ── 3 Action Cards (Upload, Paste, Record) ── */}
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* 1. Upload Card */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPT_TYPES}
+              className="hidden"
+              aria-hidden="true"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  onDirectUpload?.(e.target.files);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 cursor-pointer"
+            >
+              <div className="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <Upload className="size-6 stroke-[1.8]" />
+              </div>
+              <div className="mt-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Upload
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Image, file, audio, video
+                </p>
+              </div>
+            </button>
+
+            {/* 2. Paste Card */}
+            <button
+              type="button"
+              onClick={() => onOpenCreateWithTab?.("paste")}
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 cursor-pointer"
+            >
+              <div className="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <Link2 className="size-6 stroke-[1.8]" />
+              </div>
+              <div className="mt-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Paste
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  YouTube, website, text
+                </p>
+              </div>
+            </button>
+
+            {/* 3. Record Card */}
+            <button
+              type="button"
+              onClick={() => onOpenCreateWithTab?.("record")}
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 cursor-pointer"
+            >
+              <div className="text-slate-700 dark:text-slate-300 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                <Mic className="size-6 stroke-[1.8]" />
+              </div>
+              <div className="mt-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Record
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Record live lecture
+                </p>
+              </div>
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* AI Provider Settings Modal */}
       <AiProviderSettingsModal
@@ -205,4 +186,3 @@ export function AIStudyHeader({
     </div>
   );
 }
-

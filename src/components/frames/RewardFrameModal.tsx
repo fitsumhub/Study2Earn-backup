@@ -17,9 +17,11 @@ interface RewardFrameModalProps {
   owned: boolean;
   equipped: boolean;
   initials: string;
+  avatarUrl?: string;
   onClose: () => void;
   onUnlock: (frame: ProfileFrame) => void;
   onEquip: (frameId: string) => void;
+  onUnequip?: () => void;
 }
 
 export function RewardFrameModal({
@@ -29,9 +31,11 @@ export function RewardFrameModal({
   owned,
   equipped,
   initials,
+  avatarUrl,
   onClose,
   onUnlock,
   onEquip,
+  onUnequip,
 }: RewardFrameModalProps) {
   const [unlocking, setUnlocking] = useState(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
@@ -93,6 +97,7 @@ export function RewardFrameModal({
             <RewardFrameUnlock
               frame={frame}
               initials={initials}
+              avatarUrl={avatarUrl}
               onEquip={handleEquip}
               onSkip={handleSkip}
             />
@@ -102,7 +107,13 @@ export function RewardFrameModal({
         {/* ── Post-skip equip prompt ── */}
         {!unlocking && justUnlocked && (
           <div className="flex flex-col items-center gap-5 p-8 text-center">
-            <ProfileFrameAvatar initials={initials} frameId={frame.id} size="xl" equipped />
+            <ProfileFrameAvatar
+              initials={initials}
+              avatarUrl={avatarUrl}
+              frameId={frame.id}
+              size="xl"
+              equipped
+            />
             <div>
               <RarityBadge rarity={frame.rarity} />
               <p className="mt-2 text-2xl font-bold text-slate-900">{frame.name} unlocked!</p>
@@ -140,6 +151,7 @@ export function RewardFrameModal({
               <div className="relative z-10 my-2">
                 <ProfileFrameAvatar
                   initials={initials}
+                  avatarUrl={avatarUrl}
                   frameId={frame.id}
                   size="xl"
                   equipped={equipped}
@@ -233,19 +245,33 @@ export function RewardFrameModal({
               {/* CTA */}
               <div className="space-y-2">
                 {owned ? (
-                  <button
-                    type="button"
-                    onClick={() => onEquip(frame.id)}
-                    disabled={equipped}
-                    className={cn(
-                      "w-full rounded-xl py-3 text-sm font-bold transition active:scale-[0.98]",
-                      equipped
-                        ? "cursor-default bg-violet-100 text-violet-700"
-                        : "bg-brand-navy text-white hover:bg-brand-navy/90 shadow-md shadow-brand-navy/20",
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => onEquip(frame.id)}
+                      disabled={equipped}
+                      className={cn(
+                        "w-full rounded-xl py-3 text-sm font-bold transition active:scale-[0.98]",
+                        equipped
+                          ? "cursor-default bg-violet-100 text-violet-700"
+                          : "bg-brand-navy text-white hover:bg-brand-navy/90 shadow-md shadow-brand-navy/20",
+                      )}
+                    >
+                      {equipped ? "✓ Currently Equipped" : "Equip Frame"}
+                    </button>
+                    {equipped && onUnequip && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUnequip();
+                          onClose();
+                        }}
+                        className="w-full rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"
+                      >
+                        Unequip this frame
+                      </button>
                     )}
-                  >
-                    {equipped ? "✓ Currently Equipped" : "Equip Frame"}
-                  </button>
+                  </div>
                 ) : isXpFrame ? (
                   <>
                     <button

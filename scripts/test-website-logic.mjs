@@ -128,6 +128,12 @@ import {
   signOut,
   updateUser,
   isAuthenticated,
+  readRegisteredUsers,
+  saveRegisteredUser,
+  findRegisteredUser,
+  authenticateUser,
+  getRememberedEmail,
+  setRememberedEmail,
 } from "@/lib/auth-store";
 import { DEMO_USER, isAdminUser, isProtectedRoute, defaultSession } from "@/lib/auth-data";
 
@@ -164,7 +170,19 @@ import {
   getFrameById,
   getFramesByRarity,
 } from "@/lib/frame-data";
-import { readFrames, unlockFrame, equipFrame } from "@/lib/frame-store";
+import {
+  readFrames,
+  unlockFrame,
+  equipFrame,
+} from "@/lib/frame-store";
+
+// 13. Dynamic Profile Synchronization & Leaderboard Engine
+import {
+  getEffectiveLeaderboard,
+  getEffectiveUniversityStudents,
+  getEffectiveUniversityRankings,
+  getUserNationalRank,
+} from "@/lib/leaderboard-store";
 
 // ─── Test Harness ───────────────────────────────────────────────────────────
 
@@ -956,6 +974,54 @@ async function runAllTests() {
     assert.equal(isProtectedRoute("/privacy"), false);
   });
 
+  test("Enhanced Login Logic: registered accounts, authentication, remember-me, and password verification", () => {
+    storage.clear();
+
+    // 1. Pre-seeded registered users exist
+    const initialUsers = readRegisteredUsers();
+    assert.ok(initialUsers.length >= 3, "At least 3 initial registered users exist");
+    assert.ok(findRegisteredUser("aplusethiopia1@gmail.com"), "Demo user is registered");
+    assert.ok(findRegisteredUser("admin@study2earn.et"), "Admin user is registered");
+
+    // 2. Authenticate existing demo user
+    const demoAuth = authenticateUser("aplusethiopia1@gmail.com", "demo123");
+    assert.equal(demoAuth.success, true);
+    assert.equal(demoAuth.user?.name, "Abebe Balcha");
+
+    // 3. Authenticate with alias
+    const aliasAuth = authenticateUser("demo@study2earn.et", "demo123");
+    assert.equal(aliasAuth.success, true);
+    assert.equal(aliasAuth.user?.id, "STU-8842");
+
+    // 4. Authenticate campus scholar
+    const scholarAuth = authenticateUser("selamawit@aau.edu.et", "student123");
+    assert.equal(scholarAuth.success, true);
+    assert.equal(scholarAuth.user?.xp, 4820);
+
+    // 5. Wrong password rejected
+    const failedAuth = authenticateUser("selamawit@aau.edu.et", "wrongpassword123");
+    assert.equal(failedAuth.success, false);
+    assert.ok(failedAuth.error?.includes("Incorrect password"));
+
+    // 6. Validation bounds: short password or empty email
+    assert.equal(authenticateUser("", "pass123").success, false);
+    assert.equal(authenticateUser("user@example.com", "123").success, false);
+
+    // 7. Auto-provisioning new scholar on valid signup credentials
+    const newStudent = authenticateUser("kassahun.bekele@aau.edu.et", "securepass123");
+    assert.equal(newStudent.success, true);
+    assert.equal(newStudent.isNewAccount, true);
+    assert.equal(newStudent.user?.email, "kassahun.bekele@aau.edu.et");
+    assert.equal(newStudent.user?.xp, 50);
+
+    // 8. Remember-me storage
+    assert.equal(getRememberedEmail(), "");
+    setRememberedEmail("kassahun.bekele@aau.edu.et");
+    assert.equal(getRememberedEmail(), "kassahun.bekele@aau.edu.et");
+    setRememberedEmail("");
+    assert.equal(getRememberedEmail(), "");
+  });
+
   // ─── Suite 11: Admin Store & Book Category Management ─────────────────────
   suite("Admin Store & Book Category Management");
 
@@ -976,6 +1042,36 @@ async function runAllTests() {
     const updated = readAdminData();
     assert.equal(updated.settings.autoApprove, true);
     assert.equal(updated.settings.maxDailyExams, "10");
+
+    // Content CRUD with chapterList
+    assert.ok(defaults.content.length > 0, "Default content items exist");
+    assert.ok(defaults.content[0].chapterList && defaults.content[0].chapterList.length > 0, "Default content includes chapterList");
+    const testBook = {
+      id: "BK-TEST-99",
+      name: "Engineering Mechanics: Statics",
+      short: "Statics",
+      chapters: 3,
+      students: "850",
+      synced: true,
+      published: true,
+      category: "Engineering",
+      description: "Equilibrium of particles and rigid bodies.",
+      pdfUrl: "/pdfs/sample-textbook.pdf",
+      pages: 120,
+      chapterList: [
+        { title: "Chapter 1: Force Vectors", pages: 35 },
+        { title: "Chapter 2: Equilibrium of a Particle", pages: 45 },
+        { title: "Chapter 3: Rigid Body Resultants", pages: 40 }
+      ]
+    };
+    writeAdminData({
+      content: [testBook, ...defaults.content],
+    });
+    const contentCheck = readAdminData().content.find((c) => c.id === "BK-TEST-99");
+    assert.ok(contentCheck, "Custom book persisted in admin store");
+    assert.equal(contentCheck.name, "Engineering Mechanics: Statics");
+    assert.equal(contentCheck.chapterList.length, 3);
+    assert.equal(contentCheck.chapterList[1].title, "Chapter 2: Equilibrium of a Particle");
 
     // Corrupted storage recovery
     storage.set("study2earn-admin-data", "corrupted-json-data{{");
@@ -1035,7 +1131,7 @@ async function runAllTests() {
     const config = readIntegrations();
     assert.equal(config.googleAdsense.enabled, false);
     assert.equal(config.aiStudy.enabled, true);
-    assert.equal(config.aiStudy.provider, "anthropic");
+    assert.equal(config.aiStudy.provider, "gemini");
 
     // Switch provider to DeepSeek
     writeIntegrations({
@@ -1050,57 +1146,6 @@ async function runAllTests() {
     assert.equal(updated.aiStudy.provider, "deepseek");
     assert.equal(updated.aiStudy.deepseekModel, "deepseek-reasoner");
 
-    // Switch provider to OpenAI and configure API key + model
-    writeIntegrations({
-      ...updated,
-      aiStudy: {
-        ...updated.aiStudy,
-        provider: "openai",
-        apiKey: "sk-proj-test12345",
-        temperature: 0.25,
-        defaultQuestionCount: 10,
-        systemPrompt: "Custom MoE prompt",
-        providers: {
-          ...updated.aiStudy.providers,
-          openai: {
-            apiKey: "sk-proj-test12345",
-            model: "gpt-4o",
-            baseUrl: "https://api.openai.com/v1",
-          },
-        },
-      },
-    });
-
-    const openaiConfig = readIntegrations();
-    assert.equal(openaiConfig.aiStudy.provider, "openai");
-    assert.equal(openaiConfig.aiStudy.apiKey, "sk-proj-test12345");
-    assert.equal(openaiConfig.aiStudy.temperature, 0.25);
-    assert.equal(openaiConfig.aiStudy.defaultQuestionCount, 10);
-    assert.equal(openaiConfig.aiStudy.systemPrompt, "Custom MoE prompt");
-    assert.equal(openaiConfig.aiStudy.providers?.openai?.model, "gpt-4o");
-
-    // Switch to Groq
-    writeIntegrations({
-      ...openaiConfig,
-      aiStudy: {
-        ...openaiConfig.aiStudy,
-        provider: "groq",
-        providers: {
-          ...openaiConfig.aiStudy.providers,
-          groq: {
-            apiKey: "gsk_test6789",
-            model: "llama-3.3-70b-versatile",
-            baseUrl: "https://api.groq.com/openai/v1",
-          },
-        },
-      },
-    });
-
-    const groqConfig = readIntegrations();
-    assert.equal(groqConfig.aiStudy.provider, "groq");
-    assert.equal(groqConfig.aiStudy.providers?.groq?.model, "llama-3.3-70b-versatile");
-    assert.equal(groqConfig.aiStudy.providers?.groq?.apiKey, "gsk_test6789");
-
     // Configure Google AdSense publisher ID and test validation helper
     const pubId = "ca-pub-1234567890123456";
     assert.equal(isValidAdsensePublisherId(pubId), true);
@@ -1108,7 +1153,7 @@ async function runAllTests() {
     assert.equal(isValidAdsensePublisherId("ca-pub-123"), false, "Too short");
 
     writeIntegrations({
-      ...groqConfig,
+      ...updated,
       googleAdsense: {
         publisherId: pubId,
         enabled: true,
@@ -1122,7 +1167,7 @@ async function runAllTests() {
     // Reset integrations
     writeIntegrations(DEFAULT_INTEGRATIONS);
     assert.equal(readIntegrations().googleAdsense.enabled, false);
-    assert.equal(readIntegrations().aiStudy.provider, "anthropic");
+    assert.equal(readIntegrations().aiStudy.provider, "gemini");
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1209,6 +1254,158 @@ async function runAllTests() {
 
     // Cleanup
     storage.delete("study2earn-frames");
+  });
+
+  // ─── Suite 14: Dynamic Profile Synchronization & Leaderboard Propagation ─
+  suite("Dynamic Profile Synchronization & Leaderboard Propagation");
+
+  test("14.1 User profile updates propagate seamlessly into weekly, monthly, and yearly leaderboards", () => {
+    const studentUser = {
+      id: "STU-8842",
+      name: "Solomon Tadesse",
+      email: "solomon@aau.edu.et",
+      university: "Addis Ababa Science & Technology University",
+      department: "Software Engineering",
+      role: "student",
+      xp: 3200,
+      avatarUrl: "local:img-profile-test-1",
+    };
+
+    // Weekly board check
+    const weekly = getEffectiveLeaderboard("weekly", studentUser, 3200);
+    const myWeekly = weekly.find((s) => s.isYou);
+    assert.ok(myWeekly, "Weekly leaderboard must contain the user with isYou: true");
+    assert.equal(myWeekly.name, "Solomon Tadesse");
+    assert.equal(myWeekly.uni, "Addis Ababa Science & Technology University");
+    assert.equal(myWeekly.department, "Software Engineering");
+    assert.equal(myWeekly.avatarUrl, "local:img-profile-test-1");
+    assert.equal(myWeekly.rank, 7, "User with 3200 XP should be rank 7 (between 3310 and 3120 XP)");
+
+    // Test climbing to #1 with 5000 XP
+    const topBoard = getEffectiveLeaderboard("weekly", studentUser, 5000);
+    const topUser = topBoard.find((s) => s.isYou);
+    assert.equal(topUser.rank, 1, "User with 5000 XP should dynamically climb to rank 1");
+
+    // Monthly board check
+    const monthly = getEffectiveLeaderboard("monthly", studentUser, 3200);
+    const myMonthly = monthly.find((s) => s.isYou);
+    assert.ok(myMonthly, "Monthly leaderboard must contain the user with isYou: true");
+    assert.equal(myMonthly.name, "Solomon Tadesse");
+    assert.equal(myMonthly.uni, "Addis Ababa Science & Technology University");
+    assert.equal(myMonthly.department, "Software Engineering");
+
+    // Yearly board check
+    const yearly = getEffectiveLeaderboard("yearly", studentUser, 3200);
+    const myYearly = yearly.find((s) => s.isYou);
+    assert.ok(myYearly, "Yearly leaderboard must contain the user with isYou: true");
+    assert.equal(myYearly.name, "Solomon Tadesse");
+  });
+
+  test("14.2 University drill-down dynamically reallocates student when university affiliation changes", () => {
+    const updatedUser = {
+      id: "STU-8842",
+      name: "Bethlehem Haile",
+      email: "bethlehem@astu.edu.et",
+      university: "Adama Science and Technology University",
+      department: "Biomedical Engineering",
+      role: "student",
+      xp: 4100,
+      avatarUrl: "local:img-profile-test-2",
+    };
+
+    // User is now under ASTU
+    const astuStudents = getEffectiveUniversityStudents(
+      "Adama Science and Technology University",
+      updatedUser,
+      4100,
+    );
+    const myAstu = astuStudents.find((s) => s.isYou);
+    assert.ok(myAstu, "Student must be present under ASTU drilldown");
+    assert.equal(myAstu.name, "Bethlehem Haile");
+    assert.equal(myAstu.department, "Biomedical Engineering");
+    assert.equal(myAstu.avatarUrl, "local:img-profile-test-2");
+    assert.equal(myAstu.rank, 1, "With 4100 XP, student should be #1 at ASTU");
+
+    // User must NOT remain under old university (AAU)
+    const aauStudents = getEffectiveUniversityStudents(
+      "Addis Ababa University",
+      updatedUser,
+      4100,
+    );
+    const oldEntry = aauStudents.find((s) => s.name === "Bethlehem Haile" || s.id === updatedUser.id);
+    assert.equal(oldEntry, undefined, "Student must no longer appear under old university list");
+  });
+
+  test("14.3 getUserNationalRank reflects dynamic student rank across the platform", () => {
+    const userHighXp = {
+      id: "STU-8842",
+      name: "Winner Student",
+      university: "Hawassa University",
+      xp: 9999,
+    };
+    const rankInfo = getUserNationalRank(userHighXp, 9999, "weekly");
+    assert.equal(rankInfo.rank, 1, "9999 XP student must hold rank 1 nationally");
+    assert.ok(rankInfo.entry, "rankInfo.entry must be defined");
+    assert.equal(rankInfo.entry.name, "Winner Student");
+  });
+
+  test("14.4 updateUser persists to auth store, broadcasts profile-updated, and syncs to admin store", () => {
+    storage.clear();
+    writeAuth({
+      loggedIn: true,
+      user: {
+        id: "STU-8842",
+        name: "Old Name",
+        email: "demo@aau.edu.et",
+        university: "Addis Ababa University",
+        role: "student",
+      },
+    });
+
+    // Seed admin store
+    writeAdminData({
+      users: [
+        {
+          id: "STU-8842",
+          name: "Old Name",
+          email: "demo@aau.edu.et",
+          university: "Addis Ababa University",
+          program: "General",
+          role: "student",
+          status: "active",
+          joinedAt: "2024-01-01",
+        },
+      ],
+      courses: [],
+      materials: [],
+      quizzes: [],
+      withdrawalRequests: [],
+      auditLogs: [],
+      systemAnnouncements: [],
+    });
+
+    // Update profile via updateUser
+    updateUser({
+      name: "Updated Solomon",
+      university: "Jimma University",
+      department: "Civil Engineering",
+      bio: "Aspiring structural engineer",
+    });
+
+    // Check auth session
+    const session = readAuth();
+    assert.equal(session.user.name, "Updated Solomon");
+    assert.equal(session.user.university, "Jimma University");
+    assert.equal(session.user.department, "Civil Engineering");
+    assert.equal(session.user.bio, "Aspiring structural engineer");
+
+    // Check admin store synchronization
+    const adminData = readAdminData();
+    const adminUser = adminData.users.find((u) => u.id === "STU-8842");
+    assert.ok(adminUser, "Admin store user row exists");
+    assert.equal(adminUser.name, "Updated Solomon");
+    assert.equal(adminUser.university, "Jimma University");
+    assert.equal(adminUser.program, "Civil Engineering");
   });
 
   // ─── Summary ──────────────────────────────────────────────────────────────

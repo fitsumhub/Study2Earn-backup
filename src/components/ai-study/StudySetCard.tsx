@@ -7,7 +7,6 @@ import {
   Copy,
   Edit2,
   FileText,
-  Headphones,
   HelpCircle,
   MoreVertical,
   Pencil,
@@ -278,19 +277,6 @@ export function StudySetCard({
             >
               <Pencil className="size-3 text-emerald-500" />
               {studySet.writtenTests.length} Written
-            </span>
-          )}
-          {studySet.podcast && (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpen(studySet.id, "podcast");
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-amber-50/80 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 transition"
-              title="Listen to AI Podcast"
-            >
-              <Headphones className="size-3 text-amber-500" />
-              Podcast
             </span>
           )}
         </div>

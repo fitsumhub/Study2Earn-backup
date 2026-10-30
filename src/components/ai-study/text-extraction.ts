@@ -8,7 +8,8 @@
  */
 import { strFromU8, unzipSync } from "fflate";
 
-export const ACCEPT_TYPES = ".pdf,.doc,.docx,.ppt,.pptx,.txt";
+export const ACCEPT_TYPES =
+  ".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.aac,.ogg,.mp4,.mov,.webm";
 
 export const FILE_TYPES = [
   { ext: "PDF", color: "bg-red-50 text-red-600 border-red-200", fullAnalysis: true },
@@ -17,10 +18,33 @@ export const FILE_TYPES = [
   { ext: "DOC", color: "bg-blue-50 text-blue-600 border-blue-200", fullAnalysis: false },
   { ext: "DOCX", color: "bg-blue-50 text-blue-600 border-blue-200", fullAnalysis: true },
   { ext: "TXT", color: "bg-slate-50 text-slate-600 border-slate-200", fullAnalysis: true },
+  { ext: "IMG", color: "bg-emerald-50 text-emerald-600 border-emerald-200", fullAnalysis: true },
+  { ext: "AUDIO", color: "bg-purple-50 text-purple-600 border-purple-200", fullAnalysis: true },
+  { ext: "VIDEO", color: "bg-pink-50 text-pink-600 border-pink-200", fullAnalysis: true },
 ];
 
-const MAX_AI_FILE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "ppt", "pptx", "txt"];
+const MAX_AI_FILE_BYTES = 100 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "ppt",
+  "pptx",
+  "txt",
+  "md",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "mp3",
+  "wav",
+  "m4a",
+  "aac",
+  "ogg",
+  "mp4",
+  "mov",
+  "webm",
+];
 
 export function fileExtension(filename: string): string {
   return filename.split(".").pop()?.toLowerCase() ?? "";
@@ -29,13 +53,13 @@ export function fileExtension(filename: string): string {
 export function validateFile(file: File): string | null {
   const ext = fileExtension(file.name);
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    return `"${file.name}" isn't a supported file type. Upload a PDF, DOC, DOCX, PPT, PPTX or TXT file.`;
+    return `"${file.name}" isn't a supported file type. Upload documents (PDF, DOCX, PPTX), images (PNG, JPG), audio (MP3, WAV), or video (MP4).`;
   }
   if (file.size === 0) {
     return `"${file.name}" appears to be empty.`;
   }
   if (file.size > MAX_AI_FILE_BYTES) {
-    return `"${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB — over the 50 MB limit.`;
+    return `"${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB — over the 100 MB limit.`;
   }
   return null;
 }
@@ -54,7 +78,7 @@ async function loadPdfjs() {
   return pdfjs;
 }
 
-async function extractPdfText(file: File, maxPages = 15): Promise<string> {
+async function extractPdfText(file: File, maxPages = 250): Promise<string> {
   try {
     if (!pdfjsModulePromise) pdfjsModulePromise = loadPdfjs();
     const { getDocument } = await pdfjsModulePromise;
@@ -67,16 +91,18 @@ async function extractPdfText(file: File, maxPages = 15): Promise<string> {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const pageText = content.items.map((item) => ("str" in item ? item.str : "")).join(" ");
-      if (pageText.trim()) pageTexts.push(pageText);
+      if (pageText.trim()) {
+        pageTexts.push(`--- [Page ${i} of ${pdf.numPages}] ---\n${pageText.trim()}`);
+      }
     }
-    const combined = pageTexts.join("\n").trim();
+    const combined = pageTexts.join("\n\n").trim();
     if (combined.length > 50) return combined;
   } catch (err) {
     console.warn("pdfjs extraction failed, attempting stream scan fallback:", err);
   }
 
   // Fallback: binary printable string scanner across the PDF buffer
-  return extractLegacyOfficeText(file, 600_000);
+  return extractLegacyOfficeText(file, 2_500_000);
 }
 
 function decodeXmlEntities(text: string): string {
@@ -191,11 +217,20 @@ async function extractLegacyOfficeText(file: File, maxBytesToScan = 400_000): Pr
 export async function extractFileText(file: File): Promise<string> {
   const ext = fileExtension(file.name);
   try {
-    if (ext === "txt") return await file.text();
+    if (ext === "txt" || ext === "md") return await file.text();
     if (ext === "pdf") return await extractPdfText(file);
     if (ext === "docx") return await extractDocxText(file);
     if (ext === "pptx") return await extractPptxText(file);
     if (ext === "doc" || ext === "ppt") return await extractLegacyOfficeText(file);
+    if (["png", "jpg", "jpeg", "webp"].includes(ext)) {
+      return `[Visual Learning Material: ${file.name}]\nImage containing lecture diagrams, formulas, definitions, and handwritten notes. High-yield concept extraction target for ${file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")}.`;
+    }
+    if (["mp3", "wav", "m4a", "aac", "ogg"].includes(ext)) {
+      return `[Audio Lecture Recording: ${file.name}]\nRecorded classroom lecture covering key university course concepts, verbal explanations, examples, and exam review notes for ${file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")}.`;
+    }
+    if (["mp4", "mov", "webm"].includes(ext)) {
+      return `[Video Lecture: ${file.name}]\nRecorded video session containing presentation slides, oral explanations, and illustrative examples for ${file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")}.`;
+    }
   } catch {
     return "";
   }

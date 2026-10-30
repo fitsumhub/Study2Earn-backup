@@ -25,12 +25,14 @@ import {
 import type { AdminDashboardState } from "@/hooks/use-admin-dashboard";
 import type { EditEntity } from "@/lib/admin-types";
 
+import { cn } from "@/lib/utils";
+
 const editMeta: Record<
   Exclude<EditEntity["type"], "exam">,
   { title: string; description: string }
 > = {
   student: { title: "Edit student", description: "Update student profile and account status." },
-  content: { title: "Edit book", description: "Update library book metadata and sync status." },
+  content: { title: "Edit book", description: "Update library book metadata, chapters, and media." },
   reward: { title: "Edit reward", description: "Update reward catalog item." },
 };
 
@@ -52,7 +54,12 @@ export function AdminEditSheet({ admin }: { admin: AdminDashboardState }) {
 
   return (
     <Sheet open onOpenChange={(open) => !open && handleClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent
+        className={cn(
+          "w-full overflow-y-auto",
+          editEntity.type === "content" ? "sm:max-w-xl md:max-w-2xl" : "sm:max-w-md",
+        )}
+      >
         <SheetHeader>
           <SheetTitle>{meta.title}</SheetTitle>
           <SheetDescription>{meta.description}</SheetDescription>

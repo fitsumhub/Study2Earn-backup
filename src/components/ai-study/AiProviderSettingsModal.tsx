@@ -49,21 +49,27 @@ const PROVIDERS: Array<{
   freeOption?: boolean;
 }> = [
   {
+    id: "gemini",
+    name: "Google Gemini (Recommended)",
+    defaultModel: "gemini-flash-lite-latest",
+    models: [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.8-flash",
+      "gemini-flash-latest",
+    ],
+    keyPlaceholder: "Server environment variable GEMINI_API_KEY or custom key",
+    keyUrl: "https://aistudio.google.com/app/apikey",
+    freeOption: true,
+  },
+  {
     id: "groq",
     name: "Groq (Ultra-Fast & Free Tier)",
     defaultModel: "llama-3.3-70b-versatile",
     models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
     keyPlaceholder: "gsk_...",
     keyUrl: "https://console.groq.com/keys",
-    freeOption: true,
-  },
-  {
-    id: "gemini",
-    name: "Google Gemini",
-    defaultModel: "gemini-1.5-flash",
-    models: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"],
-    keyPlaceholder: "AIzaSy...",
-    keyUrl: "https://aistudio.google.com/app/apikey",
     freeOption: true,
   },
   {
@@ -104,16 +110,21 @@ export function AiProviderSettingsModal({ isOpen, onClose }: AiProviderSettingsM
   const { config: integrations, setAiStudy, setAiStudyProviderSettings } = useIntegrations();
 
   const [provider, setProvider] = useState<AiStudyProvider>(
-    integrations.aiStudy.provider || "groq",
+    integrations.aiStudy.provider || "gemini",
   );
   const [apiKey, setApiKey] = useState(
-    integrations.aiStudy.providers?.[provider]?.apiKey || integrations.aiStudy.apiKey || "",
+    integrations.aiStudy.providers?.[provider]?.apiKey ||
+      integrations.aiStudy.apiKey ||
+      "",
   );
   const [model, setModel] = useState(
-    integrations.aiStudy.providers?.[provider]?.model || PROVIDERS[0].defaultModel,
+    integrations.aiStudy.providers?.[provider]?.model ||
+      PROVIDERS.find((p) => p.id === provider)?.defaultModel ||
+      "gemini-flash-lite-latest",
   );
   const [baseUrl, setBaseUrl] = useState(
-    integrations.aiStudy.providers?.[provider]?.baseUrl || "",
+    integrations.aiStudy.providers?.[provider]?.baseUrl ||
+      (provider === "gemini" ? "https://generativelanguage.googleapis.com/v1beta/openai/" : ""),
   );
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -131,7 +142,10 @@ export function AiProviderSettingsModal({ isOpen, onClose }: AiProviderSettingsM
     const meta = PROVIDERS.find((p) => p.id === newP);
     setApiKey(existing?.apiKey || "");
     setModel(existing?.model || meta?.defaultModel || "");
-    setBaseUrl(existing?.baseUrl || "");
+    setBaseUrl(
+      existing?.baseUrl ||
+        (newP === "gemini" ? "https://generativelanguage.googleapis.com/v1beta/openai/" : ""),
+    );
     setTestResult(null);
   };
 

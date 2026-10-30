@@ -1,16 +1,18 @@
-import { Banknote, CircleDollarSign, Palette, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Banknote, CircleDollarSign, Layers, Palette, ShieldCheck, type LucideIcon } from "lucide-react";
 
-// Every reward is exactly one of these four kinds. ETB/USDT are real cash —
-// redeeming one routes to the actual (admin-approved) withdrawal flow so the
-// XP ledger only ever moves once, correctly. Theme and AdFree are
-// self-fulfilling: they apply instantly, client-side, no admin step needed.
-export type Kind = "etb" | "usdt" | "theme" | "adfree";
+// Every reward is one of these kinds:
+// - ETB / USDT: Real cash / crypto withdrawal to bank or Binance UID
+// - Theme: Profile glow cosmetics (instant client-side)
+// - Frame: Avatar profile frames (instant client-side)
+// - AdFree: Ad-free browsing perk (instant client-side)
+export type Kind = "etb" | "usdt" | "theme" | "adfree" | "frame";
 
 export function kindOf(tag: string, title?: string): Kind {
   // If the title contains clear keywords, override the tag to prevent admin
   // configuration errors defaulting everything to bank payouts.
   if (title) {
     const tLower = title.toLowerCase();
+    if (tLower.includes("frame")) return "frame";
     if (tLower.includes("theme") || tLower.includes("glow")) return "theme";
     if (tLower.includes("ad-free") || tLower.includes("adfree") || tLower.includes("no ads")) {
       return "adfree";
@@ -19,6 +21,7 @@ export function kindOf(tag: string, title?: string): Kind {
   }
 
   const t = tag.toLowerCase();
+  if (t === "frame") return "frame";
   if (t === "usdt") return "usdt";
   if (t === "theme") return "theme";
   if (t === "adfree") return "adfree";
@@ -51,16 +54,25 @@ export const kindMeta: Record<
     icon: Palette,
     chip: "bg-violet-50 text-violet-600",
     badge: "bg-violet-50 text-violet-700",
-    label: "Cosmetic",
-    desc: "A glowing ring for your avatar — profile, header, everywhere.",
+    label: "Avatar Glow",
+    desc: "A glowing ring for your avatar — profile, header, leaderboard, everywhere.",
     claimNote:
       "Applied instantly across the site the moment you unlock it — no waiting, no admin step.",
+  },
+  frame: {
+    icon: Layers,
+    chip: "bg-amber-50 text-amber-600",
+    badge: "bg-amber-50 text-amber-700",
+    label: "Profile Frame",
+    desc: "An exclusive animated profile frame to showcase on your avatar.",
+    claimNote:
+      "Unlocked permanently — equipped immediately and managed anytime from the Frames Studio.",
   },
   adfree: {
     icon: ShieldCheck,
     chip: "bg-sky-50 text-sky-600",
     badge: "bg-sky-50 text-sky-700",
-    label: "Perk",
+    label: "Ad-Free Perk",
     desc: "Sponsor banners stop showing on Home, Dashboard, and Library.",
     claimNote:
       "Applied instantly the moment you redeem it. Redeeming again while active stacks more days on top instead of resetting the clock.",

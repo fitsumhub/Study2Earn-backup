@@ -47,6 +47,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { useLibraryProgress } from "@/hooks/use-library-progress";
 import { useReadingTime } from "@/hooks/use-reading-time";
 import { openBookPdfInBrowser } from "@/lib/book-pdfs";
+import { getDocumentFormat } from "@/lib/media-store";
 import { type LibraryBook } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -528,6 +529,35 @@ function LibraryPage() {
                           <Badge variant="secondary" className="text-[10px]">
                             {book.category}
                           </Badge>
+                          {(() => {
+                            const fmt = getDocumentFormat(book.pdfUrl);
+                            if (fmt === "ppt") {
+                              return (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 text-[10px] font-semibold">
+                                  PPT Slides
+                                </Badge>
+                              );
+                            }
+                            if (fmt === "doc") {
+                              return (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-semibold">
+                                  Word DOC
+                                </Badge>
+                              );
+                            }
+                            if (fmt === "epub") {
+                              return (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] font-semibold">
+                                  EPUB
+                                </Badge>
+                              );
+                            }
+                            return (
+                              <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200 text-[10px] font-semibold">
+                                PDF Textbook
+                              </Badge>
+                            );
+                          })()}
                           {book.progress === 100 && (
                             <Badge className="bg-emerald-50 text-[10px] text-emerald-700">
                               Complete
@@ -761,6 +791,35 @@ function BookCard({
           <Badge variant="secondary" className="text-[10px]">
             {book.category}
           </Badge>
+          {(() => {
+            const fmt = getDocumentFormat(book.pdfUrl);
+            if (fmt === "ppt") {
+              return (
+                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 text-[10px] font-semibold">
+                  PPT Slides
+                </Badge>
+              );
+            }
+            if (fmt === "doc") {
+              return (
+                <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-semibold">
+                  Word DOC
+                </Badge>
+              );
+            }
+            if (fmt === "epub") {
+              return (
+                <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200 text-[10px] font-semibold">
+                  EPUB
+                </Badge>
+              );
+            }
+            return (
+              <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200 text-[10px] font-semibold">
+                PDF Textbook
+              </Badge>
+            );
+          })()}
           {book.progress === 100 && (
             <Badge className="bg-emerald-50 text-[10px] text-emerald-700">Complete</Badge>
           )}

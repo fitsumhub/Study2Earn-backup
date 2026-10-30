@@ -9,7 +9,10 @@ import {
   FileText,
   Globe,
   HardDrive,
+  Headphones,
+  Image as ImageIcon,
   Loader2,
+  Mic,
   Plus,
   Trash2,
   Upload,
@@ -138,13 +141,23 @@ export function StudySetSourcesTab({ studySet }: StudySetSourcesTabProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FileText className="size-4 text-blue-500 shrink-0" />
+                    {src.type === "recorded-lecture" ? (
+                      <Mic className="size-4 text-rose-500 shrink-0" />
+                    ) : src.type === "image" ? (
+                      <ImageIcon className="size-4 text-emerald-500 shrink-0" />
+                    ) : src.type === "youtube" ? (
+                      <Youtube className="size-4 text-red-500 shrink-0" />
+                    ) : src.type === "audio" ? (
+                      <Headphones className="size-4 text-purple-500 shrink-0" />
+                    ) : (
+                      <FileText className="size-4 text-blue-500 shrink-0" />
+                    )}
                     <h4 className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
                       {src.title}
                     </h4>
                   </div>
                   <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 uppercase">
-                    {src.type}
+                    {src.type === "recorded-lecture" ? "LECTURE" : src.type}
                   </span>
                 </div>
 

@@ -130,7 +130,7 @@ export const adminActivity = [
   {
     time: "1 hr ago",
     action: "Content updated",
-    detail: "General Physics Ch. 8 — MoE curriculum sync",
+    detail: "General Physics Ch. 8 — Lecture slides attached",
     type: "content" as const,
   },
   {
@@ -152,7 +152,7 @@ export const universityBreakdown = [
 export const platformHealth = [
   { label: "API uptime", value: "99.97%", status: "healthy" as const },
   { label: "Avg response", value: "142ms", status: "healthy" as const },
-  { label: "MoE sync", value: "11/12", status: "warning" as const },
+  { label: "Materials attached", value: "100%", status: "healthy" as const },
   { label: "Error rate", value: "0.04%", status: "healthy" as const },
 ];
 

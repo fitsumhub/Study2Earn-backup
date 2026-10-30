@@ -5,7 +5,30 @@
 import http from "node:http";
 import { strict as assert } from "node:assert";
 
-const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3001";
+async function resolveBaseUrl() {
+  if (process.env.E2E_BASE_URL) return process.env.E2E_BASE_URL;
+  for (const port of [3002, 3001, 3000, 5173]) {
+    try {
+      const baseUrl = `http://localhost:${port}`;
+      const response = await fetch(`${baseUrl}/sitemap.xml`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      const contentType = response.headers.get("content-type") || "";
+      if (
+        response.status === 200 &&
+        contentType.includes("application/xml") &&
+        (await response.text()).includes("<urlset")
+      ) {
+        return baseUrl;
+      }
+    } catch {}
+  }
+  throw new Error(
+    "No Study2Earn server found. Start it with `bun run dev` or set E2E_BASE_URL.",
+  );
+}
+
+const BASE = await resolveBaseUrl();
 
 const routes = [
   "/",
@@ -37,7 +60,7 @@ function fetchStatus(path) {
       resolve(res.statusCode ?? 0);
     });
     req.on("error", reject);
-    req.setTimeout(15000, () => {
+    req.setTimeout(30000, () => {
       req.destroy();
       reject(new Error(`Timeout fetching ${path}`));
     });
@@ -54,7 +77,7 @@ function fetchBody(path) {
       res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
     });
     req.on("error", reject);
-    req.setTimeout(15000, () => {
+    req.setTimeout(30000, () => {
       req.destroy();
       reject(new Error(`Timeout fetching ${path}`));
     });

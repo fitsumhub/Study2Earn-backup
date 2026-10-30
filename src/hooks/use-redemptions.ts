@@ -52,8 +52,10 @@ export function useRedemptions() {
         return { ok: false as const, error: "Insufficient XP" };
       }
       // Ad-Free is designed to stack (redeeming again extends the perk);
-      // every other one-time reward (e.g. cosmetics) can only be claimed once.
-      if (item.tag.toLowerCase() === "theme" && records.some((r) => r.title === item.title)) {
+      // permanent one-time rewards (cosmetics & frames) can only be purchased once.
+      const isOneTime =
+        item.tag.toLowerCase() === "theme" || item.tag.toLowerCase() === "frame";
+      if (isOneTime && records.some((r) => r.title === item.title)) {
         return { ok: false as const, error: "Already redeemed" };
       }
       const record = addRedemption({ ...item, userId });

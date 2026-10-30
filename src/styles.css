@@ -549,3 +549,202 @@ html.dark textarea::placeholder {
   /* Hint to browser about expected section height to prevent layout shift */
   contain-intrinsic-size: 0 500px;
 }
+
+/* ── 3D Spatial Physics & Dimensional Utilities ─────────────────────────────── */
+
+.perspective-600 {
+  perspective: 600px;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1200 {
+  perspective: 1200px;
+}
+
+.perspective-1600 {
+  perspective: 1600px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.translate-z-10 {
+  transform: translateZ(10px);
+}
+
+.translate-z-20 {
+  transform: translateZ(20px);
+}
+
+.translate-z-30 {
+  transform: translateZ(30px);
+}
+
+.translate-z-40 {
+  transform: translateZ(40px);
+}
+
+.translate-z-50 {
+  transform: translateZ(50px);
+}
+
+.translate-z-60 {
+  transform: translateZ(60px);
+}
+
+.translate-z-80 {
+  transform: translateZ(80px);
+}
+
+/* Refined Tactile Action Buttons (Crisp & High-End) */
+.btn-3d-navy {
+  background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(30, 58, 138, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-3d-navy:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15), 0 8px 20px -2px rgba(30, 58, 138, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.btn-3d-navy:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-3d-gold {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 1px 2px rgba(146, 64, 14, 0.15), 0 4px 14px -2px rgba(217, 119, 6, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-3d-gold:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 2px 4px rgba(146, 64, 14, 0.2), 0 8px 20px -2px rgba(217, 119, 6, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.btn-3d-gold:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(146, 64, 14, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn-3d-white {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.btn-3d-white:hover {
+  transform: translateY(-1.5px);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.1), inset 0 1px 0 #ffffff;
+}
+.btn-3d-white:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+/* Elevated Modern Cards (Clean, Soft Shadow) */
+.card-iso-3d {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px -4px rgba(15, 23, 42, 0.06);
+}
+.card-iso-3d:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.04), 0 14px 28px -6px rgba(15, 23, 42, 0.1);
+}
+
+/* Bank Partner Badges */
+.bank-pill-3d {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.bank-pill-3d:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 14px -3px rgba(15, 23, 42, 0.08);
+}
+.bank-pill-3d:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Subtle Ambient Float Animations */
+@keyframes float3d {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.animate-float-3d {
+  animation: float3d 4s ease-in-out infinite;
+}
+
+@keyframes float3dReverse {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+.animate-float-3d-reverse {
+  animation: float3dReverse 4.5s ease-in-out infinite;
+}
+
+@keyframes coinSpin3d {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg) scale(1.06);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+.animate-coin-spin {
+  animation: coinSpin3d 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes isoShimmer {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+.animate-iso-shimmer {
+  animation: isoShimmer 4.5s ease-in-out infinite;
+}
+
+@keyframes isoPulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+.animate-iso-pulse-glow {
+  animation: isoPulseGlow 4s ease-in-out infinite;
+}
+

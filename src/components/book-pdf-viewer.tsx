@@ -24,6 +24,7 @@ if (typeof window !== "undefined") {
 
 import { Progress } from "@/components/ui/progress";
 import { getBookPdfUrl } from "@/lib/book-pdfs";
+import { downloadMediaFile, getDocumentFormat } from "@/lib/media-store";
 import { useReadingTimer } from "@/hooks/use-reading-timer";
 import { useReadingPosition } from "@/hooks/use-reading-position";
 import type { LibraryBook } from "@/lib/mock-data";

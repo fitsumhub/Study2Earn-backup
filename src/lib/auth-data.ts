@@ -10,6 +10,8 @@ export type AuthUser = {
   name: string;
   email: string;
   university: string;
+  department?: string;
+  bio?: string;
   xp: number;
   studyTrack?: StudyTrack;
   role?: "admin" | "developer" | "student";
@@ -28,6 +30,7 @@ export const DEMO_USER: AuthUser = {
   name: "Abebe Balcha",
   email: "aplusethiopia1@gmail.com",
   university: "Addis Ababa University",
+  department: "Computer Science",
   xp: 1240,
   studyTrack: "natural",
   role: "admin",
@@ -38,6 +41,7 @@ export const DEMO_ADMIN_USER: AuthUser = {
   name: "Abebe Balcha (Admin)",
   email: "admin@study2earn.et",
   university: "Addis Ababa University",
+  department: "Information Systems",
   xp: 5000,
   studyTrack: "natural",
   role: "admin",
@@ -48,6 +52,7 @@ export const DEMO_DEV_USER: AuthUser = {
   name: "Fitsum (Lead Developer)",
   email: "developer@study2earn.et",
   university: "AASTU (Software Engineering)",
+  department: "Software Engineering",
   xp: 99999,
   studyTrack: "natural",
   role: "developer",

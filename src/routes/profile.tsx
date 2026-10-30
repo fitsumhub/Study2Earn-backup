@@ -54,6 +54,7 @@ import {
   saveLocalFile,
 } from "@/lib/media-store";
 import { leaderboard } from "@/lib/mock-data";
+import { getUserNationalRank } from "@/lib/leaderboard-store";
 import { useReadingTime } from "@/hooks/use-reading-time";
 import { useWallet } from "@/hooks/use-wallet";
 import { useFrames } from "@/hooks/use-frames";
@@ -192,7 +193,9 @@ function ProfileContent() {
   const [editingAccount, setEditingAccount] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [universityDraft, setUniversityDraft] = useState("");
+  const [departmentDraft, setDepartmentDraft] = useState("");
   const [trackDraft, setTrackDraft] = useState<StudyTrack | "none">("none");
+  const [bioDraft, setBioDraft] = useState("");
 
   const [changingPassword, setChangingPassword] = useState(false);
   const [currentPwd, setCurrentPwd] = useState("");
@@ -208,7 +211,7 @@ function ProfileContent() {
   const nextBadge = badges
     .filter((b) => !b.earned)
     .sort((a, b) => b.current / b.target - a.current / a.target)[0];
-  const nationalRank = leaderboard.find((entry) => entry.id === user.id)?.rank;
+  const nationalRank = getUserNationalRank(user, wallet.lifetimeEarned).rank;
 
   const handleSignOut = () => {
     signOut();
@@ -267,7 +270,9 @@ function ProfileContent() {
   function startEditAccount() {
     setNameDraft(user!.name);
     setUniversityDraft(user!.university);
+    setDepartmentDraft(user!.department ?? "");
     setTrackDraft(user!.studyTrack ?? "none");
+    setBioDraft(user!.bio ?? "");
     setEditingAccount(true);
   }
 
@@ -281,7 +286,9 @@ function ProfileContent() {
     updateProfile({
       name,
       university,
+      department: departmentDraft.trim() || undefined,
       studyTrack: trackDraft === "none" ? undefined : trackDraft,
+      bio: bioDraft.trim() || undefined,
     });
     setEditingAccount(false);
     toast.success("Profile updated");
@@ -449,8 +456,14 @@ function ProfileContent() {
               {user.name}
             </h1>
             <p className="mt-1 text-slate-500 text-sm">
-              {user.university} · {user.email}
+              {user.university}
+              {user.department ? ` · ${user.department}` : ""} · {user.email}
             </p>
+            {user.bio && (
+              <p className="mt-1 text-slate-600 text-xs italic line-clamp-2">
+                "{user.bio}"
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-gold/10 text-brand-gold font-bold rounded-full text-xs border border-brand-gold/20">
                 <Coins className="size-3" />
@@ -828,6 +841,20 @@ function ProfileContent() {
                   />
                 </div>
                 <div className="space-y-1.5">
+                  <Label
+                    htmlFor="profile-department"
+                    className="text-xs font-semibold text-slate-500"
+                  >
+                    Department / Major
+                  </Label>
+                  <Input
+                    id="profile-department"
+                    value={departmentDraft}
+                    onChange={(e) => setDepartmentDraft(e.target.value)}
+                    placeholder="e.g. Software Engineering, Medicine, Pre-Engineering"
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-500">Study track</Label>
                   <Select
                     value={trackDraft}
@@ -842,6 +869,20 @@ function ProfileContent() {
                       <SelectItem value="social">Social Science</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="profile-bio"
+                    className="text-xs font-semibold text-slate-500"
+                  >
+                    Bio / Goal
+                  </Label>
+                  <Input
+                    id="profile-bio"
+                    value={bioDraft}
+                    onChange={(e) => setBioDraft(e.target.value)}
+                    placeholder="Short academic bio or study goal"
+                  />
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <Button size="sm" onClick={saveAccount} className="gap-1.5">
@@ -859,9 +900,14 @@ function ProfileContent() {
                 <Field label="Email" value={user.email} />
                 <Field label="University" value={user.university} />
                 <Field
+                  label="Department / Major"
+                  value={user.department ?? "General Freshman"}
+                />
+                <Field
                   label="Study track"
                   value={user.studyTrack ? STUDY_TRACK_LABELS[user.studyTrack] : "Not set"}
                 />
+                {user.bio && <Field label="Bio" value={user.bio} />}
                 <Field label="Student ID" value={user.id} />
                 <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">

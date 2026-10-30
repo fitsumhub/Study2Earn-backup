@@ -658,7 +658,7 @@ function CourseCard({
   const isComplete = stats.completed === stats.total && stats.total > 0;
   const isStarted = stats.completed > 0 && !isComplete;
 
-  const statusLabel = isComplete ? "Complete" : isStarted ? "In Progress" : "Not Started";
+  const statusLabel = isComplete ? "Mastered" : isStarted ? "In Progress" : "Not Started";
   const statusColor = isComplete
     ? "text-emerald-700 bg-emerald-50 border-emerald-200"
     : isStarted
@@ -671,9 +671,13 @@ function CourseCard({
     <Link
       to="/exams/$courseId"
       params={{ courseId: course.id }}
-      className="group flex flex-col rounded-2xl border bg-white shadow-xs overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+      className="group flex flex-col rounded-3xl border bg-white shadow-xs overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-200/70 relative"
       style={{
-        borderColor: isComplete ? "#6ee7b7" : isStarted ? "#fcd34d40" : "#e2e8f0",
+        borderColor: isComplete
+          ? "#10b981"
+          : isStarted
+            ? "#f59e0b"
+            : "#e2e8f0",
       }}
     >
       {/* Cover with overlaid badges */}
@@ -681,52 +685,56 @@ function CourseCard({
         courseId={course.id}
         name={course.name}
         coverUrl={course.coverUrl}
-        className="h-32"
+        className="h-44 sm:h-48"
       >
         {/* Rarity-style top gradient strip based on completion */}
         <div
           className={cn(
-            "absolute inset-x-0 top-0 h-1",
+            "absolute inset-x-0 top-0 h-1 z-20",
             isComplete
-              ? "bg-gradient-to-r from-emerald-400 to-teal-500"
+              ? "bg-gradient-to-r from-emerald-400 to-teal-400"
               : isStarted
-                ? "bg-gradient-to-r from-amber-400 to-yellow-500"
-                : "bg-gradient-to-r from-slate-400 to-slate-500",
+                ? "bg-gradient-to-r from-amber-400 to-yellow-400"
+                : "bg-gradient-to-r from-white/20 via-white/40 to-transparent",
           )}
         />
 
-        <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-1.5 p-3">
+        <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-1.5 p-3.5 z-10">
           <span
             className={cn(
-              "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm",
+              "text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm backdrop-blur-md",
               catMeta.pill,
             )}
           >
             {course.category}
           </span>
           {recommended && (
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-brand-gold/50 bg-brand-gold text-brand-navy shadow-sm">
-              Your Track
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-brand-gold/60 bg-brand-gold text-brand-navy shadow-sm backdrop-blur-md flex items-center gap-1">
+              <Sparkles className="size-2.5" /> Track Match
             </span>
           )}
           {isComplete && (
-            <span className="flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
-              <CheckCircle2 className="size-2.5" /> Done
+            <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm backdrop-blur-md">
+              <CheckCircle2 className="size-2.5" /> Mastered
             </span>
           )}
+          <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/40 text-white/90 border border-white/20 backdrop-blur-md shadow-xs">
+            <BookOpen className="size-2.5 text-white/70" />
+            {course.chapters.length} Ch
+          </span>
         </div>
       </CourseCover>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 p-4">
+      <div className="flex flex-col flex-1 p-4.5">
         {/* Title row */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="font-serif text-sm font-bold leading-snug text-brand-navy group-hover:text-brand-navy/80 transition-colors flex-1">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="font-serif text-base font-bold leading-snug text-brand-navy group-hover:text-blue-900 transition-colors flex-1 line-clamp-2">
             {course.name}
           </h3>
           <span
             className={cn(
-              "shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded border",
+              "shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md border",
               statusColor,
             )}
           >
@@ -735,33 +743,33 @@ function CourseCard({
         </div>
 
         {/* Meta tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className="flex items-center gap-1 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-            <BookOpen className="size-2.5" />
-            {course.chapters.length} ch.
-          </span>
-          <span className="flex items-center gap-1 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-            <ClipboardList className="size-2.5" />
+        <div className="flex flex-wrap items-center gap-1.5 mb-3.5">
+          <span className="flex items-center gap-1 rounded-lg bg-slate-50 border border-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+            <ClipboardList className="size-3 text-slate-400" />
             {course.questionsPerExam} Q
           </span>
-          <span className="flex items-center gap-1 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-            <Clock className="size-2.5" />
+          <span className="flex items-center gap-1 rounded-lg bg-slate-50 border border-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+            <Clock className="size-3 text-slate-400" />
             {course.durationMinutes}m
+          </span>
+          <span className="flex items-center gap-1 rounded-lg bg-emerald-50/70 border border-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-700">
+            <Zap className="size-3 text-emerald-600" />
+            +{maxXp} XP
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="mt-auto space-y-1.5">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-slate-400 font-medium">Progress</span>
-            <span className="font-bold text-slate-700">
-              {stats.completed}/{stats.total}
+        <div className="mt-auto space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-400 font-medium">Chapter Progress</span>
+            <span className="font-mono font-bold text-slate-700">
+              {stats.completed}/{stats.total} ({stats.percent}%)
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-100">
             <div
               className={cn(
-                "h-full rounded-full bg-gradient-to-r transition-all duration-500",
+                "h-full rounded-full bg-gradient-to-r transition-all duration-700",
                 isComplete
                   ? "from-emerald-400 to-teal-500"
                   : isStarted
@@ -774,17 +782,21 @@ function CourseCard({
         </div>
 
         {/* Footer */}
-        <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-3">
-          <span className="flex items-center gap-1 text-xs font-bold text-brand-gold">
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+          <span className="flex items-center gap-1 text-xs font-bold text-brand-navy group-hover:text-blue-900 transition-colors">
             {isComplete ? (
-              <><Trophy className="size-3.5" /> Completed</>
+              <span className="flex items-center gap-1 text-emerald-600">
+                <Trophy className="size-3.5" /> Exam Complete
+              </span>
             ) : (
-              <>View chapters <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></>
+              <>
+                Practice Chapters
+                <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+              </>
             )}
           </span>
-          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-            <Zap className="size-3" />
-            up to {maxXp} XP
+          <span className="text-[11px] font-semibold text-slate-400 group-hover:text-slate-600">
+            {course.short}
           </span>
         </div>
       </div>

@@ -42,14 +42,19 @@ export function subscribeFrames(cb: () => void) {
 
 export function readFrames(userId: string): FrameRecord {
   if (!userId) return emptyRecord();
-  return readStore()[userId] ?? emptyRecord();
+  const record = readStore()[userId];
+  if (!record) return emptyRecord();
+  return {
+    owned: Array.isArray(record.owned) ? record.owned : [],
+    equipped: record.equipped || null,
+  };
 }
 
 /** Unlocks a frame (idempotent) and equips it immediately. */
 export function unlockFrame(userId: string, frameId: string) {
   if (!userId) return;
   const store = readStore();
-  const current = store[userId] ?? emptyRecord();
+  const current = readFrames(userId);
   store[userId] = {
     owned: current.owned.includes(frameId) ? current.owned : [...current.owned, frameId],
     equipped: frameId,
@@ -61,7 +66,7 @@ export function unlockFrame(userId: string, frameId: string) {
 export function equipFrame(userId: string, frameId: string | null) {
   if (!userId) return;
   const store = readStore();
-  const current = store[userId] ?? emptyRecord();
+  const current = readFrames(userId);
   if (frameId && !current.owned.includes(frameId)) return; // can't equip what you don't own
   store[userId] = { ...current, equipped: frameId };
   writeStore(store);

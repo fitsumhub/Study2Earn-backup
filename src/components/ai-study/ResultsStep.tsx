@@ -39,8 +39,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import { AiPodcastPlayer } from "./AiPodcastPlayer";
-import { AiTutorChat } from "./AiTutorChat";
 import { ExportModal } from "./ExportModal";
 import { FlashcardsMode } from "./FlashcardsMode";
 import { QuestionCard } from "./QuestionCard";
@@ -139,9 +137,7 @@ export function ResultsStep({
     { id: "flashcards", label: "Flashcards", icon: Layers, badge: `${flashcards.length}` },
     { id: "quiz", label: "Practice Quiz", icon: ClipboardList, badge: `${total}` },
     { id: "written", label: "Written Recall", icon: Pencil, badge: `${writtenQuestions.length}` },
-    { id: "notes", label: "AI Notes & Summary", icon: BookOpen },
-    { id: "tutor", label: "AI Tutor", icon: Bot, badge: "Live" },
-    { id: "podcast", label: "AI Podcast", icon: Radio, badge: "Audio" },
+    { id: "notes", label: "Summarize Notes", icon: BookOpen },
   ];
 
   return (
@@ -234,7 +230,7 @@ export function ResultsStep({
                 {subjectLabel(result.subject)} Study Set
               </h1>
               <p className="mt-1 text-sm text-white/70">
-                Interactive Flashcards, Practice Quiz, Written Recall, AI Notes, Tutor & Podcast
+                Interactive Flashcards, Practice Quiz, Written Recall & Summarize Notes
               </p>
             </div>
 
@@ -571,12 +567,6 @@ export function ResultsStep({
             </div>
           </div>
         )}
-
-        {/* ── 5. AI TUTOR MODE ── */}
-        {activeTab === "tutor" && <AiTutorChat result={result} />}
-
-        {/* ── 6. AI PODCAST MODE ── */}
-        {activeTab === "podcast" && <AiPodcastPlayer podcast={podcast} />}
       </main>
 
       {/* Export & Share Modal */}

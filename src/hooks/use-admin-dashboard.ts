@@ -64,7 +64,13 @@ function syncContentToLibrary(item: AdminContent) {
   if (idx >= 0) {
     const prev = books[idx];
     const chapterList =
-      prev.chapterList.length === item.chapters
+      item.chapterList && item.chapterList.length > 0
+        ? item.chapterList.map((c, i) => ({
+            title: c.title || `Chapter ${i + 1}`,
+            pages: c.pages || Math.max(1, Math.ceil(item.pages / item.chapters)),
+            done: prev.chapterList[i]?.done ?? false,
+          }))
+        : prev.chapterList.length === item.chapters
         ? prev.chapterList
         : Array.from({ length: item.chapters }, (_, i) => ({
             title: prev.chapterList[i]?.title ?? `Chapter ${i + 1}`,
@@ -73,6 +79,18 @@ function syncContentToLibrary(item: AdminContent) {
           }));
     books[idx] = { ...prev, ...shared, chapterList };
   } else {
+    const chapterList =
+      item.chapterList && item.chapterList.length > 0
+        ? item.chapterList.map((c, i) => ({
+            title: c.title || `Chapter ${i + 1}`,
+            pages: c.pages || Math.max(1, Math.ceil(item.pages / item.chapters)),
+            done: false,
+          }))
+        : Array.from({ length: item.chapters }, (_, i) => ({
+            title: `Chapter ${i + 1}`,
+            pages: Math.max(1, Math.ceil(item.pages / item.chapters)),
+            done: false,
+          }));
     const book: LibraryBook = {
       id: item.id,
       ...shared,
@@ -80,11 +98,7 @@ function syncContentToLibrary(item: AdminContent) {
       progress: 0,
       xpEarned: 0,
       rating: 4.5,
-      chapterList: Array.from({ length: item.chapters }, (_, i) => ({
-        title: `Chapter ${i + 1}`,
-        pages: Math.max(1, Math.ceil(item.pages / item.chapters)),
-        done: false,
-      })),
+      chapterList,
     };
     books.unshift(book);
   }
@@ -140,6 +154,9 @@ export function useAdminDashboard() {
     approveWithdrawal,
     rejectWithdrawal,
     markPaid,
+    bulkApprove,
+    bulkMarkPaid,
+    bulkReject,
   } = useWithdrawals();
 
   // Lazy: building defaults constructs every course question bank — far too
@@ -265,23 +282,78 @@ export function useAdminDashboard() {
   );
 
   const handleMarkPaid = useCallback(
-    (id: string) => {
+    (id: string, transactionReference?: string, note?: string) => {
       const req = withdrawals.find((w) => w.id === id);
       if (!req) return;
-      const result = markPaid(id);
+      const result = markPaid(id, transactionReference, note);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const target = req.method === "usdt" ? `Binance UID ${req.binanceUid}` : (req.bankName || "Bank");
+      pushActivity({
+        time: "Just now",
+        action: "Withdrawal paid",
+        detail: `${req.amountEtb} ETB sent to ${target}${transactionReference ? ` (Ref: ${transactionReference})` : ""}`,
+        type: "reward",
+      });
+      toast.success(`Marked as paid — ${req.amountEtb} ETB to ${target}`);
+    },
+    [withdrawals, markPaid, pushActivity],
+  );
+
+  const handleBulkApproveWithdrawals = useCallback(
+    (ids: string[]) => {
+      const result = bulkApprove(ids);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       pushActivity({
         time: "Just now",
-        action: "Withdrawal paid",
-        detail: `${req.amountEtb} ETB sent to ${req.bankName}`,
+        action: "Bulk withdrawals approved",
+        detail: `Approved ${ids.length} withdrawal requests`,
         type: "reward",
       });
-      toast.success(`Marked as paid — ${req.amountEtb} ETB to ${req.bankName}`);
+      toast.success(`Approved ${ids.length} withdrawal requests`);
     },
-    [withdrawals, markPaid, pushActivity],
+    [bulkApprove, pushActivity],
+  );
+
+  const handleBulkMarkPaidWithdrawals = useCallback(
+    (ids: string[], batchRef?: string) => {
+      const result = bulkMarkPaid(ids, batchRef);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      pushActivity({
+        time: "Just now",
+        action: "Bulk withdrawals paid",
+        detail: `Disbursed ${ids.length} requests${batchRef ? ` (Batch: ${batchRef})` : ""}`,
+        type: "reward",
+      });
+      toast.success(`Disbursed ${ids.length} withdrawal requests`);
+    },
+    [bulkMarkPaid, pushActivity],
+  );
+
+  const handleBulkRejectWithdrawals = useCallback(
+    (ids: string[], note?: string) => {
+      const result = bulkReject(ids, note);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      pushActivity({
+        time: "Just now",
+        action: "Bulk withdrawals rejected",
+        detail: `Rejected ${ids.length} withdrawal requests`,
+        type: "reward",
+      });
+      toast.success(`Rejected ${ids.length} withdrawal requests`);
+    },
+    [bulkReject, pushActivity],
   );
 
   const filteredUsers = useMemo(() => {
@@ -794,6 +866,71 @@ export function useAdminDashboard() {
     [content, pushActivity],
   );
 
+  const duplicateContent = useCallback(
+    (id: string) => {
+      const original = content.find((c) => c.id === id);
+      if (!original) return;
+      const newId = nextId("BK", content);
+      const duplicated: AdminContent = {
+        ...original,
+        id: newId,
+        name: `${original.name} (Copy)`,
+        short: original.short ? `${original.short}-copy` : "Copy",
+        students: "0",
+        published: false,
+        synced: false,
+        chapterList: original.chapterList ? original.chapterList.map((c) => ({ ...c })) : undefined,
+      };
+      setContent((prev) => [duplicated, ...prev]);
+      syncContentToLibrary(duplicated);
+      pushActivity({
+        time: "Just now",
+        action: "Content duplicated",
+        detail: `${duplicated.name} (${newId})`,
+        type: "content",
+      });
+      toast.success(`Duplicated as "${duplicated.name}"`);
+    },
+    [content, pushActivity],
+  );
+
+  const exportContentJson = useCallback(() => {
+    downloadFile(
+      `study2earn-library-catalog-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(content, null, 2),
+      "application/json",
+    );
+    toast.success("Library catalog exported as JSON");
+  }, [content]);
+
+  const importContentJson = useCallback(
+    (imported: AdminContent[]) => {
+      if (!Array.isArray(imported) || imported.length === 0) {
+        toast.error("Invalid JSON format. Expected an array of books.");
+        return;
+      }
+      const valid = imported.filter((item) => item?.id && item?.name);
+      if (valid.length === 0) {
+        toast.error("No valid book items found in JSON.");
+        return;
+      }
+      setContent((prev) => {
+        const existingIds = new Set(prev.map((c) => c.id));
+        const merged = [...valid.filter((i) => !existingIds.has(i.id)), ...prev];
+        return merged;
+      });
+      valid.forEach(syncContentToLibrary);
+      pushActivity({
+        time: "Just now",
+        action: "Content imported",
+        detail: `${valid.length} books imported from JSON`,
+        type: "content",
+      });
+      toast.success(`Imported ${valid.length} book(s)`);
+    },
+    [pushActivity],
+  );
+
   const createReward = useCallback(
     (data: RewardFormData) => {
       const reward: AdminReward = {
@@ -1113,6 +1250,9 @@ export function useAdminDashboard() {
     approveWithdrawal: handleApproveWithdrawal,
     rejectWithdrawal: handleRejectWithdrawal,
     markPaid: handleMarkPaid,
+    bulkApproveWithdrawals: handleBulkApproveWithdrawals,
+    bulkMarkPaidWithdrawals: handleBulkMarkPaidWithdrawals,
+    bulkRejectWithdrawals: handleBulkRejectWithdrawals,
     notificationsOpen,
     setNotificationsOpen,
     exams: filteredExams,
@@ -1149,6 +1289,9 @@ export function useAdminDashboard() {
     uploadContent,
     updateContent,
     deleteContent,
+    duplicateContent,
+    exportContentJson,
+    importContentJson,
     toggleContentPublished,
     bulkDeleteContent,
     bulkSetContentPublished,

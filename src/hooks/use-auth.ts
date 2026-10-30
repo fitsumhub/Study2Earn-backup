@@ -3,7 +3,9 @@ import { useCallback, useSyncExternalStore } from "react";
 import { DEMO_USER, defaultSession, type AuthUser, type StudyTrack } from "@/lib/auth-data";
 import { recordReferralSignup } from "@/lib/referral-store";
 import {
+  authenticateUser,
   readAuth,
+  saveRegisteredUser,
   signIn as storeSignIn,
   signOut as storeSignOut,
   subscribeAuth,
@@ -33,6 +35,18 @@ function getServerSnapshot() {
   return defaultSession;
 }
 
+function toBase64(str: string): string {
+  try {
+    if (typeof btoa !== "undefined") return btoa(str);
+  } catch {
+    // fallback
+  }
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(str).toString("base64");
+  }
+  return str;
+}
+
 // Enough entropy that a new signup can't accidentally land on DEMO_USER's id
 // (and thus its admin role) — the old `Date.now().toString().slice(-4)`
 // scheme cycled through only 10,000 values every 10 seconds.
@@ -49,6 +63,14 @@ export function useAuth() {
 
   const signIn = useCallback((user?: AuthUser) => {
     storeSignIn(user ?? DEMO_USER);
+  }, []);
+
+  const authenticate = useCallback((email: string, password: string) => {
+    const result = authenticateUser(email, password);
+    if (result.success && result.user) {
+      storeSignIn(result.user);
+    }
+    return result;
   }, []);
 
   const signUp = useCallback(
@@ -68,9 +90,9 @@ export function useAuth() {
       }
 
       // Simulate secure password hashing
-      const passwordHash = data.password ? btoa(data.password) : undefined;
+      const passwordHash = data.password ? toBase64(data.password) : undefined;
 
-      storeSignIn({
+      const newUser: AuthUser = {
         id: newId,
         name: data.name.trim() || DEMO_USER.name,
         email: data.email.trim() || DEMO_USER.email,
@@ -78,7 +100,11 @@ export function useAuth() {
         xp: startXp,
         studyTrack: data.studyTrack,
         passwordHash,
-      });
+      };
+
+      saveRegisteredUser(newUser);
+      storeSignIn(newUser);
+      return newUser;
     },
     [],
   );
@@ -94,6 +120,7 @@ export function useAuth() {
   return {
     ...session,
     signIn,
+    authenticate,
     signUp,
     signOut,
     updateProfile,
