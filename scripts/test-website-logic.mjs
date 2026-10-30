@@ -54,6 +54,12 @@ import {
   buildQuestionBank,
   getExamQuestions,
   PASSING_SCORE,
+  ETHIOPIAN_EXAM_UNIVERSITIES,
+  TOTAL_QUESTIONS_PER_COURSE,
+  TOTAL_QUESTIONS_PER_UNIVERSITY,
+  buildExtendedQuestionBank,
+  generateCurriculumQuestion,
+  getUniversityById,
 } from "@/lib/exam-data";
 
 // 3. Mistakes Bank
@@ -399,6 +405,72 @@ async function runAllTests() {
       totalQuestionsCount >= 100,
       `Verified at least 100 questions generated across all courses (found ${totalQuestionsCount})`,
     );
+  });
+
+  test("10,000 Questions Pool Engine & University Blueprint Integrity", () => {
+    assert.equal(TOTAL_QUESTIONS_PER_COURSE, 10_000, "10,000 questions capacity per course");
+    assert.equal(TOTAL_QUESTIONS_PER_UNIVERSITY, 10_000, "10,000 questions capacity per university");
+    assert.ok(
+      ETHIOPIAN_EXAM_UNIVERSITIES.length >= 10,
+      `At least 10 major Ethiopian universities/profiles supported (found ${ETHIOPIAN_EXAM_UNIVERSITIES.length})`,
+    );
+
+    const requiredUniKeys = ["moe-national", "aau", "aastu", "ju", "bdu", "hu", "mu", "uog", "hru", "astu"];
+    for (const uniId of requiredUniKeys) {
+      const uni = getUniversityById(uniId);
+      assert.ok(uni, `University ${uniId} profile must resolve`);
+      assert.equal(uni.questionPoolSize, 10_000, `${uni.short} must have 10,000 question capacity`);
+      assert.ok(Array.isArray(uni.years) && uni.years.length > 0, `${uni.short} must have exam years`);
+      assert.ok(uni.focus.length > 10, `${uni.short} must have focus description`);
+    }
+
+    // Verify lookup by name and abbreviation
+    assert.equal(getUniversityById("Addis Ababa University")?.id, "aau");
+    assert.equal(getUniversityById("AASTU")?.id, "aastu");
+    assert.equal(getUniversityById("Jimma University")?.id, "ju");
+
+    // Test generator across diverse indices up to 9,999 for every course
+    for (const course of examCourses) {
+      const chapter = course.chapters[0];
+      const testIndices = [0, 42, 99, 500, 2500, 9999];
+
+      for (const idx of testIndices) {
+        const q = generateCurriculumQuestion(course, chapter, idx, "aau");
+        assert.ok(q.id.startsWith(`${course.id}-${chapter.id}-`), `Valid ID prefix: ${q.id}`);
+        assert.ok(
+          q.question.includes(course.name) && q.question.includes(chapter.title),
+          `Stem references course and chapter: ${q.question}`,
+        );
+        assert.ok(
+          q.question.includes("AAU") ||
+            q.question.includes("Addis Ababa University") ||
+            q.question.includes("Competency") ||
+            q.question.includes("Benchmark") ||
+            q.question.includes("MoE"),
+          `Stem references university or curriculum context: ${q.question}`,
+        );
+        assert.equal(q.options.length, 4, "Must have 4 multiple-choice options");
+        assert.ok(q.correctIndex >= 0 && q.correctIndex < 4, `Correct index in bounds: ${q.correctIndex}`);
+        assert.ok(q.explanation.length > 15, `Detailed explanation present: ${q.explanation}`);
+      }
+
+      // Test buildExtendedQuestionBank
+      const extendedSlice = buildExtendedQuestionBank(course, chapter, 25, "moe-national", 100);
+      assert.equal(extendedSlice.length, 25, "Extended bank generates requested slice size");
+      assert.equal(extendedSlice[0].id, `${course.id}-${chapter.id}-q101`, "Offset properly applied to IDs");
+
+      // Test getExamQuestions with university parameter
+      const uniExamQuestions = getExamQuestions(course, chapter, 777, "ju");
+      assert.equal(uniExamQuestions.length, course.questionsPerExam, "Generates exact exam questions count");
+      assert.ok(
+        uniExamQuestions[0].question.includes("Jimma") ||
+          uniExamQuestions[0].question.includes("JU") ||
+          uniExamQuestions[0].explanation.includes("Jimma") ||
+          uniExamQuestions[0].question.includes("MoE") ||
+          uniExamQuestions[0].question.includes("Benchmark"),
+        "Question or explanation reflects university profile",
+      );
+    }
   });
 
   // ─── Suite 3: Mistake Notebook Store & Lifecycle ──────────────────────────

@@ -471,31 +471,67 @@ export function getChapter(courseId: string, chapterId: string): ExamChapter | u
   return getCourseById(courseId)?.chapters.find((ch) => ch.id === chapterId);
 }
 
-/** Build a question bank for a chapter (12 questions). */
-export function buildQuestionBank(course: ExamCourse, chapter: ExamChapter): MCQuestion[] {
+export {
+  ETHIOPIAN_EXAM_UNIVERSITIES,
+  TOTAL_QUESTIONS_PER_COURSE,
+  TOTAL_QUESTIONS_PER_UNIVERSITY,
+  type UniversityExamProfile,
+  getUniversityById,
+  generateCurriculumQuestion,
+  buildExtendedQuestionBank,
+} from "./curriculum-question-engine";
+
+import {
+  buildExtendedQuestionBank,
+} from "./curriculum-question-engine";
+
+export type QuestionBankOptions = {
+  count?: number;
+  university?: string;
+  offset?: number;
+};
+
+/** Build a question bank for a chapter (12 questions standard, or dynamic up to 10,000 questions). */
+export function buildQuestionBank(
+  course: ExamCourse,
+  chapter: ExamChapter,
+  options?: QuestionBankOptions,
+): MCQuestion[] {
+  if (options && (options.count !== undefined || options.university !== undefined || options.offset !== undefined)) {
+    return buildExtendedQuestionBank(
+      course,
+      chapter,
+      options.count ?? 12,
+      options.university ?? "moe-national",
+      options.offset ?? 0,
+    );
+  }
   return questionTemplates.map((tpl, i) => {
     const stem = tpl.stem
       .replace(/\{course\}/g, course.name)
       .replace(/\{chapter\}/g, chapter.title);
     const seed = hashSeed(`${course.id}:${chapter.id}:opt:${i}`);
-    const { options, correctIndex } = shuffleOptions(tpl.options, tpl.correct, seed);
+    const { options: shuffledOpts, correctIndex } = shuffleOptions(tpl.options, tpl.correct, seed);
     return {
       id: `${course.id}-${chapter.id}-q${i + 1}`,
       question: stem,
-      options,
+      options: shuffledOpts,
       correctIndex,
       explanation: tpl.explanation,
     };
   });
 }
 
-/** Return a randomized subset of questions for an exam attempt. */
+/** Return a randomized subset of questions for an exam attempt (supports university curriculum pattern). */
 export function getExamQuestions(
   course: ExamCourse,
   chapter: ExamChapter,
   attemptSeed?: number,
+  universityId?: string,
 ): MCQuestion[] {
-  const bank = buildQuestionBank(course, chapter);
+  const bank = universityId
+    ? buildExtendedQuestionBank(course, chapter, Math.max(course.questionsPerExam * 3, 36), universityId)
+    : buildQuestionBank(course, chapter);
   const seed = attemptSeed ?? hashSeed(`${course.id}:${chapter.id}:${Date.now()}:${Math.random()}`);
   const shuffled = seededShuffle(bank, seed);
   const count = Math.min(course.questionsPerExam, shuffled.length);

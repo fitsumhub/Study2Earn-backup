@@ -18,6 +18,8 @@ export type ActiveExamSession = {
   flagged: string[];
   /** Epoch ms deadline — exam auto-submits when the clock passes this. */
   endsAt: number;
+  /** University / Exit Exam Blueprint ID */
+  universityId?: string;
 };
 
 const STORAGE_KEY = "study2earn-active-exam";

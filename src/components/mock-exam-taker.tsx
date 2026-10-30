@@ -3,13 +3,16 @@ import {
   AlertCircle,
   BookOpen,
   Brain,
+  Building2,
   CheckCircle2,
   Clock,
   Coins,
   Flag,
+  GraduationCap,
   HelpCircle,
   PlayCircle,
   RotateCcw,
+  Sparkles,
   Target,
   XCircle,
   Zap,
@@ -32,11 +35,21 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   type ExamChapter,
   type ExamCourse,
   type MCQuestion,
   PASSING_SCORE,
   getExamQuestions,
+  ETHIOPIAN_EXAM_UNIVERSITIES,
+  getUniversityById,
+  TOTAL_QUESTIONS_PER_COURSE,
 } from "@/lib/exam-data";
 import { useAuth } from "@/hooks/use-auth";
 import { calculateExamXp, useExamProgress } from "@/hooks/use-exam-progress";
@@ -111,17 +124,35 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
   const [savedSession, setSavedSession] = useState<ActiveExamSession | null>(null);
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const userUniMatch = user?.university ? getUniversityById(user.university) : undefined;
+  const [selectedUniversity, setSelectedUniversity] = useState<string>(
+    userUniMatch?.id || "moe-national",
+  );
+
+  useEffect(() => {
+    if (user?.university) {
+      const match = getUniversityById(user.university);
+      if (match) setSelectedUniversity(match.id);
+    }
+  }, [user?.university]);
+
   // Look for an autosaved attempt for this chapter (client-only, after mount)
   useEffect(() => {
     const saved = readExamSession();
     if (saved && saved.courseId === course.id && saved.chapterId === chapter.id) {
       setSavedSession(saved);
+      if (saved.universityId) setSelectedUniversity(saved.universityId);
     }
   }, [course.id, chapter.id]);
 
+  const activeUni = useMemo(
+    () => getUniversityById(selectedUniversity) || ETHIOPIAN_EXAM_UNIVERSITIES[0],
+    [selectedUniversity],
+  );
+
   const questions = useMemo(
-    () => getExamQuestions(course, chapter, attemptSeed),
-    [course, chapter, attemptSeed],
+    () => getExamQuestions(course, chapter, attemptSeed, selectedUniversity),
+    [course, chapter, attemptSeed, selectedUniversity],
   );
 
   const totalSeconds = course.durationMinutes * 60;
@@ -155,8 +186,9 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
       answers,
       flagged: [...flagged],
       endsAt,
+      universityId: selectedUniversity,
     });
-  }, [phase, endsAt, attemptSeed, answers, flagged, course.id, chapter.id]);
+  }, [phase, endsAt, attemptSeed, answers, flagged, course.id, chapter.id, selectedUniversity]);
 
   const score = useMemo(() => {
     if (phase !== "results") return 0;
@@ -253,6 +285,7 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
     setFlagged(new Set(savedSession.flagged));
     setEndsAt(savedSession.endsAt);
     setSecondsLeft(remaining);
+    if (savedSession.universityId) setSelectedUniversity(savedSession.universityId);
     setSavedSession(null);
     // Clock ran out while away → grade the saved answers directly
     setPhase(remaining > 0 ? "active" : "results");
@@ -419,6 +452,64 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
             ))}
           </div>
 
+          {/* University Exam Blueprint & 10,000 Question Pool */}
+          <div className="mt-6 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 via-slate-50/50 to-amber-50/40 p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-blue-600/10 border border-blue-600/20 grid place-items-center text-blue-600">
+                  <GraduationCap className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-serif text-base font-bold text-brand-navy">
+                    University & Exam Blueprint
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Curriculum target for question generation & difficulty curve
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold self-start sm:self-auto">
+                <Sparkles className="size-3.5 text-emerald-600" />
+                <span>{TOTAL_QUESTIONS_PER_COURSE.toLocaleString()}+ Questions Pool Active</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                  Select University Exam Pattern
+                </Label>
+                <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
+                  <SelectTrigger className="w-full bg-white border-slate-200">
+                    <SelectValue placeholder="Choose university blueprint..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ETHIOPIAN_EXAM_UNIVERSITIES.map((uni) => (
+                      <SelectItem key={uni.id} value={uni.id}>
+                        <span className="font-medium">{uni.name}</span>{" "}
+                        <span className="text-slate-400 text-xs">({uni.short})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-xs shadow-xs">
+                <p className="font-semibold text-brand-navy flex items-center gap-1.5">
+                  <Building2 className="size-3.5 text-blue-600" />
+                  {activeUni.name}
+                </p>
+                <p className="mt-1 text-slate-600 leading-relaxed">
+                  {activeUni.focus}
+                </p>
+                <div className="mt-2.5 flex items-center gap-2 text-[11px] text-slate-400 border-t border-slate-100 pt-2">
+                  <span>Years: {activeUni.years.join(", ")}</span>
+                  <span>•</span>
+                  <span>Ethiopian MoE Curriculum Standards</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* XP reward potential */}
           <div className="mt-4 flex items-center gap-3 rounded-xl border border-brand-gold/25 bg-brand-gold/5 px-4 py-3">
             <Coins className="size-4 shrink-0 text-brand-gold" />
@@ -547,6 +638,17 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
             </span>
             <span className="flex items-center gap-1.5 font-semibold text-red-500">
               <XCircle className="size-4" /> {wrongCount} wrong
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600 font-medium">
+              <GraduationCap className="size-3.5 text-blue-600" />
+              Pattern: {activeUni.name} ({activeUni.short})
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs text-emerald-700 font-medium">
+              <Sparkles className="size-3.5 text-emerald-600" />
+              10,000 Questions MoE Curriculum Engine
             </span>
           </div>
 
@@ -730,9 +832,15 @@ export function MockExamTaker({ course, chapter }: { course: ExamCourse; chapter
       <div className="sticky top-16 z-20 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm p-4 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {chapter.title}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                {chapter.title}
+              </p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200">
+                <GraduationCap className="size-3" />
+                {activeUni.short}
+              </span>
+            </div>
             <p className="text-sm text-slate-600">
               {answeredCount} of {questions.length} answered
               {flagged.size > 0 && (
